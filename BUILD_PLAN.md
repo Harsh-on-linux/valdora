@@ -59,12 +59,12 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Ambient cockpit animation: scanline overlay, rotating radar sweep in corner.
 - Output: Visual landing page ready with interactive layout.
 
-### Step 6 — Landing page logic 🔄 ← Current
+### Step 6 — Landing page logic ✅
 - "Continue" button dynamically shows only if existing save state exists; otherwise "Start" begins Level 1.
 - Web Audio UI sound feedback (beeps, clicks, power hums).
 - Output: Interactive landing navigation with auditory feedback.
 
-### Step 7 — How to Play / Settings screens
+### Step 7 — How to Play / Settings screens 🔄 ← Current
 - How to Play: Interactive controls diagram, weapon stats legend, enemy threat guide.
 - Settings: Master volume, SFX volume, Music volume, control scheme toggle (Keyboard / Mouse / Touch), screen shake toggle.
 - Output: Settings persisted to `localStorage` and real-time audio gain adjustment.

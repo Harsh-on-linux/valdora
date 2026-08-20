@@ -113,6 +113,10 @@ export class ScreenManager {
     this.activeScreenElement = newScreenElement;
     this.isTransitioning = false;
 
+    // Set active screen attribute on body and root for contextual layout styling
+    document.body.setAttribute('data-active-screen', targetScreenId);
+    this.uiRoot.setAttribute('data-active-screen', targetScreenId);
+
     // Dispatch global screen change event
     window.dispatchEvent(new CustomEvent('screenchange', {
       detail: { screenId: targetScreenId, data }

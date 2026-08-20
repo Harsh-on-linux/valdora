@@ -1,7 +1,7 @@
 /**
  * Space Shooter — Main Entry Point
  * Initializes high-DPI canvases, registers screens with ScreenManager,
- * and mounts the landing screen.
+ * mounts the landing screen, and initializes the Web Audio sound engine.
  */
 
 import {
@@ -15,10 +15,11 @@ import {
   SettingsScreen,
   ShowcaseScreen
 } from './ui/index.js';
-import { Starfield } from './game/index.js';
+import { Starfield, SaveManager } from './game/index.js';
+import { soundManager } from './audio/index.js';
 
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Space Shooter Engine — Initializing Global State Machine & Starfield...');
+  console.log('🚀 Space Shooter Engine — Initializing State Machine, Audio & Starfield...');
 
   const starfieldCanvas = document.getElementById('starfield-canvas');
   const gameCanvas = document.getElementById('game-canvas');
@@ -47,11 +48,10 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Size canvases to full viewport BEFORE creating Starfield
-  // so star positions are generated across the full screen
   resizeCanvases();
   window.addEventListener('resize', resizeCanvases);
 
-  // 2. Initialize Parallax Starfield Background (canvas is now correctly sized)
+  // 2. Initialize Parallax Starfield Background
   if (starfieldCanvas) {
     starfield = new Starfield(starfieldCanvas, {
       layerCount: 3,
@@ -76,11 +76,12 @@ window.addEventListener('DOMContentLoaded', () => {
     .register('showcase', ShowcaseScreen);
 
   // Mount default starting screen
-  // screenManager.show('landing'); // Disabled temporarily to show Tactical HUD mockup
+  screenManager.show('landing');
 
-  // Expose router globally for debugging & testing
+  // Expose singletons globally for debugging & testing
   window.__screenManager = screenManager;
+  window.__soundManager = soundManager;
+  window.__saveManager = SaveManager;
 
-  console.log('✅ Global State Machine & Starfield active. Screens registered: landing, levelSelect, loadout, game, pause, results, settings, showcase.');
+  console.log('✅ Global State Machine, Web Audio & Starfield active. Screens registered: landing, levelSelect, loadout, game, pause, results, settings, showcase.');
 });
-

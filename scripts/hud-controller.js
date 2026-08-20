@@ -1,8 +1,11 @@
 /**
  * HUD Controller — Interactive Cockpit Command Interface
  * Handles toggle switches, button groups, interactive sliders,
- * live timestamp updates, and subtle telemetry drift animations.
+ * live timestamp updates, subtle telemetry drift animations,
+ * bottom bar navigation, and procedural Web Audio feedback.
  */
+
+import { soundManager } from './audio/index.js';
 
 (function initHUDController() {
   'use strict';
@@ -21,7 +24,74 @@
     initLiveTimestamp();
     initTelemetryDrift();
     initCollapsePanel();
-    console.log('🎛️ HUD Controller — All interactive systems online.');
+    initEdgeNavigation();
+    initGlobalAudioHooks();
+    console.log('🎛️ HUD Controller — All interactive systems & audio online.');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  GLOBAL AUDIO HOOKS — Universal button hover & click sounds
+  // ═══════════════════════════════════════════════════════════════════
+
+  function initGlobalAudioHooks() {
+    // Listen for custom ui:click events
+    window.addEventListener('ui:click', () => {
+      soundManager.playClick();
+    });
+
+    // Delegate hover sounds to all interactive elements
+    document.addEventListener('pointerenter', (e) => {
+      if (e.target && e.target.matches && e.target.matches('button, .tac-btn, .console-btn, .layer-toggle, .slider-track.interactive')) {
+        soundManager.playHover();
+      }
+    }, true);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  EDGE NAVIGATION — Star Map, Loadout & Cockpit Title routing
+  // ═══════════════════════════════════════════════════════════════════
+
+  function initEdgeNavigation() {
+    const btnStarmap = document.getElementById('btn-starmap');
+    if (btnStarmap) {
+      btnStarmap.addEventListener('click', () => {
+        soundManager.playClick();
+        if (window.__screenManager) {
+          const current = window.__screenManager.getActiveScreenId();
+          window.__screenManager.show(current === 'levelSelect' ? 'landing' : 'levelSelect');
+        }
+      });
+    }
+
+    const btnLoadout = document.getElementById('btn-loadout');
+    if (btnLoadout) {
+      btnLoadout.addEventListener('click', () => {
+        soundManager.playClick();
+        if (window.__screenManager) {
+          const current = window.__screenManager.getActiveScreenId();
+          window.__screenManager.show(current === 'loadout' ? 'landing' : 'loadout');
+        }
+      });
+    }
+
+    const topTitle = document.querySelector('.top-title');
+    if (topTitle) {
+      topTitle.style.cursor = 'pointer';
+      topTitle.addEventListener('click', () => {
+        soundManager.playClick();
+        if (window.__screenManager) {
+          window.__screenManager.show('landing');
+        }
+      });
+    }
+
+    const commsPanel = document.getElementById('comms-panel');
+    if (commsPanel) {
+      commsPanel.style.cursor = 'pointer';
+      commsPanel.addEventListener('click', () => {
+        soundManager.playRadarPing();
+      });
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -34,10 +104,11 @@
     toggles.forEach(toggle => {
       toggle.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOn = toggle.classList.contains('on');
+        const wasOn = toggle.classList.contains('on');
         const label = toggle.querySelector('.toggle-label-text');
+        const newState = !wasOn;
 
-        if (isOn) {
+        if (wasOn) {
           toggle.classList.remove('on');
           toggle.classList.add('off');
           if (label) label.textContent = 'OFF';
@@ -47,9 +118,11 @@
           if (label) label.textContent = 'ON';
         }
 
+        // Auditory feedback
+        soundManager.playToggle(newState);
+
         // Dispatch event for game state
         const systemId = toggle.getAttribute('data-toggle');
-        const newState = toggle.classList.contains('on');
         window.dispatchEvent(new CustomEvent('system:toggle', {
           detail: { system: systemId, active: newState }
         }));
@@ -69,6 +142,9 @@
 
       buttons.forEach(btn => {
         btn.addEventListener('click', () => {
+          // Play click sound
+          soundManager.playClick();
+
           // Remove active from all siblings
           buttons.forEach(b => b.classList.remove('active'));
           // Set clicked as active
@@ -96,6 +172,7 @@
       const paramId = track.getAttribute('data-param');
       const fill = track.querySelector('.slider-fill');
       let isDragging = false;
+      let lastPercent = -1;
 
       function updateSlider(clientX) {
         const rect = track.getBoundingClientRect();
@@ -110,6 +187,12 @@
         const valueEl = document.getElementById(`val-${paramId}`);
         if (valueEl) {
           valueEl.textContent = `${percent}%`;
+        }
+
+        // Play micro-tick if value changed substantially
+        if (Math.abs(percent - lastPercent) >= 5) {
+          soundManager.playSlider();
+          lastPercent = percent;
         }
 
         // Dispatch event
@@ -208,6 +291,7 @@
 
     collapseBtn.addEventListener('click', () => {
       collapsed = !collapsed;
+      soundManager.playClick();
       if (collapsed) {
         body.style.display = 'none';
         collapseBtn.textContent = '▸';
