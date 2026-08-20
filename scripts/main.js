@@ -24,18 +24,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const gameCanvas = document.getElementById('game-canvas');
   const uiRoot = document.getElementById('ui-root');
 
-  // 1. Initialize Parallax Starfield Background
+  // 1. High-DPI Responsive Canvas Resize Handler
   let starfield = null;
-  if (starfieldCanvas) {
-    starfield = new Starfield(starfieldCanvas, {
-      layerCount: 3,
-      starCount: 220,
-      baseSpeed: 1.0
-    });
-    window.__starfield = starfield;
-  }
 
-  // 2. High-DPI Responsive Canvas Resize Handler
   function resizeCanvases() {
     const dpr = window.devicePixelRatio || 1;
     const width = window.innerWidth;
@@ -55,10 +46,19 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  window.addEventListener('resize', resizeCanvases);
+  // Size canvases to full viewport BEFORE creating Starfield
+  // so star positions are generated across the full screen
   resizeCanvases();
+  window.addEventListener('resize', resizeCanvases);
 
-  if (starfield) {
+  // 2. Initialize Parallax Starfield Background (canvas is now correctly sized)
+  if (starfieldCanvas) {
+    starfield = new Starfield(starfieldCanvas, {
+      layerCount: 3,
+      starCount: 220,
+      baseSpeed: 1.0
+    });
+    window.__starfield = starfield;
     starfield.start();
   }
 
@@ -76,7 +76,7 @@ window.addEventListener('DOMContentLoaded', () => {
     .register('showcase', ShowcaseScreen);
 
   // Mount default starting screen
-  screenManager.show('landing');
+  // screenManager.show('landing'); // Disabled temporarily to show Tactical HUD mockup
 
   // Expose router globally for debugging & testing
   window.__screenManager = screenManager;

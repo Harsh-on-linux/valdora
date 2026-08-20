@@ -4,6 +4,9 @@
 
 export const GameScreen = {
   mount(container, data, router) {
+    // Show the game canvas during gameplay
+    const gameCanvas = document.getElementById('game-canvas');
+    if (gameCanvas) gameCanvas.classList.add('active');
     container.innerHTML = `
       <div class="hud-layer">
         <div class="hud-top-bar">
@@ -52,5 +55,9 @@ export const GameScreen = {
     });
   },
 
-  unmount() {}
+  unmount() {
+    // Hide the game canvas when leaving gameplay
+    const gameCanvas = document.getElementById('game-canvas');
+    if (gameCanvas) gameCanvas.classList.remove('active');
+  }
 };

@@ -125,18 +125,11 @@ export class Starfield {
   }
 
   /**
-   * Handle dynamic resize
+   * Handle dynamic resize — fully reinitialize star and nebula positions
+   * to cover the new canvas dimensions.
    */
   resize() {
-    this.dpr = window.devicePixelRatio || 1;
-    const w = this.canvas.width / this.dpr;
-    const h = this.canvas.height / this.dpr;
-
-    for (let i = 0; i < this.stars.length; i++) {
-      const s = this.stars[i];
-      if (s.x > w) s.x = Math.random() * w;
-      if (s.y > h) s.y = Math.random() * h;
-    }
+    this.init();
   }
 
   /**
