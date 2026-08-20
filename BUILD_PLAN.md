@@ -52,13 +52,13 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE B — Landing Page & Navigation
 
-### Step 5 — Landing page layout 🔄 ← Current
+### Step 5 — Landing page layout ✅
 - Title logo with pulsing holographic glow animation.
 - Primary buttons: Start/Continue, Level Select, Loadout, Settings, How to Play.
 - Ambient cockpit animation: scanline overlay, rotating radar sweep in corner.
 - Output: Visual landing page ready with interactive layout.
 
-### Step 6 — Landing page logic
+### Step 6 — Landing page logic 🔄 ← Current
 - "Continue" button dynamically shows only if existing save state exists; otherwise "Start" begins Level 1.
 - Web Audio UI sound feedback (beeps, clicks, power hums).
 - Output: Interactive landing navigation with auditory feedback.
