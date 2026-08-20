@@ -1,0 +1,190 @@
+/* ==========================================================================
+   THEME CONFIGURATION & COCKPIT DESIGN TOKENS
+   Space Shooter - Cockpit HUD Theme
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
+
+:root {
+  /* Core Backgrounds */
+  --bg-deep-space: #02040a;
+  --bg-space: #050b18;
+  --bg-panel: rgba(8, 16, 36, 0.85);
+  --bg-panel-solid: #091226;
+  --bg-panel-glass: rgba(10, 22, 48, 0.65);
+  --bg-panel-dark: rgba(3, 7, 18, 0.92);
+  --bg-overlay: rgba(2, 6, 18, 0.88);
+
+  /* Cockpit Glow & Accents */
+  --glow-cyan: #00f0ff;
+  --glow-cyan-dim: #008899;
+  --glow-cyan-soft: rgba(0, 240, 255, 0.15);
+  --glow-cyan-glow: 0 0 12px rgba(0, 240, 255, 0.6), 0 0 24px rgba(0, 240, 255, 0.25);
+
+  --glow-amber: #ffb703;
+  --glow-amber-dim: #b38000;
+  --glow-amber-soft: rgba(255, 183, 3, 0.15);
+  --glow-amber-glow: 0 0 12px rgba(255, 183, 3, 0.6), 0 0 24px rgba(255, 183, 3, 0.25);
+
+  --danger-red: #ff0055;
+  --danger-red-dim: #990033;
+  --danger-red-soft: rgba(255, 0, 85, 0.15);
+  --danger-red-glow: 0 0 12px rgba(255, 0, 85, 0.65), 0 0 28px rgba(255, 0, 85, 0.3);
+
+  --neon-green: #39ff14;
+  --neon-green-dim: #22990c;
+  --neon-green-soft: rgba(57, 255, 20, 0.15);
+  --neon-green-glow: 0 0 12px rgba(57, 255, 20, 0.6), 0 0 24px rgba(57, 255, 20, 0.25);
+
+  --laser-purple: #c026d3;
+  --laser-purple-glow: 0 0 14px rgba(192, 38, 211, 0.6);
+
+  /* Typography & HUD Texts */
+  --text-primary: #e0f2fe;
+  --text-secondary: #7dd3fc;
+  --text-muted: #38bdf8;
+  --text-dim: #1e3a8a;
+  --text-white: #ffffff;
+  --text-gold: #fde047;
+
+  /* Font Families */
+  --font-hud-heading: 'Orbitron', 'Rajdhani', -apple-system, sans-serif;
+  --font-hud-sub: 'Rajdhani', 'Orbitron', sans-serif;
+  --font-hud-mono: 'Share Tech Mono', monospace;
+
+  /* Borders & Bevels */
+  --border-cyan: 1px solid rgba(0, 240, 255, 0.4);
+  --border-cyan-bright: 1px solid rgba(0, 240, 255, 0.85);
+  --border-amber: 1px solid rgba(255, 183, 3, 0.4);
+  --border-danger: 1px solid rgba(255, 0, 85, 0.5);
+  --border-dim: 1px solid rgba(125, 211, 252, 0.15);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-clip: 12px;
+
+  /* Panel Bevel Shadows & Lighting */
+  --panel-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(0, 240, 255, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.7);
+  
+  --panel-shadow-amber: 
+    0 10px 30px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 183, 3, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.7);
+
+  /* Transitions & Animation Easing */
+  --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms var(--ease-snappy);
+  --transition-normal: 280ms var(--ease-smooth);
+}
+
+/* Reset & Box Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-deep-space);
+  color: var(--text-primary);
+  font-family: var(--font-hud-sub);
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+}
+
+/* Base Canvas & App Containers */
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #0a1428 0%, #030712 70%, #010206 100%);
+}
+
+#starfield-canvas,
+#game-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#starfield-canvas {
+  z-index: 1;
+}
+
+#game-canvas {
+  z-index: 5;
+}
+
+/* Cockpit CRT Scanlines Overlay */
+.scanlines-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 90;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.03),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.03)
+  );
+  background-size: 100% 4px, 6px 100%;
+  opacity: 0.65;
+}
+
+/* UI Container & Screen Layer */
+#ui-root {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.screen-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.97);
+  transition: opacity var(--transition-normal), transform var(--transition-normal), visibility var(--transition-normal);
+}
+
+.screen-container.active {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}

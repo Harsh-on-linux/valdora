@@ -1,0 +1,63 @@
+/* ==========================================================================
+   MENU & CONSOLE UI STYLES
+   Space Shooter - Menu, Modals, Navigation
+   ========================================================================== */
+
+/* Console Panels */
+.console-panel {
+  background: var(--bg-panel);
+  border: var(--border-cyan);
+  box-shadow: var(--panel-shadow);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 28px 36px;
+  position: relative;
+  overflow: hidden;
+}
+
+.console-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--glow-cyan), transparent);
+}
+
+/* Console Buttons */
+.console-btn {
+  font-family: var(--font-hud-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid var(--glow-cyan-dim);
+  border-radius: var(--radius-sm);
+  padding: 12px 28px;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.console-btn:hover {
+  background: rgba(0, 240, 255, 0.22);
+  border-color: var(--glow-cyan);
+  box-shadow: var(--glow-cyan-glow);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.console-btn:active {
+  transform: scale(0.96) translateY(0);
+  background: rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 20px var(--glow-cyan);
+}

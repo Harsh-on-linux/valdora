@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Space Shooter — Cockpit HUD</title>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles/theme.css">
+  <link rel="stylesheet" href="styles/menu.css">
+  <link rel="stylesheet" href="styles/game.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Background Canvas (Starfield / Space Parallax) -->
+    <canvas id="starfield-canvas"></canvas>
+
+    <!-- Gameplay Canvas (Ship, Bullets, Enemies, Particles) -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- CRT Scanline & Cockpit Glass Effect Overlay -->
+    <div class="scanlines-overlay"></div>
+
+    <!-- UI Overlay Root (State-driven Screens & Dialogs) -->
+    <div id="ui-root"></div>
+  </div>
+
+  <!-- Entry Script -->
+  <script type="module" src="scripts/main.js"></script>
+</body>
+</html>
