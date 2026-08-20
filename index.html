@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Space Shooter — Advanced cockpit command interface with real-time tactical HUD, ship systems monitoring, and weapons management.">
   <title>Space Shooter — Cockpit Command</title>
   
   <!-- Stylesheets -->
@@ -12,13 +13,13 @@
 </head>
 <body>
   <div id="app">
-    <!-- Background Canvas (Starfield / Space Parallax) -->
+    <!-- Background Canvas (Starfield / Deep Space) -->
     <canvas id="starfield-canvas"></canvas>
 
     <!-- Gameplay Canvas (Ship, Bullets, Enemies, Particles) -->
     <canvas id="game-canvas"></canvas>
 
-    <!-- CRT Scanline & Cockpit Glass Overlay -->
+    <!-- CRT Scanline & Vignette Overlay -->
     <div class="scanlines-overlay"></div>
 
     <!-- UI Overlay Root -->
@@ -28,99 +29,122 @@
         <!-- ═══════════ TOP BAR ═══════════ -->
         <div class="top-bar">
           <div class="top-title">
-            ⦿ SPACE SHOOTER
+            <span class="title-icon"></span> SPACE SHOOTER
             <span class="classification">COCKPIT COMMAND INTERFACE</span>
-            <span class="classification" style="margin-top: 6px;">CLEARANCE // ALPHA-7 // CLASSIFIED</span>
+            <span class="classification">CLEARANCE // ALPHA-7 // CLASSIFIED</span>
             <span class="classification">PILOT-0042 CALLSIGN: PHANTOM</span>
             <span class="active-style">COMBAT MODE</span>
-            <span class="classification" style="font-style: italic;">SECTOR</span>
+            <span class="classification" style="font-style: italic; margin-top: 4px;">SECTOR</span>
             <span class="classification">NEBULA RIDGE — HOSTILE TERRITORY</span>
           </div>
           <div class="top-meta">
-            <div style="font-family: var(--font-heading); font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 4px;">ACTIVE LOADOUT<br><span style="color: var(--text-bright); font-size: 0.85rem;">STRIKER</span></div>
-            <div class="rec-indicator">LIVE 2026-08-20 23:45:00Z</div>
-            <div class="orbit-info">SECTOR: 7-ALPHA WAVE: 03/12</div>
+            <div class="loadout-label">ACTIVE LOADOUT</div>
+            <div class="loadout-value">STRIKER</div>
+            <div class="rec-indicator"><span id="live-timestamp">LIVE 2026-08-20 23:45:00Z</span></div>
+            <div class="orbit-info">SECTOR: 7-ALPHA &nbsp;WAVE: 03/12</div>
           </div>
         </div>
 
         <!-- ═══════════ LEFT SIDEBAR: SHIP SYSTEMS ═══════════ -->
         <div class="sidebar-left">
-          <div class="data-panel">
+          <div class="data-panel" id="panel-ship-systems">
             <div class="data-panel-header">
               SHIP SYSTEMS
-              <span class="collapse-icon">▾</span>
+              <span class="collapse-icon" id="collapse-ship-systems">▾</span>
             </div>
+            <div id="ship-systems-body">
 
-            <!-- Row: Hull Integrity -->
-            <div class="layer-row">
-              <div class="layer-icon">🛡</div>
-              <div class="layer-info">
-                <div class="layer-name">Hull Integrity</div>
-                <div class="layer-source">Structural · real-time</div>
+              <!-- Row: Hull Integrity -->
+              <div class="layer-row" data-system="hull">
+                <div class="layer-icon">🛡</div>
+                <div class="layer-info">
+                  <div class="layer-name">Hull Integrity</div>
+                  <div class="layer-source">Structural · real-time</div>
+                </div>
+                <div class="layer-count">92%</div>
+                <div class="layer-toggle on" data-toggle="hull" title="Toggle Hull Monitor">
+                  <span class="toggle-knob"></span>
+                  <span class="toggle-label-text">ON</span>
+                </div>
               </div>
-              <div class="layer-count">92%</div>
-              <div class="layer-badge on">OK</div>
-            </div>
 
-            <!-- Row: Energy Shield -->
-            <div class="layer-row">
-              <div class="layer-icon">⚡</div>
-              <div class="layer-info">
-                <div class="layer-name">Energy Shield</div>
-                <div class="layer-source">Capacitor · charging</div>
+              <!-- Row: Energy Shield -->
+              <div class="layer-row" data-system="shield">
+                <div class="layer-icon">⚡</div>
+                <div class="layer-info">
+                  <div class="layer-name">Energy Shield</div>
+                  <div class="layer-source">Capacitor · charging</div>
+                </div>
+                <div class="layer-count">78%</div>
+                <div class="layer-toggle on" data-toggle="shield" title="Toggle Energy Shield">
+                  <span class="toggle-knob"></span>
+                  <span class="toggle-label-text">ON</span>
+                </div>
               </div>
-              <div class="layer-count">78%</div>
-              <div class="layer-badge on">ON</div>
-            </div>
 
-            <!-- Row: Radar Array -->
-            <div class="layer-row">
-              <div class="layer-icon">◎</div>
-              <div class="layer-info">
-                <div class="layer-name">Radar Array</div>
-                <div class="layer-source">Sweep · 360° active</div>
+              <!-- Row: Radar Array -->
+              <div class="layer-row" data-system="radar">
+                <div class="layer-icon">◎</div>
+                <div class="layer-info">
+                  <div class="layer-name">Radar Array</div>
+                  <div class="layer-source">Sweep · 360° active</div>
+                </div>
+                <div class="layer-count">12</div>
+                <div class="layer-toggle on" data-toggle="radar" title="Toggle Radar Array">
+                  <span class="toggle-knob"></span>
+                  <span class="toggle-label-text">ON</span>
+                </div>
               </div>
-              <div class="layer-count">12</div>
-              <div class="layer-badge on">ON</div>
-            </div>
 
-            <!-- Row: Threat Scanner -->
-            <div class="layer-row">
-              <div class="layer-icon">▲</div>
-              <div class="layer-info">
-                <div class="layer-name">Threat Scanner</div>
-                <div class="layer-source">Proximity · 500m range</div>
+              <!-- Row: Threat Scanner -->
+              <div class="layer-row" data-system="threat">
+                <div class="layer-icon">▲</div>
+                <div class="layer-info">
+                  <div class="layer-name">Threat Scanner</div>
+                  <div class="layer-source">Proximity · 500m range</div>
+                </div>
+                <div class="layer-count">3</div>
+                <div class="layer-toggle on" data-toggle="threat" title="Toggle Threat Scanner">
+                  <span class="toggle-knob"></span>
+                  <span class="toggle-label-text">ON</span>
+                </div>
               </div>
-              <div class="layer-count">3</div>
-              <div class="layer-badge on">ON</div>
-            </div>
 
-            <!-- Row: Autopilot -->
-            <div class="layer-row">
-              <div class="layer-icon">◻</div>
-              <div class="layer-info">
-                <div class="layer-name">Autopilot</div>
-                <div class="layer-source">Navigation · standby</div>
+              <!-- Row: Autopilot -->
+              <div class="layer-row" data-system="autopilot">
+                <div class="layer-icon">◻</div>
+                <div class="layer-info">
+                  <div class="layer-name">Autopilot</div>
+                  <div class="layer-source">Navigation · standby</div>
+                </div>
+                <div class="layer-count"></div>
+                <div class="layer-toggle off" data-toggle="autopilot" title="Toggle Autopilot">
+                  <span class="toggle-knob"></span>
+                  <span class="toggle-label-text">OFF</span>
+                </div>
               </div>
-              <div class="layer-badge off">OFF</div>
-            </div>
 
-            <!-- Row: Stealth Mode -->
-            <div class="layer-row">
-              <div class="layer-icon">━</div>
-              <div class="layer-info">
-                <div class="layer-name">Stealth Mode</div>
-                <div class="layer-source">ECM · cooldown 12s</div>
+              <!-- Row: Stealth Mode -->
+              <div class="layer-row" data-system="stealth">
+                <div class="layer-icon">━</div>
+                <div class="layer-info">
+                  <div class="layer-name">Stealth Mode</div>
+                  <div class="layer-source">ECM · cooldown 12s</div>
+                </div>
+                <div class="layer-count"></div>
+                <div class="layer-toggle off" data-toggle="stealth" title="Toggle Stealth Mode">
+                  <span class="toggle-knob"></span>
+                  <span class="toggle-label-text">OFF</span>
+                </div>
               </div>
-              <div class="layer-badge off">OFF</div>
             </div>
           </div>
 
-          <!-- Coordinates -->
+          <!-- Bottom-left Coordinates -->
           <div style="margin-top: auto;">
-            <div class="coords-bar">
-              <span class="bracket">┗</span> SECTOR: 7-ALPHA GRID: 4420<br>
-              &nbsp;&nbsp;X: 1284.7 Y: -892.3 Z: 0.04
+            <div class="coords-bar" id="coords-left">
+              <span class="bracket">┗</span> SECTOR: <span class="telemetry-value">7-ALPHA</span> GRID: <span class="telemetry-value">4420</span><br>
+              &nbsp;&nbsp;X: <span class="telemetry-value" id="coord-x">1284.7</span> Y: <span class="telemetry-value" id="coord-y">-892.3</span> Z: <span class="telemetry-value" id="coord-z">0.04</span>
             </div>
           </div>
         </div>
@@ -133,14 +157,14 @@
             <div class="data-panel-header">DISPLAY</div>
             
             <div style="display: flex; gap: 6px; margin-bottom: 4px;">
-              <button class="tac-btn active" style="flex:1; padding: 6px 8px; font-size: 0.65rem;">HUD</button>
+              <button class="tac-btn active" id="btn-hud-mode" style="flex:1; padding: 5px 8px; font-size: 0.6rem;">HUD</button>
             </div>
 
             <div style="display: flex; gap: 4px; margin-bottom: 2px;">
-              <span class="status-label" style="font-size: 0.6rem; padding: 2px 6px;">VIEW</span>
-              <div class="btn-group" style="flex: 1;">
-                <button class="tac-btn active">Cockpit</button>
-                <button class="tac-btn">Tactical</button>
+              <span class="status-label" style="font-size: 0.52rem; padding: 2px 5px;">VIEW</span>
+              <div class="btn-group" id="view-mode-group" style="flex: 1;">
+                <button class="tac-btn active" data-view="cockpit">Cockpit</button>
+                <button class="tac-btn" data-view="tactical">Tactical</button>
               </div>
             </div>
           </div>
@@ -148,51 +172,51 @@
           <!-- Weapons Panel -->
           <div class="data-panel">
             <div class="data-panel-header">
-              <span><span class="status-dot" style="background: var(--green); display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 4px;"></span> WEAPONS</span>
+              <span><span class="header-dot green"></span> WEAPONS</span>
             </div>
 
             <div class="slider-row">
               <div class="slider-header">
                 <span class="slider-label">Plasma Cannon</span>
-                <span class="slider-value">100%</span>
+                <span class="slider-value" id="val-ammo">100%</span>
               </div>
-              <div class="slider-track"><div class="slider-fill green" style="width: 100%;"></div></div>
+              <div class="slider-track"><div class="slider-fill green" id="bar-ammo" style="width: 100%;"></div></div>
             </div>
 
             <div style="display: flex; gap: 4px; margin: 4px 0 2px;">
-              <span class="status-label" style="font-size: 0.58rem; padding: 2px 5px;">FIRE MODE</span>
-              <div class="btn-group" style="flex: 1;">
-                <button class="tac-btn">Single</button>
-                <button class="tac-btn active">Dual</button>
+              <span class="status-label" style="font-size: 0.5rem; padding: 2px 5px;">FIRE MODE</span>
+              <div class="btn-group" id="fire-mode-group" style="flex: 1;">
+                <button class="tac-btn" data-fire="single">Single</button>
+                <button class="tac-btn active" data-fire="dual">Dual</button>
               </div>
             </div>
 
             <div class="slider-row">
               <div class="slider-header">
                 <span class="slider-label">Heat</span>
-                <span class="slider-value">12%</span>
+                <span class="slider-value" id="val-heat">12%</span>
               </div>
-              <div class="slider-track"><div class="slider-fill red" style="width: 12%;"></div></div>
+              <div class="slider-track"><div class="slider-fill red" id="bar-heat" style="width: 12%;"></div></div>
             </div>
 
             <div class="slider-row">
               <div class="slider-header">
                 <span class="slider-label">Missile Bay</span>
-                <span class="slider-value">8/12</span>
+                <span class="slider-value" id="val-missiles">8/12</span>
               </div>
-              <div class="slider-track"><div class="slider-fill amber" style="width: 66%;"></div></div>
+              <div class="slider-track"><div class="slider-fill amber" id="bar-missiles" style="width: 66%;"></div></div>
             </div>
           </div>
 
           <!-- Engine Panel -->
           <div class="data-panel">
-            <div class="data-panel-header">◎ ENGINE</div>
+            <div class="data-panel-header"><span class="header-dot cyan"></span> ENGINE</div>
             <div class="slider-row">
               <div class="slider-header">
                 <span class="slider-label">Thrust Output</span>
-                <span class="slider-value">85%</span>
+                <span class="slider-value" id="val-thrust">85%</span>
               </div>
-              <div class="slider-track"><div class="slider-fill" style="width: 85%;"></div></div>
+              <div class="slider-track"><div class="slider-fill" id="bar-thrust" style="width: 85%;"></div></div>
             </div>
           </div>
 
@@ -200,10 +224,10 @@
           <div class="data-panel">
             <div class="data-panel-header">TARGETING</div>
             <div style="display: flex; gap: 4px; margin-bottom: 2px;">
-              <span class="status-label" style="font-size: 0.58rem; padding: 2px 5px;">LOCK</span>
-              <div class="btn-group" style="flex: 1;">
-                <button class="tac-btn active">Auto</button>
-                <button class="tac-btn">Manual</button>
+              <span class="status-label" style="font-size: 0.5rem; padding: 2px 5px;">LOCK</span>
+              <div class="btn-group" id="lock-mode-group" style="flex: 1;">
+                <button class="tac-btn active" data-lock="auto">Auto</button>
+                <button class="tac-btn" data-lock="manual">Manual</button>
               </div>
             </div>
           </div>
@@ -215,46 +239,58 @@
             <div class="slider-row">
               <div class="slider-header">
                 <span class="slider-label">Sensitivity</span>
+                <span class="slider-value" id="val-sensitivity">60%</span>
               </div>
-              <div class="slider-track"><div class="slider-fill" style="width: 60%;"></div></div>
+              <div class="slider-track interactive" data-param="sensitivity">
+                <div class="slider-fill" id="bar-sensitivity" style="width: 60%;"></div>
+              </div>
             </div>
 
             <div class="slider-row">
               <div class="slider-header">
                 <span class="slider-label">Shield Regen</span>
+                <span class="slider-value" id="val-shield-regen">45%</span>
               </div>
-              <div class="slider-track"><div class="slider-fill green" style="width: 45%;"></div></div>
+              <div class="slider-track interactive" data-param="shield-regen">
+                <div class="slider-fill green" id="bar-shield-regen" style="width: 45%;"></div>
+              </div>
             </div>
 
             <div class="slider-row">
               <div class="slider-header">
                 <span class="slider-label">Fire Rate</span>
+                <span class="slider-value" id="val-fire-rate">80%</span>
               </div>
-              <div class="slider-track"><div class="slider-fill amber" style="width: 80%;"></div></div>
+              <div class="slider-track interactive" data-param="fire-rate">
+                <div class="slider-fill amber" id="bar-fire-rate" style="width: 80%;"></div>
+              </div>
             </div>
 
             <div class="slider-row">
               <div class="slider-header">
                 <span class="slider-label">Radar Range</span>
+                <span class="slider-value" id="val-radar-range">50%</span>
               </div>
-              <div class="slider-track"><div class="slider-fill" style="width: 50%;"></div></div>
+              <div class="slider-track interactive" data-param="radar-range">
+                <div class="slider-fill" id="bar-radar-range" style="width: 50%;"></div>
+              </div>
             </div>
           </div>
 
           <!-- Bottom-right telemetry -->
           <div style="margin-top: auto;">
-            <div class="coords-bar" style="text-align: right;">
-              SPD: 2840 KM/S ACCEL: 1.4G <span class="bracket">┛</span><br>
-              FUEL: 87% ETA SECTOR-8: 04:22
+            <div class="coords-bar" style="text-align: right;" id="coords-right">
+              SPD: <span class="telemetry-value" id="telemetry-speed">2840</span> KM/S ACCEL: <span class="telemetry-value" id="telemetry-accel">1.4</span>G <span class="bracket">┛</span><br>
+              FUEL: <span class="telemetry-value" id="telemetry-fuel">87</span>% ETA SECTOR-8: <span class="telemetry-value" id="telemetry-eta">04:22</span>
             </div>
           </div>
         </div>
 
         <!-- ═══════════ BOTTOM BAR ═══════════ -->
         <div class="bottom-bar">
-          <button class="tac-btn"><span class="tac-btn-icon">◉</span> STAR MAP</button>
+          <button class="tac-btn" id="btn-starmap"><span class="tac-btn-icon">◉</span> STAR MAP</button>
           
-          <div class="bottom-center">
+          <div class="bottom-center" id="comms-panel">
             <div class="ai-label">COMMS ACTIVE</div>
             <div class="ai-waveform">
               <span></span><span></span><span></span><span></span><span></span>
@@ -262,12 +298,15 @@
             </div>
           </div>
 
-          <button class="tac-btn"><span class="tac-btn-icon">◈</span> LOADOUT</button>
+          <button class="tac-btn" id="btn-loadout"><span class="tac-btn-icon">◈</span> LOADOUT</button>
         </div>
 
       </div>
     </div>
   </div>
+
+  <!-- HUD Controller Script (Interactive Logic) -->
+  <script type="module" src="scripts/hud-controller.js"></script>
 
   <!-- Entry Script -->
   <script type="module" src="scripts/main.js"></script>

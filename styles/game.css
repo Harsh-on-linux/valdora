@@ -27,15 +27,33 @@
 }
 
 .hud-info-card {
-  background: var(--bg-panel);
-  border: var(--border-cyan);
-  box-shadow: var(--panel-shadow);
-  border-radius: var(--radius-sm);
+  position: relative;
+  background:
+    linear-gradient(to right, var(--cyan) 8px, transparent 8px) 0 0,
+    linear-gradient(to bottom, var(--cyan) 8px, transparent 8px) 0 0,
+    linear-gradient(to left, var(--cyan) 8px, transparent 8px) 100% 0,
+    linear-gradient(to bottom, var(--cyan) 8px, transparent 8px) 100% 0,
+    linear-gradient(to right, var(--cyan) 8px, transparent 8px) 0 100%,
+    linear-gradient(to top, var(--cyan) 8px, transparent 8px) 0 100%,
+    linear-gradient(to left, var(--cyan) 8px, transparent 8px) 100% 100%,
+    linear-gradient(to top, var(--cyan) 8px, transparent 8px) 100% 100%,
+    var(--bg-panel);
+  background-size:
+    8px 2px, 2px 8px,
+    8px 2px, 2px 8px,
+    8px 2px, 2px 8px,
+    8px 2px, 2px 8px,
+    100% 100%;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(45, 212, 220, 0.12);
+  border-radius: 0;
   padding: 8px 14px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   pointer-events: auto;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .hud-label {

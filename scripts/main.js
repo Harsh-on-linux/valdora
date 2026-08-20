@@ -56,7 +56,7 @@ window.addEventListener('DOMContentLoaded', () => {
     starfield = new Starfield(starfieldCanvas, {
       layerCount: 3,
       starCount: 220,
-      baseSpeed: 1.0
+      baseSpeed: 0.138
     });
     window.__starfield = starfield;
     starfield.start();

@@ -1,62 +1,65 @@
 /* ==========================================================================
    THEME CONFIGURATION — Space Shooter Cockpit Command Interface
-   Tactical panel aesthetic inspired by satellite/FLIR control panels
+   Advanced military spacecraft UI — clean, functional, cyberpunk-adjacent
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Roboto+Mono:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
 
 :root {
   /* ── Core Backgrounds ── */
-  --bg-void: #000000;
-  --bg-deep: #020508;
-  --bg-panel: rgba(8, 14, 22, 0.88);
-  --bg-panel-solid: #0a1018;
-  --bg-panel-hover: rgba(12, 22, 34, 0.95);
-  --bg-input: rgba(0, 40, 55, 0.25);
-  --bg-overlay: rgba(0, 0, 0, 0.82);
+  --bg-void: #05070a;
+  --bg-deep: #080c12;
+  --bg-panel: rgba(8, 12, 20, 0.72);
+  --bg-panel-solid: #0a0f18;
+  --bg-panel-hover: rgba(14, 22, 36, 0.88);
+  --bg-input: rgba(0, 40, 55, 0.2);
+  --bg-overlay: rgba(5, 7, 10, 0.85);
 
   /* ── Accent Colors ── */
-  --cyan: #00e5ff;
-  --cyan-mid: #0097a7;
-  --cyan-dim: #1a3a44;
-  --cyan-ghost: rgba(0, 229, 255, 0.06);
-  --cyan-soft: rgba(0, 229, 255, 0.12);
+  --cyan: #2dd4dc;
+  --cyan-bright: #5eedf5;
+  --cyan-mid: #1a8f96;
+  --cyan-dim: #0e3538;
+  --cyan-ghost: rgba(45, 212, 220, 0.05);
+  --cyan-soft: rgba(45, 212, 220, 0.12);
+  --cyan-glow: rgba(45, 212, 220, 0.25);
 
-  --amber: #ff9100;
-  --amber-dim: #5c3500;
+  --amber: #e8991a;
+  --amber-dim: #4a3008;
+  --amber-soft: rgba(232, 153, 26, 0.12);
 
-  --red: #ff1744;
-  --red-dim: #5c0018;
-  --red-soft: rgba(255, 23, 68, 0.12);
+  --red: #e8364b;
+  --red-dim: #4a0e18;
+  --red-soft: rgba(232, 54, 75, 0.12);
 
-  --green: #00e676;
-  --green-dim: #005c2e;
-  --green-soft: rgba(0, 230, 118, 0.12);
+  --green: #2dd47a;
+  --green-dim: #0e3528;
+  --green-soft: rgba(45, 212, 122, 0.12);
 
-  --purple: #b388ff;
+  --purple: #a78bfa;
 
   /* ── Typography ── */
-  --text-bright: #e0f7fa;
+  --text-bright: #e2edf2;
   --text-primary: #8fb8c4;
   --text-secondary: #4d7a87;
   --text-muted: #2d4f59;
   --text-dim: #1a333c;
 
   /* ── Fonts ── */
-  --font-heading: 'Share Tech Mono', 'Courier New', monospace;
-  --font-body: 'Roboto Mono', 'Share Tech Mono', monospace;
-  --font-mono: 'Share Tech Mono', 'Courier New', monospace;
+  --font-heading: 'Rajdhani', 'Share Tech Mono', 'Courier New', sans-serif;
+  --font-body: 'JetBrains Mono', 'Roboto Mono', 'Share Tech Mono', monospace;
+  --font-mono: 'Share Tech Mono', 'JetBrains Mono', 'Courier New', monospace;
 
   /* ── Borders ── */
-  --border-panel: 1px solid rgba(0, 150, 167, 0.25);
+  --border-panel: 1px solid rgba(45, 212, 220, 0.18);
   --border-active: 1px solid var(--cyan);
-  --border-dim: 1px solid rgba(0, 100, 120, 0.15);
-  --border-separator: 1px solid rgba(0, 150, 167, 0.12);
+  --border-dim: 1px solid rgba(45, 212, 220, 0.08);
+  --border-separator: 1px solid rgba(45, 212, 220, 0.1);
 
   /* ── Radii ── */
   --r-sm: 4px;
-  --r-md: 8px;
-  --r-lg: 12px;
+  --r-md: 6px;
+  --r-lg: 10px;
   --r-pill: 20px;
 
   /* ── Timing ── */
@@ -64,6 +67,13 @@
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --t-fast: 100ms var(--ease-out);
   --t-normal: 200ms var(--ease-smooth);
+
+  /* ── Glow Effects ── */
+  --glow-cyan-sm: 0 0 6px rgba(45, 212, 220, 0.3);
+  --glow-cyan-md: 0 0 12px rgba(45, 212, 220, 0.25), 0 0 4px rgba(45, 212, 220, 0.4);
+  --glow-cyan-lg: 0 0 20px rgba(45, 212, 220, 0.2), 0 0 6px rgba(45, 212, 220, 0.35);
+  --glow-red-sm: 0 0 6px rgba(232, 54, 75, 0.4);
+  --glow-amber-sm: 0 0 6px rgba(232, 153, 26, 0.3);
 }
 
 /* ── Reset ── */
@@ -82,7 +92,7 @@ html, body {
   background: var(--bg-void);
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
   letter-spacing: 0.04em;
   -webkit-font-smoothing: antialiased;
@@ -118,7 +128,7 @@ html, body {
   pointer-events: auto;
 }
 
-/* ── CRT Scanlines + Heavy Vignette ── */
+/* ── CRT Scanlines + Sci-Fi Vignette ── */
 .scanlines-overlay {
   position: absolute;
   top: 0; left: 0;
@@ -130,11 +140,11 @@ html, body {
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 0, 0, 0.15) 2px,
-      rgba(0, 0, 0, 0.15) 4px
+      rgba(0, 0, 0, 0.05) 2px,
+      rgba(0, 0, 0, 0.05) 4px
     ),
-    radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.7) 100%);
-  opacity: 0.9;
+    radial-gradient(ellipse at center, transparent 35%, rgba(5, 7, 10, 0.4) 65%, rgba(2, 4, 7, 0.88) 100%);
+  opacity: 0.92;
 }
 
 /* ── UI Root ── */
