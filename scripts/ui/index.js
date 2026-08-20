@@ -1,4 +1,13 @@
 /**
- * UI Module Directory
+ * UI Module Index
+ * Exports ScreenManager and all game screen modules.
  */
-export const UI_MODULE_VERSION = '1.0.0';
+
+export { ScreenManager } from './ScreenManager.js';
+export { LandingScreen } from './screens/LandingScreen.js';
+export { LevelSelectScreen } from './screens/LevelSelectScreen.js';
+export { LoadoutScreen } from './screens/LoadoutScreen.js';
+export { GameScreen } from './screens/GameScreen.js';
+export { PauseScreen } from './screens/PauseScreen.js';
+export { ResultsScreen } from './screens/ResultsScreen.js';
+export { SettingsScreen } from './screens/SettingsScreen.js';
