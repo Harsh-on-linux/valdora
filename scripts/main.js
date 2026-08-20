@@ -12,7 +12,8 @@ import {
   GameScreen,
   PauseScreen,
   ResultsScreen,
-  SettingsScreen
+  SettingsScreen,
+  ShowcaseScreen
 } from './ui/index.js';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -51,7 +52,8 @@ window.addEventListener('DOMContentLoaded', () => {
     .register('game', GameScreen)
     .register('pause', PauseScreen)
     .register('results', ResultsScreen)
-    .register('settings', SettingsScreen);
+    .register('settings', SettingsScreen)
+    .register('showcase', ShowcaseScreen);
 
   // Mount default starting screen
   screenManager.show('landing');
@@ -59,5 +61,5 @@ window.addEventListener('DOMContentLoaded', () => {
   // Expose router globally for debugging & testing
   window.__screenManager = screenManager;
 
-  console.log('✅ Global State Machine active. Screens registered: landing, levelSelect, loadout, game, pause, results, settings.');
+  console.log('✅ Global State Machine active. Screens registered: landing, levelSelect, loadout, game, pause, results, settings, showcase.');
 });

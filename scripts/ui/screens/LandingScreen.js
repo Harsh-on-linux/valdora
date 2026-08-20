@@ -23,6 +23,9 @@ export const LandingScreen = {
           <button class="console-btn btn-danger" data-nav="game">
             <span>⚡ QUICK LAUNCH</span>
           </button>
+          <button class="console-btn btn-amber" data-nav="showcase">
+            <span>◎ UI KIT</span>
+          </button>
         </div>
       </div>
     `;

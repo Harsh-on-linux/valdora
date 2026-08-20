@@ -17,7 +17,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE A — Foundation & Theme
 
-### Step 1 — Project scaffold (Current Step)
+### Step 1 — Project scaffold ✅
 - Create folder structure:
   - `/index.html`
   - `/styles/theme.css`
@@ -32,18 +32,18 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Import HUD-style font (Orbitron / Rajdhani + system fallback stack).
 - Output: Initialized page with cockpit theme tokens, loaded fonts, and responsive canvas wrapper ready.
 
-### Step 2 — Global state machine
+### Step 2 — Global state machine ✅
 - Build a lightweight screen manager (`landing`, `levelSelect`, `loadout`, `game`, `pause`, `results`, `settings`).
 - Each screen is a JS module with `mount()` / `unmount()` lifecycle hooks.
 - Smooth transition wrapper (~250–350ms ease-out) so switching screens is seamless.
 - Output: Programmatic switching between screen containers with smooth transitions.
 
-### Step 3 — Reusable UI components (the "console kit")
+### Step 3 — Reusable UI components (the "console kit") ✅
 - Build styled, reusable components: `<ConsoleButton>`, `<Panel>`, `<ProgressBar>` (health/shield/heat/charge), `<Toggle>`, `<Modal>`.
 - Add press/hover states: reactive neon glow on hover, micro-scale press feedback + audio click trigger.
 - Output: Component showcase view to test all UI elements in isolation.
 
-### Step 4 — Animated starfield background
+### Step 4 — Animated starfield background 🔄 ← Current
 - Canvas-based multi-layer parallax starfield (3 depth layers with varying drift velocities and star sizes).
 - Subtle twinkling and warp speed acceleration effects.
 - Output: Starfield running continuously behind active screens.
