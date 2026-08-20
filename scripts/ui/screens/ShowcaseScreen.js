@@ -194,6 +194,46 @@ export const ShowcaseScreen = {
     wrapper.appendChild(modalSection);
 
     // ═══════════════════════════════════════════════
+    // SECTION 6: STARFIELD PARALLAX & WARP
+    // ═══════════════════════════════════════════════
+    const starfieldSection = this._createSection('STARFIELD & WARP ACCELERATION');
+    const starfieldRow = document.createElement('div');
+    starfieldRow.className = 'showcase-row';
+
+    starfieldRow.appendChild(createConsoleButton({
+      label: 'NORMAL DRIFT (1x)',
+      icon: '✦',
+      variant: 'secondary',
+      size: 'sm',
+      onClick: () => {
+        if (window.__starfield) window.__starfield.setSpeed(1.0);
+      }
+    }));
+
+    starfieldRow.appendChild(createConsoleButton({
+      label: 'FAST CRUISE (3x)',
+      icon: '▲',
+      variant: 'primary',
+      size: 'sm',
+      onClick: () => {
+        if (window.__starfield) window.__starfield.setSpeed(3.0);
+      }
+    }));
+
+    starfieldRow.appendChild(createConsoleButton({
+      label: 'WARP JUMP (BURST)',
+      icon: '⚡',
+      variant: 'amber',
+      size: 'sm',
+      onClick: () => {
+        if (window.__starfield) window.__starfield.triggerWarp(7.0, 2200);
+      }
+    }));
+
+    starfieldSection.appendChild(starfieldRow);
+    wrapper.appendChild(starfieldSection);
+
+    // ═══════════════════════════════════════════════
     // BACK BUTTON
     // ═══════════════════════════════════════════════
     const footer = document.createElement('div');

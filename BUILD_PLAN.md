@@ -43,7 +43,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Add press/hover states: reactive neon glow on hover, micro-scale press feedback + audio click trigger.
 - Output: Component showcase view to test all UI elements in isolation.
 
-### Step 4 — Animated starfield background 🔄 ← Current
+### Step 4 — Animated starfield background ✅
 - Canvas-based multi-layer parallax starfield (3 depth layers with varying drift velocities and star sizes).
 - Subtle twinkling and warp speed acceleration effects.
 - Output: Starfield running continuously behind active screens.
@@ -52,7 +52,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE B — Landing Page & Navigation
 
-### Step 5 — Landing page layout
+### Step 5 — Landing page layout 🔄 ← Current
 - Title logo with pulsing holographic glow animation.
 - Primary buttons: Start/Continue, Level Select, Loadout, Settings, How to Play.
 - Ambient cockpit animation: scanline overlay, rotating radar sweep in corner.
