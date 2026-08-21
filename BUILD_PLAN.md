@@ -122,12 +122,12 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE F — Ordnance Arsenal & Collisions
 
-### Step 16 — Projectile pool & Vulcan Cannon 🔄 ← Current
+### Step 16 — Projectile pool & Vulcan Cannon ✅
 - Zero-allocation Object Pool for projectiles.
 - Rapid single/dual Vulcan Cannon with muzzle flashes and despawn boundaries.
 - Output: High-performance bullet firing mechanics.
 
-### Step 17 — Collision detection framework
+### Step 17 — Collision detection framework 🔄 ← Current
 - Fast spatial partitioning & Circle/AABB collision engine.
 - Bullet vs. Target, Drone vs. Target, Drone vs. Hazard collision resolution.
 - Output: Collision detection pipeline with debug visualization toggle.

@@ -29,6 +29,10 @@ export { TacticalMapLayer } from './TacticalMapLayer.js';
 export { InputManager, CONTROL_SCHEMES } from './InputManager.js';
 export { PlayerDrone } from './PlayerDrone.js';
 export { TacticalHUDOverlay, RADAR_MODES } from './TacticalHUDOverlay.js';
+export { ProjectilePool, PROJECTILE_TYPES } from './ProjectilePool.js';
+export { WeaponSystem } from './WeaponSystem.js';
 export { GameEngine, ENGINE_STATE } from './GameEngine.js';
-export const GAME_MODULE_VERSION = '1.3.0';
+export const GAME_MODULE_VERSION = '1.4.0';
+
+
 

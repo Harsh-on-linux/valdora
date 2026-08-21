@@ -17,6 +17,9 @@ import { getDroneById, getWeaponById } from './drones.js';
 import { InputManager } from './InputManager.js';
 import { PlayerDrone } from './PlayerDrone.js';
 import { TacticalHUDOverlay, RADAR_MODES } from './TacticalHUDOverlay.js';
+import { ProjectilePool } from './ProjectilePool.js';
+import { WeaponSystem } from './WeaponSystem.js';
+import { soundManager } from '../audio/index.js';
 
 export const ENGINE_STATE = {
   STOPPED: 'STOPPED',
@@ -69,6 +72,8 @@ export class GameEngine {
     this.tacticalMap = new TacticalMapLayer();
     this.input = new InputManager();
     this.player = new PlayerDrone();
+    this.projectiles = new ProjectilePool(300);
+    this.weapons = new WeaponSystem('VULCAN');
     this.hudOverlay = new TacticalHUDOverlay();
     this.sectorConfig = null;
     this.droneConfig = null;
@@ -158,6 +163,13 @@ export class GameEngine {
     const startX = this.width / 2;
     const startY = this.height * 0.82;
     this.player.spawn(startX, startY);
+
+    // Initialize weapon system with loadout & drone multipliers
+    this.weapons.setWeapon(weaponId);
+    this.weapons.applyDroneModifiers(this.droneConfig);
+
+    // Clear projectile and particle pools
+    this.projectiles.clear();
 
     this.score = 0;
     this.hull = this.player.hull;
@@ -303,15 +315,19 @@ export class GameEngine {
     // 3. Update Player Drone Movement & Dynamics
     this.player.update(dt, this.input, this.width, this.height);
 
-    // 4. Update Tactical HUD Overlay Simulation & Targets
-    this.hudOverlay.update(dt, this.player, this.width, this.height);
-
-    // 5. Handle Live Weapon Firing Telemetry
+    // 4. Update Weapon Cooldowns & Handle Live Firing
+    this.weapons.update(dt);
     if (this.input.isActionActive('fire')) {
-      this.hudOverlay.registerFire(6 * dt * 60, 2 * dt * 60);
+      this.weapons.fire(this.player, this.projectiles, this.hudOverlay, soundManager, this);
     }
 
-    // 6. Sync player stats with engine stats
+    // 5. Update Projectiles & Muzzle Flares / Sparks
+    this.projectiles.update(dt, this.width, this.height);
+
+    // 6. Update Tactical HUD Overlay Simulation & Targets
+    this.hudOverlay.update(dt, this.player, this.width, this.height);
+
+    // 7. Sync player stats with engine stats
     this.hull = this.player.hull;
     this.shield = this.player.shield;
   }
@@ -341,10 +357,13 @@ export class GameEngine {
     // 1. Render Tactical Satellite & Topographic Map Layer
     this.tacticalMap.render(ctx, w, h);
 
-    // 2. Render Player Drone (with sub-frame interpolation and FLIR trails)
+    // 2. Render Projectiles, Tracers, Muzzle Flares & Propellant Sparks
+    this.projectiles.render(ctx, alpha);
+
+    // 3. Render Player Drone (with sub-frame interpolation and FLIR trails)
     this.player.render(ctx, alpha, w, h);
 
-    // 3. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
+    // 4. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
     this.hudOverlay.render(ctx, this.player, w, h);
 
     // 4. Render Virtual Touch Joystick Overlay (when active)
@@ -532,6 +551,7 @@ export class GameEngine {
       maxHull: this.maxHull,
       shield: this.shield,
       maxShield: this.maxShield,
+      activeProjectiles: this.projectiles.getActiveCount(),
       shake: Number(this.shakeIntensity.toFixed(2)),
       playerX: Math.round(p.x),
       playerY: Math.round(p.y),

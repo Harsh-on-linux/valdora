@@ -458,6 +458,107 @@ export class SoundManager {
   }
 
   /**
+   * Play procedural Vulcan Cannon gunfire report
+   * @param {number} [barrelIndex=0] - Alternates pitch slightly for twin-barrel realism
+   */
+  playVulcanFire(barrelIndex = 0) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+    const pitchMod = barrelIndex % 2 === 0 ? 1.0 : 0.93;
+
+    // 1. Kinetic Pop & Bass Body (Punchy descending oscillator)
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320 * pitchMod, now);
+    osc.frequency.exponentialRampToValueAtTime(65 * pitchMod, now + 0.035);
+
+    gain.gain.setValueAtTime(0.14 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.038);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.04);
+
+    // 2. High-frequency Muzzle Crack
+    const crackOsc = this.ctx.createOscillator();
+    const crackGain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    crackOsc.type = 'square';
+    crackOsc.frequency.setValueAtTime(1400 * pitchMod, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(300, now + 0.018);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2200, now);
+    filter.Q.setValueAtTime(3.0, now);
+
+    crackGain.gain.setValueAtTime(0.09 * this.sfxVolume, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+
+    crackOsc.connect(filter);
+    filter.connect(crackGain);
+    crackGain.connect(this.sfxGain);
+
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.022);
+  }
+
+  /**
+   * Play ballistic hit impact / armor defilade ping
+   */
+  playHitImpact() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1800, now);
+    osc.frequency.exponentialRampToValueAtTime(450, now + 0.03);
+
+    gain.gain.setValueAtTime(0.08 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.04);
+  }
+
+  /**
+   * Play combat explosion burst
+   * @param {number} [intensity=1.0]
+   */
+  playExplosion(intensity = 1.0) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // Low rumble boom
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+
+    const dur = 0.35 * Math.max(0.5, intensity);
+    gain.gain.setValueAtTime(0.25 * this.sfxVolume * Math.min(1.5, intensity), now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  /**
    * Set Master Volume (0.0 to 1.0)
    * @param {number} vol
    */

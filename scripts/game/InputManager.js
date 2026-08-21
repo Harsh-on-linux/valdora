@@ -106,19 +106,17 @@ export class InputManager {
     window.addEventListener('keyup', this._onKeyUp);
     window.addEventListener('blur', this._onBlur);
 
-    // 2. Mouse / Pointer Listeners
-    if (this.canvas) {
-      this.canvas.addEventListener('mousemove', this._onMouseMove);
-      this.canvas.addEventListener('mousedown', this._onMouseDown);
-      window.addEventListener('mouseup', this._onMouseUp);
-      this.canvas.addEventListener('contextmenu', this._onContextMenu);
+    // 2. Mouse / Pointer Listeners (attached to window so gameplay input is smooth and uninterruptible)
+    window.addEventListener('mousemove', this._onMouseMove);
+    window.addEventListener('mousedown', this._onMouseDown);
+    window.addEventListener('mouseup', this._onMouseUp);
+    window.addEventListener('contextmenu', this._onContextMenu);
 
-      // 3. Touch Listeners (Passive: false to allow preventDefault on game touch)
-      this.canvas.addEventListener('touchstart', this._onTouchStart, { passive: false });
-      this.canvas.addEventListener('touchmove', this._onTouchMove, { passive: false });
-      this.canvas.addEventListener('touchend', this._onTouchEnd, { passive: false });
-      this.canvas.addEventListener('touchcancel', this._onTouchEnd, { passive: false });
-    }
+    // 3. Touch Listeners (Passive: false to allow preventDefault on game touch)
+    window.addEventListener('touchstart', this._onTouchStart, { passive: false });
+    window.addEventListener('touchmove', this._onTouchMove, { passive: false });
+    window.addEventListener('touchend', this._onTouchEnd, { passive: false });
+    window.addEventListener('touchcancel', this._onTouchEnd, { passive: false });
 
     // 4. Settings change listener
     window.addEventListener('settings:updated', this._onSettingsUpdate);
@@ -136,17 +134,15 @@ export class InputManager {
     window.removeEventListener('keyup', this._onKeyUp);
     window.removeEventListener('blur', this._onBlur);
 
-    if (this.canvas) {
-      this.canvas.removeEventListener('mousemove', this._onMouseMove);
-      this.canvas.removeEventListener('mousedown', this._onMouseDown);
-      window.removeEventListener('mouseup', this._onMouseUp);
-      this.canvas.removeEventListener('contextmenu', this._onContextMenu);
+    window.removeEventListener('mousemove', this._onMouseMove);
+    window.removeEventListener('mousedown', this._onMouseDown);
+    window.removeEventListener('mouseup', this._onMouseUp);
+    window.removeEventListener('contextmenu', this._onContextMenu);
 
-      this.canvas.removeEventListener('touchstart', this._onTouchStart);
-      this.canvas.removeEventListener('touchmove', this._onTouchMove);
-      this.canvas.removeEventListener('touchend', this._onTouchEnd);
-      this.canvas.removeEventListener('touchcancel', this._onTouchEnd);
-    }
+    window.removeEventListener('touchstart', this._onTouchStart);
+    window.removeEventListener('touchmove', this._onTouchMove);
+    window.removeEventListener('touchend', this._onTouchEnd);
+    window.removeEventListener('touchcancel', this._onTouchEnd);
 
     window.removeEventListener('settings:updated', this._onSettingsUpdate);
 
@@ -285,8 +281,6 @@ export class InputManager {
   // ═══════════════════════════════════════════════════════════════════
 
   _handleKeyDown(e) {
-    if (e.repeat) return;
-
     // Prevent default browser scrolling on arrow keys and space
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
       e.preventDefault();
@@ -317,16 +311,25 @@ export class InputManager {
   }
 
   _handleMouseMove(e) {
-    if (!this.canvas) return;
-    const rect = this.canvas.getBoundingClientRect();
     this.mouse.x = e.clientX;
     this.mouse.y = e.clientY;
-    this.mouse.canvasX = e.clientX - rect.left;
-    this.mouse.canvasY = e.clientY - rect.top;
+    if (this.canvas) {
+      const rect = this.canvas.getBoundingClientRect();
+      this.mouse.canvasX = e.clientX - rect.left;
+      this.mouse.canvasY = e.clientY - rect.top;
+    } else {
+      this.mouse.canvasX = e.clientX;
+      this.mouse.canvasY = e.clientY;
+    }
     this.mouse.active = true;
   }
 
   _handleMouseDown(e) {
+    // Ignore clicks on HUD interactive buttons
+    if (e.target && (e.target.closest('button') || e.target.closest('.console-btn') || e.target.closest('.hud-radar-toggle-btn') || e.target.closest('.touch-action-btn'))) {
+      return;
+    }
+
     if (e.button === 0) {
       this.mouse.down = true;
       this.mouse.active = true;
@@ -344,14 +347,16 @@ export class InputManager {
   }
 
   _handleTouchStart(e) {
-    if (!this.canvas) return;
-    e.preventDefault();
-
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.canvas ? this.canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
     const halfWidth = rect.width * 0.55;
 
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (target && (target.closest('button') || target.closest('.console-btn') || target.closest('.touch-action-btn'))) {
+        continue;
+      }
+
       const tx = touch.clientX - rect.left;
       const ty = touch.clientY - rect.top;
 

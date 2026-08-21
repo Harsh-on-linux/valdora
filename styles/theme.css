@@ -176,3 +176,6 @@ html, body {
   visibility: visible;
   transform: scale(1);
 }
+.screen-container.screen-game {
+  pointer-events: none;
+}

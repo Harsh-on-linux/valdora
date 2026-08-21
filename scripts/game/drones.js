@@ -185,7 +185,15 @@ export function getDroneById(id) {
  * @returns {object|null}
  */
 export function getWeaponById(id) {
-  return WEAPON_TYPES[id?.toUpperCase()] || null;
+  if (!id) return WEAPON_TYPES.VULCAN;
+  const upper = id.toUpperCase().trim();
+  if (WEAPON_TYPES[upper]) return WEAPON_TYPES[upper];
+  if (upper.includes('VULCAN')) return WEAPON_TYPES.VULCAN;
+  if (upper.includes('FLAK')) return WEAPON_TYPES.FLAK;
+  if (upper.includes('LASER') || upper.includes('ATHENA')) return WEAPON_TYPES.LASER;
+  if (upper.includes('HELLFIRE') || upper.includes('MISSILE')) return WEAPON_TYPES.HELLFIRE;
+  if (upper.includes('ORBITAL')) return WEAPON_TYPES.ORBITAL;
+  return WEAPON_TYPES.VULCAN;
 }
 
 /**
