@@ -16,6 +16,7 @@ import { getLevelById } from './levels.js';
 import { getDroneById, getWeaponById } from './drones.js';
 import { InputManager } from './InputManager.js';
 import { PlayerDrone } from './PlayerDrone.js';
+import { TacticalHUDOverlay, RADAR_MODES } from './TacticalHUDOverlay.js';
 
 export const ENGINE_STATE = {
   STOPPED: 'STOPPED',
@@ -68,6 +69,7 @@ export class GameEngine {
     this.tacticalMap = new TacticalMapLayer();
     this.input = new InputManager();
     this.player = new PlayerDrone();
+    this.hudOverlay = new TacticalHUDOverlay();
     this.sectorConfig = null;
     this.droneConfig = null;
     this.weaponConfig = null;
@@ -87,8 +89,10 @@ export class GameEngine {
 
     this._boundLoop = this._loop.bind(this);
     this._boundResize = this.resize.bind(this);
+    this._boundRadarToggle = () => this.toggleRadarMode();
 
     window.addEventListener('resize', this._boundResize);
+    window.addEventListener('radar:toggle', this._boundRadarToggle);
     this.resize();
   }
 
@@ -293,13 +297,21 @@ export class GameEngine {
       this.shakeIntensity = 0;
     }
 
-    // 2. Update Tactical Map & Radar Layer
+    // 2. Update Tactical Map & Satellite Layer
     this.tacticalMap.update(dt, 1.0);
 
     // 3. Update Player Drone Movement & Dynamics
     this.player.update(dt, this.input, this.width, this.height);
 
-    // 4. Sync player stats with engine stats
+    // 4. Update Tactical HUD Overlay Simulation & Targets
+    this.hudOverlay.update(dt, this.player, this.width, this.height);
+
+    // 5. Handle Live Weapon Firing Telemetry
+    if (this.input.isActionActive('fire')) {
+      this.hudOverlay.registerFire(6 * dt * 60, 2 * dt * 60);
+    }
+
+    // 6. Sync player stats with engine stats
     this.hull = this.player.hull;
     this.shield = this.player.shield;
   }
@@ -332,10 +344,13 @@ export class GameEngine {
     // 2. Render Player Drone (with sub-frame interpolation and FLIR trails)
     this.player.render(ctx, alpha, w, h);
 
-    // 3. Render Virtual Touch Joystick Overlay (when active)
+    // 3. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
+    this.hudOverlay.render(ctx, this.player, w, h);
+
+    // 4. Render Virtual Touch Joystick Overlay (when active)
     this._renderTouchJoystick(ctx);
 
-    // 4. Render Tactical Viewport Watermark & FLIR Crosshair
+    // 5. Render Tactical Viewport Watermark & FLIR Crosshair
     this._renderTacticalOverlay(ctx, w, h);
 
     ctx.restore();
@@ -476,10 +491,35 @@ export class GameEngine {
   }
 
   /**
+   * Toggle Active vs Passive radar mode.
+   */
+  toggleRadarMode() {
+    if (this.hudOverlay) {
+      const mode = this.hudOverlay.toggleRadarMode();
+      this._emit('telemetry', this.getTelemetry());
+      return mode;
+    }
+    return RADAR_MODES.ACTIVE;
+  }
+
+  /**
+   * Set specific radar mode.
+   * @param {'ACTIVE'|'PASSIVE'} mode
+   */
+  setRadarMode(mode) {
+    if (this.hudOverlay) {
+      this.hudOverlay.setRadarMode(mode);
+      this._emit('telemetry', this.getTelemetry());
+    }
+  }
+
+  /**
    * Get engine telemetry data snapshot.
    */
   getTelemetry() {
     const p = this.player;
+    const hudSnapshot = this.hudOverlay ? this.hudOverlay.getTelemetrySnapshot() : {};
+
     return {
       fps: this.fps,
       frameTime: this.frameTime,
@@ -498,7 +538,9 @@ export class GameEngine {
       speed: Math.round(Math.hypot(p.vx, p.vy)),
       bankAngle: Number(p.bankAngle.toFixed(2)),
       thrust: Math.round(p.thrustIntensity * 100),
-      controlScheme: this.input.getEffectiveControlScheme()
+      controlScheme: this.input.getEffectiveControlScheme(),
+      // Merge rich tactical HUD snapshot
+      ...hudSnapshot
     };
   }
 
@@ -508,6 +550,7 @@ export class GameEngine {
   destroy() {
     this.stop();
     window.removeEventListener('resize', this._boundResize);
+    window.removeEventListener('radar:toggle', this._boundRadarToggle);
     this.listeners = { stateChange: [], telemetry: [] };
   }
 }

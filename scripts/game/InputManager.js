@@ -30,7 +30,9 @@ export class InputManager {
       fire: false,
       secondary: false,
       boost: false,
-      pause: false
+      pause: false,
+      toggleRadar: false,
+      weaponSlot: 1
     };
 
     // Keyboard state tracking
@@ -295,6 +297,16 @@ export class InputManager {
     if (e.code === 'Escape' || e.code === 'KeyP') {
       this.actions.pause = true;
     }
+
+    if (e.code === 'KeyR') {
+      this.actions.toggleRadar = true;
+      window.dispatchEvent(new CustomEvent('radar:toggle'));
+    }
+
+    if (e.code === 'Digit1') this.actions.weaponSlot = 1;
+    if (e.code === 'Digit2') this.actions.weaponSlot = 2;
+    if (e.code === 'Digit3') this.actions.weaponSlot = 3;
+    if (e.code === 'Digit4') this.actions.weaponSlot = 4;
   }
 
   _handleKeyUp(e) {

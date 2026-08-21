@@ -365,6 +365,99 @@ export class SoundManager {
   }
 
   /**
+   * Play tactical Active vs Passive radar mode toggle sound
+   * @param {boolean} [isActive=true]
+   */
+  playRadarToggle(isActive = true) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'sine';
+    osc2.type = 'triangle';
+
+    if (isActive) {
+      // Active Radar: Uplink sweep chirp
+      osc1.frequency.setValueAtTime(950, now);
+      osc1.frequency.exponentialRampToValueAtTime(2400, now + 0.08);
+      osc2.frequency.setValueAtTime(475, now);
+      osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+    } else {
+      // Passive Radar: Low-frequency stealth silence dampening tone
+      osc1.frequency.setValueAtTime(1800, now);
+      osc1.frequency.exponentialRampToValueAtTime(500, now + 0.09);
+      osc2.frequency.setValueAtTime(900, now);
+      osc2.frequency.exponentialRampToValueAtTime(250, now + 0.09);
+    }
+
+    gain.gain.setValueAtTime(0.18 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.095);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.1);
+    osc2.stop(now + 0.1);
+  }
+
+  /**
+   * Play target acquisition lock-on tone (rapid dual-tone burst)
+   */
+  playTargetLock() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    [0, 0.05, 0.1].forEach((offset) => {
+      const t = now + offset;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1760, t); // A6 note
+      osc.frequency.setValueAtTime(2200, t + 0.02);
+
+      gain.gain.setValueAtTime(0.12 * this.sfxVolume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(t);
+      osc.stop(t + 0.045);
+    });
+  }
+
+  /**
+   * Play high-priority warning alarm (critical hull/shield or overheat)
+   */
+  playWarning() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.setValueAtTime(660, now + 0.07);
+
+    gain.gain.setValueAtTime(0.15 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  /**
    * Set Master Volume (0.0 to 1.0)
    * @param {number} vol
    */

@@ -28,6 +28,7 @@ export {
 export { TacticalMapLayer } from './TacticalMapLayer.js';
 export { InputManager, CONTROL_SCHEMES } from './InputManager.js';
 export { PlayerDrone } from './PlayerDrone.js';
+export { TacticalHUDOverlay, RADAR_MODES } from './TacticalHUDOverlay.js';
 export { GameEngine, ENGINE_STATE } from './GameEngine.js';
-export const GAME_MODULE_VERSION = '1.2.0';
+export const GAME_MODULE_VERSION = '1.3.0';
 
