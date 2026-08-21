@@ -297,6 +297,10 @@ export class InputManager {
       window.dispatchEvent(new CustomEvent('radar:toggle'));
     }
 
+    if (e.code === 'KeyH' || e.code === 'F3') {
+      window.dispatchEvent(new CustomEvent('collision:toggleDebug'));
+    }
+
     if (e.code === 'Digit1') this.actions.weaponSlot = 1;
     if (e.code === 'Digit2') this.actions.weaponSlot = 2;
     if (e.code === 'Digit3') this.actions.weaponSlot = 3;

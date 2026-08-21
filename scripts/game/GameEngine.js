@@ -19,6 +19,7 @@ import { PlayerDrone } from './PlayerDrone.js';
 import { TacticalHUDOverlay, RADAR_MODES } from './TacticalHUDOverlay.js';
 import { ProjectilePool } from './ProjectilePool.js';
 import { WeaponSystem } from './WeaponSystem.js';
+import { CollisionSystem } from './CollisionSystem.js';
 import { soundManager } from '../audio/index.js';
 
 export const ENGINE_STATE = {
@@ -75,6 +76,7 @@ export class GameEngine {
     this.projectiles = new ProjectilePool(300);
     this.weapons = new WeaponSystem('VULCAN');
     this.hudOverlay = new TacticalHUDOverlay();
+    this.collisions = new CollisionSystem({ cellSize: 80, debug: false });
     this.sectorConfig = null;
     this.droneConfig = null;
     this.weaponConfig = null;
@@ -95,9 +97,11 @@ export class GameEngine {
     this._boundLoop = this._loop.bind(this);
     this._boundResize = this.resize.bind(this);
     this._boundRadarToggle = () => this.toggleRadarMode();
+    this._boundDebugToggle = () => this.toggleCollisionDebug();
 
     window.addEventListener('resize', this._boundResize);
     window.addEventListener('radar:toggle', this._boundRadarToggle);
+    window.addEventListener('collision:toggleDebug', this._boundDebugToggle);
     this.resize();
   }
 
@@ -327,7 +331,12 @@ export class GameEngine {
     // 6. Update Tactical HUD Overlay Simulation & Targets
     this.hudOverlay.update(dt, this.player, this.width, this.height);
 
-    // 7. Sync player stats with engine stats
+    // 7. Resolve Collisions via Spatial Hash Grid Engine
+    if (this.collisions) {
+      this.collisions.update(this, dt);
+    }
+
+    // 8. Sync player stats with engine stats
     this.hull = this.player.hull;
     this.shield = this.player.shield;
   }
@@ -366,11 +375,16 @@ export class GameEngine {
     // 4. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
     this.hudOverlay.render(ctx, this.player, w, h);
 
-    // 4. Render Virtual Touch Joystick Overlay (when active)
+    // 5. Render Virtual Touch Joystick Overlay (when active)
     this._renderTouchJoystick(ctx);
 
-    // 5. Render Tactical Viewport Watermark & FLIR Crosshair
+    // 6. Render Tactical Viewport Watermark & FLIR Crosshair
     this._renderTacticalOverlay(ctx, w, h);
+
+    // 7. Render Collision Hitboxes & Spatial Grid (Debug Overlay when toggled)
+    if (this.collisions) {
+      this.collisions.renderDebug(ctx, w, h, this.player, this.projectiles, this.hudOverlay ? this.hudOverlay.targets : null);
+    }
 
     ctx.restore();
   }
@@ -533,6 +547,30 @@ export class GameEngine {
   }
 
   /**
+   * Toggle visual collision debug overlay.
+   * @returns {boolean}
+   */
+  toggleCollisionDebug() {
+    if (this.collisions) {
+      const state = this.collisions.toggleDebug();
+      this._emit('telemetry', this.getTelemetry());
+      return state;
+    }
+    return false;
+  }
+
+  /**
+   * Set visual collision debug state.
+   * @param {boolean} state
+   */
+  setCollisionDebug(state) {
+    if (this.collisions) {
+      this.collisions.setDebug(state);
+      this._emit('telemetry', this.getTelemetry());
+    }
+  }
+
+  /**
    * Get engine telemetry data snapshot.
    */
   getTelemetry() {
@@ -559,6 +597,8 @@ export class GameEngine {
       bankAngle: Number(p.bankAngle.toFixed(2)),
       thrust: Math.round(p.thrustIntensity * 100),
       controlScheme: this.input.getEffectiveControlScheme(),
+      collisionDebug: this.collisions ? this.collisions.debug : false,
+      collisionStats: this.collisions ? this.collisions.stats : null,
       // Merge rich tactical HUD snapshot
       ...hudSnapshot
     };
@@ -571,6 +611,7 @@ export class GameEngine {
     this.stop();
     window.removeEventListener('resize', this._boundResize);
     window.removeEventListener('radar:toggle', this._boundRadarToggle);
+    window.removeEventListener('collision:toggleDebug', this._boundDebugToggle);
     this.listeners = { stateChange: [], telemetry: [] };
   }
 }

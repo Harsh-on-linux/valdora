@@ -64,9 +64,14 @@ export const GameScreen = {
             <span class="hud-value" id="hud-fps-val" style="color: var(--glow-cyan); font-size: 0.95rem;">60</span>
           </div>
 
-          <button class="console-btn btn-sm" id="btn-pause" title="Pause Mission (Esc / P)">
-            <span>⏸ PAUSE</span>
-          </button>
+          <div style="display: flex; gap: 6px;">
+            <button class="console-btn btn-sm btn-secondary" id="btn-toggle-hitboxes" title="Toggle Collision Hitbox Debug (Hotkey: H / F3)">
+              <span>🎯 HITBOXES</span>
+            </button>
+            <button class="console-btn btn-sm" id="btn-pause" title="Pause Mission (Esc / P)">
+              <span>⏸ PAUSE</span>
+            </button>
+          </div>
         </div>
 
         <!-- ═══════════ MIDDLE TACTICAL SIDE PANELS ═══════════ -->
@@ -281,6 +286,7 @@ export const GameScreen = {
       const thrustEl = container.querySelector('#hud-thrust-val');
       const simTimeEl = container.querySelector('#hud-sim-time');
       const schemeEl = container.querySelector('#hud-control-scheme');
+      const hitboxesBtn = container.querySelector('#btn-toggle-hitboxes');
 
       const onTelemetry = (telem) => {
         if (fpsEl) fpsEl.textContent = telem.fps;
@@ -370,13 +376,28 @@ export const GameScreen = {
         if (thrustEl) thrustEl.textContent = telem.thrust || 50;
         if (simTimeEl) simTimeEl.textContent = `${telem.simTime}s`;
         if (schemeEl) schemeEl.textContent = telem.controlScheme ? telem.controlScheme.toUpperCase() : 'AUTO';
+
+        if (hitboxesBtn && telem.collisionDebug !== undefined) {
+          hitboxesBtn.classList.toggle('btn-primary', !!telem.collisionDebug);
+          hitboxesBtn.classList.toggle('btn-secondary', !telem.collisionDebug);
+        }
       };
 
       activeEngine.on('telemetry', onTelemetry);
       telemetryUnsub = () => activeEngine.off('telemetry', onTelemetry);
     }
 
-    // 2. Radar Mode Toggle Click Handler
+    // 2. Hitbox Debug Toggle Click Handler
+    const hitboxesBtn = container.querySelector('#btn-toggle-hitboxes');
+    if (hitboxesBtn) {
+      hitboxesBtn.addEventListener('click', () => {
+        soundManager.playClick();
+        if (activeEngine) activeEngine.toggleCollisionDebug();
+      });
+      hitboxesBtn.addEventListener('mouseenter', () => soundManager.playHover());
+    }
+
+    // 3. Radar Mode Toggle Click Handler
     const radarBtn = container.querySelector('#btn-toggle-radar');
     const toggleRadarHandler = () => {
       soundManager.playClick();
@@ -393,7 +414,7 @@ export const GameScreen = {
       touchRadarBtn.addEventListener('click', toggleRadarHandler);
     }
 
-    // 3. Navigation Buttons
+    // 4. Navigation Buttons
     const pauseBtn = container.querySelector('#btn-pause');
     const triggerPause = () => {
       soundManager.playClick();

@@ -127,12 +127,12 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Rapid single/dual Vulcan Cannon with muzzle flashes and despawn boundaries.
 - Output: High-performance bullet firing mechanics.
 
-### Step 17 — Collision detection framework 🔄 ← Current
+### Step 17 — Collision detection framework ✅
 - Fast spatial partitioning & Circle/AABB collision engine.
 - Bullet vs. Target, Drone vs. Target, Drone vs. Hazard collision resolution.
 - Output: Collision detection pipeline with debug visualization toggle.
 
-### Step 18 — Flak Cannon Weapon
+### Step 18 — Flak Cannon Weapon 🔄 ← Current
 - 3 to 5-way angled spread with wide coverage, custom explosive particle tint.
 - Weapon cycle key (Q/E or 1-4) with HUD icon swap.
 - Output: Multi-directional crowd control firing.

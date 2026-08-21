@@ -31,8 +31,9 @@ export { PlayerDrone } from './PlayerDrone.js';
 export { TacticalHUDOverlay, RADAR_MODES } from './TacticalHUDOverlay.js';
 export { ProjectilePool, PROJECTILE_TYPES } from './ProjectilePool.js';
 export { WeaponSystem } from './WeaponSystem.js';
+export { CollisionSystem, COLLISION_LAYERS } from './CollisionSystem.js';
 export { GameEngine, ENGINE_STATE } from './GameEngine.js';
-export const GAME_MODULE_VERSION = '1.4.0';
+export const GAME_MODULE_VERSION = '1.5.0';
 
 
 
