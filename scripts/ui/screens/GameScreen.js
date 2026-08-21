@@ -17,6 +17,7 @@ import { RADAR_MODES } from '../../game/TacticalHUDOverlay.js';
 
 let activeEngine = null;
 let telemetryUnsub = null;
+let hudVisibilityUnsub = null;
 let keyHandler = null;
 
 export const GameScreen = {
@@ -467,6 +468,22 @@ export const GameScreen = {
 
       activeEngine.on('telemetry', onTelemetry);
       telemetryUnsub = () => activeEngine.off('telemetry', onTelemetry);
+
+      // Dynamic HUD auto-hide on movement listener
+      const hudLayer = container.querySelector('.hud-layer');
+      const onHudVisibility = ({ hudHidden }) => {
+        if (hudLayer) {
+          hudLayer.classList.toggle('hud-moving-hidden', !!hudHidden);
+        }
+      };
+
+      activeEngine.on('hudVisibilityChange', onHudVisibility);
+      hudVisibilityUnsub = () => activeEngine.off('hudVisibilityChange', onHudVisibility);
+
+      // Initial state sync
+      if (hudLayer && activeEngine) {
+        hudLayer.classList.toggle('hud-moving-hidden', !!activeEngine.hudHidden);
+      }
     }
 
     // 2. Hitbox Debug Toggle Click Handler
@@ -614,6 +631,10 @@ export const GameScreen = {
     if (telemetryUnsub) {
       telemetryUnsub();
       telemetryUnsub = null;
+    }
+    if (hudVisibilityUnsub) {
+      hudVisibilityUnsub();
+      hudVisibilityUnsub = null;
     }
 
     // Note: If navigating to 'pause', engine is paused, otherwise stop

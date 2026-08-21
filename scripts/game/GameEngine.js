@@ -88,10 +88,16 @@ export class GameEngine {
     this.shield = 100;
     this.maxShield = 100;
 
+    // Dynamic HUD auto-hide tracking
+    this.isPlayerMoving = false;
+    this.stationaryTimer = 0;
+    this.hudHidden = false;
+
     // Listener callbacks
     this.listeners = {
       stateChange: [],
-      telemetry: []
+      telemetry: [],
+      hudVisibilityChange: []
     };
 
     this._boundLoop = this._loop.bind(this);
@@ -194,6 +200,15 @@ export class GameEngine {
     this._fpsLastUpdate = performance.now();
     this.lastTime = performance.now();
 
+    this.isPlayerMoving = false;
+    this.stationaryTimer = 0;
+    this.hudHidden = false;
+    this._emit('hudVisibilityChange', {
+      hudHidden: false,
+      isMoving: false,
+      stationaryTimer: 0
+    });
+
     this.state = ENGINE_STATE.RUNNING;
     this._emit('stateChange', this.state);
 
@@ -210,6 +225,14 @@ export class GameEngine {
   pause() {
     if (this.state === ENGINE_STATE.RUNNING) {
       this.state = ENGINE_STATE.PAUSED;
+      if (this.hudHidden) {
+        this.hudHidden = false;
+        this._emit('hudVisibilityChange', {
+          hudHidden: false,
+          isMoving: false,
+          stationaryTimer: this.stationaryTimer
+        });
+      }
       this._emit('stateChange', this.state);
       console.log('⏸️ GameEngine — Simulation paused.');
     }
@@ -234,6 +257,14 @@ export class GameEngine {
   stop() {
     this.state = ENGINE_STATE.STOPPED;
     this.input.detach();
+    if (this.hudHidden) {
+      this.hudHidden = false;
+      this._emit('hudVisibilityChange', {
+        hudHidden: false,
+        isMoving: false,
+        stationaryTimer: this.stationaryTimer
+      });
+    }
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -321,6 +352,35 @@ export class GameEngine {
     // 3. Update Player Drone Movement & Dynamics
     this.player.update(dt, this.input, this.width, this.height);
 
+    // Dynamic HUD auto-hide calculation:
+    // User is moving if movement input is active OR drone physics speed > 15px/s
+    const move = this.input ? this.input.getMovementVector() : { x: 0, y: 0 };
+    const inputMoving = Math.abs(move.x) > 0.05 || Math.abs(move.y) > 0.05;
+    const playerSpeed = Math.hypot(this.player.vx, this.player.vy);
+    const isMoving = inputMoving || playerSpeed > 15;
+
+    if (isMoving) {
+      this.isPlayerMoving = true;
+      this.stationaryTimer = 0;
+    } else {
+      this.isPlayerMoving = false;
+      this.stationaryTimer += dt;
+    }
+
+    // Hide UI when actively playing and (moving OR stationary for < 2.0s).
+    // Unhide UI if level completed (VICTORY / GAMEOVER), paused, or stationary for >= 2.0s.
+    const isLevelEnded = this.state === ENGINE_STATE.VICTORY || this.state === ENGINE_STATE.GAMEOVER;
+    const shouldHideHud = (this.state === ENGINE_STATE.RUNNING && !isLevelEnded) && (this.isPlayerMoving || this.stationaryTimer < 2.0);
+
+    if (this.hudHidden !== shouldHideHud) {
+      this.hudHidden = shouldHideHud;
+      this._emit('hudVisibilityChange', {
+        hudHidden: shouldHideHud,
+        isMoving: this.isPlayerMoving,
+        stationaryTimer: this.stationaryTimer
+      });
+    }
+
     // 4. Update Weapon Cooldowns & Handle Live Firing
     this.weapons.update(dt);
     if (this.input.isActionActive('fire')) {
@@ -330,8 +390,8 @@ export class GameEngine {
     // 5. Update Projectiles & Muzzle Flares / Sparks
     this.projectiles.update(dt, this.width, this.height);
 
-    // 6. Update Tactical HUD Overlay Simulation & Targets
-    this.hudOverlay.update(dt, this.player, this.width, this.height);
+    // 6. Update Tactical HUD Overlay Simulation & Targets (with HUD auto-hide alpha)
+    this.hudOverlay.update(dt, this.player, this.width, this.height, this.hudHidden);
 
     // 7. Resolve Collisions via Spatial Hash Grid Engine
     if (this.collisions) {
@@ -650,6 +710,10 @@ export class GameEngine {
       controlScheme: this.input.getEffectiveControlScheme(),
       collisionDebug: this.collisions ? this.collisions.debug : false,
       collisionStats: this.collisions ? this.collisions.stats : null,
+      // Dynamic HUD State
+      isMoving: this.isPlayerMoving,
+      stationaryTimer: Number(this.stationaryTimer.toFixed(1)),
+      hudHidden: this.hudHidden,
       // Active Weapon & Arsenal Telemetry
       activeWeapon: this.weapons?.activeWeaponId || 'VULCAN',
       weaponName: this.weapons?.weaponConfig?.name || 'GAU-22 VULCAN',

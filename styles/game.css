@@ -142,6 +142,57 @@
   gap: 8px;
   width: clamp(180px, 20vw, 240px);
   pointer-events: auto;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.35s;
+  will-change: opacity, transform;
+}
+
+.hud-theater-card {
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.35s;
+  will-change: opacity, transform;
+}
+
+.hud-bottom-bar > .hud-info-card:first-child {
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.35s;
+  will-change: opacity, transform;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DYNAMIC HUD AUTO-HIDE IN COMBAT / MOVEMENT
+   Hides bulky side panels and non-essential cards when player is moving,
+   smoothly unhiding when stationary for 2s or on level completion.
+   ═══════════════════════════════════════════════════════════════════ */
+.hud-layer.hud-moving-hidden .hud-sidebar-left {
+  opacity: 0;
+  transform: translateX(-32px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.hud-layer.hud-moving-hidden .hud-sidebar-right {
+  opacity: 0;
+  transform: translateX(32px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.hud-layer.hud-moving-hidden .hud-theater-card {
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.hud-layer.hud-moving-hidden .hud-bottom-bar > .hud-info-card:first-child {
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .hud-sidebar-right {

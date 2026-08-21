@@ -77,6 +77,9 @@ export class TacticalHUDOverlay {
       { deg: 300, label: '300' },
       { deg: 330, label: '330' }
     ];
+
+    // Dynamic HUD visibility alpha (smoothly fades when moving)
+    this.hudAlpha = 1.0;
   }
 
   /**
@@ -211,9 +214,15 @@ export class TacticalHUDOverlay {
    * @param {import('./PlayerDrone.js').PlayerDrone} player
    * @param {number} width
    * @param {number} height
+   * @param {boolean} [hudHidden=false]
    */
-  update(dt, player, width, height) {
+  update(dt, player, width, height, hudHidden = false) {
     this.animTime += dt;
+
+    // Smoothly interpolate HUD alpha (fades out when moving, fades in when stationary 2s / level complete)
+    const targetAlpha = hudHidden ? 0.0 : 1.0;
+    this.hudAlpha += (targetAlpha - this.hudAlpha) * Math.min(1.0, dt * 5.0);
+    this.hudAlpha = Math.max(0, Math.min(1, this.hudAlpha));
 
     // 1. Radar Sweep & RF Pulse Animation
     if (this.radarMode === RADAR_MODES.ACTIVE) {
@@ -337,25 +346,40 @@ export class TacticalHUDOverlay {
   render(ctx, player, width, height) {
     ctx.save();
 
-    // 1. Draw Optical FLIR Vignette & Lens Corner Brackets
+    // 1. Draw Optical FLIR Vignette & Lens Corner Brackets (subtle ambient framing)
     this._renderVignetteAndBrackets(ctx, width, height);
 
-    // 2. Draw Top Center Compass Heading Tape
-    this._renderCompassTape(ctx, width, height);
+    // 2. Draw Top Center Compass Heading Tape (with HUD Alpha)
+    if (this.hudAlpha > 0.02) {
+      ctx.save();
+      ctx.globalAlpha = this.hudAlpha;
+      this._renderCompassTape(ctx, width, height);
+      ctx.restore();
+    }
 
-    // 3. Draw Artificial Horizon & Pitch Ladder on Center Reticle
+    // 3. Draw Artificial Horizon & Pitch Ladder on Center Reticle (Combat vital - always visible)
     if (player) {
       this._renderPitchLadder(ctx, player, width, height);
     }
 
-    // 4. Draw Radar Sweeps & Tactical Target Bounding Boxes
+    // 4. Draw Radar Sweeps & Tactical Target Bounding Boxes (Combat vital - always visible)
     this._renderTargetBoundingBoxes(ctx, player, width, height);
 
-    // 5. Draw Radar Scope & RF Emission telemetry badge
-    this._renderRadarScopeBadge(ctx, width, height);
+    // 5. Draw Radar Scope & RF Emission telemetry badge (with HUD Alpha)
+    if (this.hudAlpha > 0.02) {
+      ctx.save();
+      ctx.globalAlpha = this.hudAlpha;
+      this._renderRadarScopeBadge(ctx, width, height);
+      ctx.restore();
+    }
 
-    // 6. Draw Ordnance Gauges on Canvas
-    this._renderOrdnanceMeters(ctx, width, height);
+    // 6. Draw Ordnance Gauges on Canvas (with HUD Alpha)
+    if (this.hudAlpha > 0.02) {
+      ctx.save();
+      ctx.globalAlpha = this.hudAlpha;
+      this._renderOrdnanceMeters(ctx, width, height);
+      ctx.restore();
+    }
 
     ctx.restore();
   }
