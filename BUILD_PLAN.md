@@ -154,21 +154,58 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE G — Target Roster & Intel Drops
 
-### Step 22 — Target base class & entity pool
-- Base target class: hitpoints, movement vectors, bounding volumes, FLIR heat-flash shaders, intel drop tables.
-- Output: Core target lifecycle architecture.
+### Step 22 — Target base class, entity pool & enemy config
+- Create `enemies.js` config module defining all 5 enemy archetypes + 2 boss entities with stats, thermal palettes, render params, weapon configs, movement behaviors, and spawn rules.
+- Create `EnemyRenderer.js` procedural canvas drawing system for all hostile entities (mirrors `DroneRenderer.js` pipeline but with hostile aesthetics).
+- Base target class: hitpoints, movement vectors, bounding volumes, FLIR heat-flash shaders, intel drop tables, zero-allocation object pool.
+- All enemies use hostile thermal palettes (reds, oranges, toxic greens) distinct from player drone colors (cyan, purple, amber).
+- Hostile IFF markers (blinking red triangle) drawn above each enemy. Damage state degradation as HP decreases (sparking, missing panels, smoke).
+- Output: Core target lifecycle architecture with enemy config and procedural rendering scaffold.
 
-### Step 23 — Recon Buggy (Target 1)
-- Swarming, fast descents with light forward fire.
+### Step 23 — RV-4 Scout / Recon Buggy (Target 1)
+- **Silhouette**: Compact hexagonal disc body with 4 thrust pods at cardinal directions. Flat, surveillance micro-drone — no wings, no cockpit.
+- **Thermal**: Dim red-orange (`#e85a3a` core) — low heat signature.
+- **Scale**: 0.6× player size. **HP**: 15 (dies in 2–3 Vulcan hits). **Score**: 100.
+- **Movement**: Fast linear descent from top edge. Slight random lateral drift (30px). Spawns in V-formations, staggered lines, or clusters of 3–7.
+- **Attack**: Single forward pulse shot every 2s, aimed straight down. Low damage (10 contact). Low threat individually — dangerous in numbers.
+- **Spawn**: Top edge only. Max 12 on screen. Available from Wave 1.
+- Output: Fully rendered and behaviorally active Recon Buggy enemy.
 
-### Step 24 — Interceptor Jet (Target 2)
-- Sinusoidal evasive flight patterns with angled dual-fire.
+### Step 24 — VK-7 Interceptor / Interceptor Jet (Target 2)
+- **Silhouette**: Narrow swept-back arrowhead body with sharp angular wings. Aggressive mass-produced hostile fighter — sleek but utilitarian, dual engine exhausts.
+- **Thermal**: Hot orange (`#ff8c1a` core) — high-speed thermal bloom.
+- **Scale**: 0.75× player size. **HP**: 30. **Score**: 250.
+- **Movement**: Sinusoidal weaving horizontally (amplitude 120px, frequency 1.8 Hz) while descending at 90px/s. Amplitude and frequency scale up at higher levels.
+- **Attack**: Angled dual-fire — two projectiles at ±15° from forward direction every 1.5s. Projectile speed 320px/s.
+- **Spawn**: Top, left, or right edges. Pairs, diamonds, or echelon formations of 2–4. Max 6 on screen. Available from Wave 2.
+- Output: Evasive sinusoidal fighter with angled dual-fire.
 
-### Step 25 — SAM Site Turret (Target 3)
-- Anchors in upper sector, tracks drone position, and fires targeted pulse bursts.
+### Step 25 — GT-12 Sentinel / SAM Turret (Target 3)
+- **Silhouette**: Wide hexagonal base platform with rotating turret barrel assembly. Industrial defense emplacement — armor plates, corner reinforcement bolts, antenna mast. Clearly a weapons platform, not a ship.
+- **Thermal**: Warning amber (`#ffb703` core) — high armor glow.
+- **Scale**: 0.85× player size. **HP**: 60 (tanky). **Score**: 400.
+- **Movement**: Enters slowly from top (40px/s), anchors at Y-position (upper 25% of screen), then drifts laterally very slowly (20px drift).
+- **Attack**: Aimed burst fire — turret tracks player position, fires 3-round burst (0.12s between shots) aimed directly at player drone. 2.5s cooldown between bursts. Projectile speed 380px/s.
+- **Spawn**: Top edge only. Solo or pairs. Max 2 on screen. Available from Wave 3.
+- Output: Stationary aimed turret with burst fire pattern.
 
-### Step 26 — Kamikaze Drone (Target 4)
-- High-velocity dive-bombing ram attacks with emergency evasive cues.
+### Step 26 — KZ-X Wraith / Kamikaze Drone (Target 4)
+- **Silhouette**: Pointed wedge/missile-like body with small stabilizer fins. Glowing explosive front nose cone. Exposed wiring/panel detail for disposable, cobbled-together look.
+- **Thermal**: Danger red (`#ff003c` core) — overheating dive signature.
+- **Scale**: 0.5× player size. **HP**: 10 (fragile). **Score**: 200.
+- **Movement**: Spawns from any edge (top, left, right). Brief slow approach (60px/s), then locks onto player position and dives at extreme speed (600px/s) in a straight line. Leaves hot exhaust trail.
+- **Attack**: No projectiles — pure contact damage (35). 0.5s flashing red warning indicator telegraph before dive.
+- **Spawn**: Any edge. Always solo. Max 3 on screen. Available from Wave 4.
+- Output: High-speed suicide ram attacker with visual warning telegraph.
+
+### Step 26b — EW-9 Specter / Radar Jammer (Target 5)
+- **Silhouette**: Spherical/octagonal body bristling with 6 antenna spines and 2 satellite dish arrays. Clearly a utility/support drone — lots of sensor equipment, no visible weapons. Pulsing ECM aura rings radiating outward.
+- **Thermal**: Toxic green (`#39ff14` core) — ECM radiation signature.
+- **Scale**: 0.7× player size. **HP**: 40. **Score**: 500.
+- **Movement**: Slow erratic floating pattern (25px/s descent, 50px lateral drift, 40px amplitude wobble). Stays in upper 40% of screen.
+- **Attack**: No direct fire. While alive, applies **jamming aura**: HUD static/noise overlay (0.35 alpha), reduced radar range (50%), scrambled enemy IFF markers (flickering). Priority kill target.
+- **Spawn**: Top edge only. Max 1 on screen. Available from Wave 7.
+- Output: ECM support unit with HUD disruption effects.
 
 ### Step 27 — Intel & Supply Drops
 - Armor repairs, ECM charges, ordnance power-ups, intel data packets with magnetic attraction toward player drone.
@@ -197,14 +234,28 @@ Each step is small, builds directly on the previous one, and ends in something t
 ### Step 31 — HVT warning sequence
 - Klaxon sirens, red alert HUD banner, cinematic entrance animation via satellite zoom.
 
-### Step 32 — HVT framework
-- Multi-segmented target entity with multi-phase health bar at screen top.
+### Step 32 — HVT framework & multi-segment entity
+- **Entity**: `BOSS_MOBILE_COMMAND` — ~2.5× player scale width. Central octagonal command bridge flanked by two armored weapon pod modules.
+- **Visual**: Octagonal core with armor plate lines, sensor dome, antenna arrays. Each pod has cut-corner rectangular body with 2 turret barrels. Connecting struts between core and pods.
+- **HP Split**: Left Pod (200 HP, 1.2 armor) + Right Pod (200 HP, 1.2 armor) + Core (400 HP, 2.0 armor) = 800 total.
+- **Thermal**: Phase 1 warning amber (`#ffb703`), Phase 2 danger red (`#ff003c`) with flicker damage FX.
+- Multi-phase health bar at screen top showing per-segment health.
+- Output: Multi-segment boss entity with independent segment destruction.
 
 ### Step 33 — Phase 1: Radial Flak Barrage
-- Rotating anti-air cannons and missile volleys.
+- Both weapon pods fire **rotating radial bullet patterns** — left pod clockwise, right pod counter-clockwise. 12 bullets per rotation at 0.8 rad/s, projectile speed 200px/s.
+- Core fires occasional aimed single shots at player (300px/s, 3s cooldown).
+- Boss oscillates laterally across screen (speed 50px/s, amplitude 200px).
+- **Destroying a pod** removes that pod's radial pattern (visual: pod detaches with explosion, replaced by sparking debris stub).
+- Phase transitions to Phase 2 when both pods are destroyed.
 
 ### Step 34 — Phase 2: Core Overdrive & Escort Deploy
-- Spawns escort fighters, initiates sweep attacks, epic multi-stage FLIR explosion on defeat.
+- Triggered when both weapon pods destroyed. Core shield drops visually (overheat glow FX).
+- Core movement speed doubles (100px/s, amplitude 280px).
+- Core fires **rapid 5-way spread shots** (60° total spread, 350px/s, 1.2s cooldown).
+- **Spawns 2 Interceptor escorts** every 15 seconds.
+- Visual FX: Overheat glow pulsing, spark emissions from core.
+- **Defeat sequence**: Left pod detaches & explodes (0s) → Right pod detaches & explodes (0.4s) → Core massive FLIR heat-flash detonation (1.0s). Screen shake intensity 12, 24 debris pieces.
 
 ---
 
@@ -216,14 +267,32 @@ Each step is small, builds directly on the previous one, and ends in something t
 ### Step 36 — Sectors 6–9 Implementation
 - Heavy gauntlet with dense hazard fields and multi-threat encounters.
 
-### Step 37 — Boss 2 Framework (Nuclear Submarine)
-- Mobile, responsive 3-phase apex target.
+### Step 37 — Boss 2 Framework (Apex Submersible Dreadnought)
+- **Entity**: `BOSS_APEX_DREADNOUGHT` — ~3× player width. Elongated submarine/dreadnought hull with segmented armored spine.
+- **Visual**: Forward sensor array, midship beam weapon emitter, aft engine bank (4 engines). Industrial brutalist design — thick plated hull with heavy greeble detail, spine hardpoints (4 turret mounts), 8 armor plate rows.
+- **HP Split**: Forward Array (300) + Beam Emitter (400) + Mid Section (500) + Engine Bank (300) + Core (500) = 2000 total.
+- **Thermal**: Phase 1 deep purple (`#8b5cf6`), Phase 2 hot crimson (`#dc2626`), Phase 3 white-hot overload (`#fbbf24` → `#ffffff`).
+- Output: Campaign final boss with 3-phase escalating threat framework.
 
-### Step 38 — Phases 1 & 2: Submerge Dash & Heavy Sweeping Beam
-- High mobility teleport dashes and telegraphed laser sweeps.
+### Step 38 — Phase 1 (Submerge Dash) & Phase 2 (Heavy Sweeping Beam)
+- **Phase 1 — "Submerge Dash"** (100%–50% HP):
+  - Periodically "submerges" (0.6s fade-out with ripple FX), fully invulnerable during 2s submerge duration, then surfaces at new position with 150px shockwave.
+  - Fires homing torpedo salvos: 3 torpedoes, 180px/s speed, 2.5 rad/s homing turn rate, 4s cooldown. Smoke trails on torpedoes.
+  - Submerge cycle every 6 seconds.
+- **Phase 2 — "Heavy Sweeping Beam"** (50%–25% HP):
+  - Stops teleporting, anchors center-screen (50% X, 25% Y).
+  - Charges and fires **sweeping tactical beam** (40px wide, full screen length): 1.5s charge telegraph, 8s active, rotates at 0.4 rad/s with 45° safe gap. 4s cooldown between sweeps.
+  - Simultaneously fires point-defense turrets at player: aimed 2-round bursts, 350px/s, 2s cooldown.
+  - Beam emitter visually charges with pulsing core glow and direction indicator.
 
 ### Step 39 — Phase 3: Enraged Desperation & Grand Ending
-- Overcharged barrage, visual frenzy FX, and full Campaign Completion Victory sequence.
+- **Phase 3 — "Enraged Desperation"** (below 25% HP):
+  - Movement becomes erratic (80px/s, 250px amplitude, 40px jitter).
+  - **Everything fires simultaneously**: Torpedo salvos (5 torpedoes, 3s cooldown, 220px/s), sweeping beam (doubled rotation 0.8 rad/s, smaller 30° gap), radial bullet waves (16 projectiles, 250px/s, 2.5s cooldown), and Kamikaze drone spawns (2 every 10s).
+  - **Visual FX**: Hull cracking (jagged crack lines with energy leak glow spots), persistent screen shake (intensity 4), CRT glitch overlay, rapid flickering (rate 12).
+  - Thermal shifts to white-hot overload (`#fbbf24` → `#ffffff`).
+- **Defeat sequence**: Forward Array breaks (0s) → Beam Emitter breaks (0.5s) → Engine Bank breaks (1.0s) → Mid Section breaks (1.5s) → Core massive detonation (2.5s). Screen-white flash, shake intensity 20, 40 debris pieces, victory fanfare trigger.
+- Output: Campaign Completion Victory sequence.
 
 ---
 
