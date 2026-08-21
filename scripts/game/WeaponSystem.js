@@ -53,42 +53,42 @@ export class WeaponSystem {
     switch (this.weaponConfig.id) {
       case 'VULCAN':
       default:
-        this.baseFireRate = 9.5; // ~105ms interval
-        this.projectileSpeed = 920;
-        this.spread = 0.025;
-        this.damage = 15;
-        this.heatPerShot = 2.8;
-        this.ammoPerShot = 1.5;
+        this.baseFireRate = 12.0; // High sustained kinetic stream
+        this.projectileSpeed = 1050;
+        this.spread = 0.018;
+        this.damage = 22; // High kinetic impact per slug
+        this.heatPerShot = 0.8; // Extremely cool running (~3x cooler than laser)
+        this.ammoPerShot = 0.6; // High energy efficiency
         this.recoilImpulse = 0.5;
         break;
 
       case 'FLAK':
-        this.baseFireRate = 3.2; // ~312ms interval per 5-way salvo
-        this.projectileSpeed = 760;
-        this.spread = 0.28; // ~16 deg fan spread
-        this.damage = 26; // per pellet (5 pellets = 130 max close-range damage)
-        this.heatPerShot = 8.5;
-        this.ammoPerShot = 6.0;
-        this.recoilImpulse = 2.2;
+        this.baseFireRate = 3.4; // Multi-directional crowd control spread
+        this.projectileSpeed = 780;
+        this.spread = 0.28;
+        this.damage = 28; // 5 pellets = 140 max point-blank damage
+        this.heatPerShot = 6.5;
+        this.ammoPerShot = 4.5;
+        this.recoilImpulse = 2.0;
         break;
 
       case 'LASER':
-        this.baseFireRate = 18.0;
-        this.projectileSpeed = 1600;
+        this.baseFireRate = 10.5; // Precision pulsed beam lance
+        this.projectileSpeed = 1800;
         this.spread = 0.0;
-        this.damage = 9;
-        this.heatPerShot = 2.4;
-        this.ammoPerShot = 1.2;
+        this.damage = 16; // Multi-target piercing
+        this.heatPerShot = 4.8; // High thermal buildup (~6x faster overheat than Vulcan)
+        this.ammoPerShot = 2.6; // Energy-intensive
         this.recoilImpulse = 0.2;
         break;
 
       case 'HELLFIRE':
-        this.baseFireRate = 1.4;
-        this.projectileSpeed = 560;
-        this.spread = 0.08;
-        this.damage = 80;
-        this.heatPerShot = 14.0;
-        this.ammoPerShot = 10.0;
+        this.baseFireRate = 1.5;
+        this.projectileSpeed = 620;
+        this.spread = 0.06;
+        this.damage = 90; // High alpha burst
+        this.heatPerShot = 12.0;
+        this.ammoPerShot = 8.0;
         this.recoilImpulse = 2.8;
         break;
     }
@@ -188,51 +188,52 @@ export class WeaponSystem {
     const effectiveFireRate = this.baseFireRate * this.fireRateMultiplier;
 
     // ══════════════════════════════════════════════════════════════
-    // WEAPON 1: GAU-22 VULCAN ROTARY CANNON
+    // WEAPON 1: GAU-22 VULCAN ROTARY CANNON (Dual Linked Kinetic Slugs)
     // ══════════════════════════════════════════════════════════════
     if (this.activeWeaponId === 'VULCAN') {
-      const muzzleIdx = this.barrelIndex % muzzles.length;
-      const muzzle = muzzles[muzzleIdx];
-      this.barrelIndex = (this.barrelIndex + 1) % muzzles.length;
+      // Fire from both wing hardpoints simultaneously for heavy kinetic punch
+      for (let m = 0; m < muzzles.length; m++) {
+        const muzzle = muzzles[m];
+        const spreadAngle = (Math.random() - 0.5) * this.spread;
+        const baseAngle = -Math.PI / 2 + spreadAngle;
 
-      const spreadAngle = (Math.random() - 0.5) * this.spread;
-      const baseAngle = -Math.PI / 2 + spreadAngle;
+        const vx = Math.cos(baseAngle) * this.projectileSpeed + player.vx * 0.18;
+        const vy = Math.sin(baseAngle) * this.projectileSpeed;
 
-      const vx = Math.cos(baseAngle) * this.projectileSpeed + player.vx * 0.18;
-      const vy = Math.sin(baseAngle) * this.projectileSpeed;
+        projectilePool.spawn({
+          owner: 'player',
+          type: PROJECTILE_TYPES.VULCAN,
+          x: muzzle.x,
+          y: muzzle.y,
+          prevX: muzzle.x,
+          prevY: muzzle.y,
+          vx: vx,
+          vy: vy,
+          speed: this.projectileSpeed,
+          damage: this.damage,
+          radius: 3.6,
+          length: 26,
+          width: 3.4,
+          color: droneThermal.core || '#2dd4dc',
+          glowColor: droneThermal.glow || 'rgba(45, 212, 220, 0.65)',
+          coreColor: '#ffffff',
+          lifetime: 2.2,
+          penetration: 1
+        });
 
-      projectilePool.spawn({
-        owner: 'player',
-        type: PROJECTILE_TYPES.VULCAN,
-        x: muzzle.x,
-        y: muzzle.y,
-        prevX: muzzle.x,
-        prevY: muzzle.y,
-        vx: vx,
-        vy: vy,
-        speed: this.projectileSpeed,
-        damage: this.damage,
-        radius: 3.5,
-        length: 24,
-        width: 3.2,
-        color: droneThermal.core || '#2dd4dc',
-        glowColor: droneThermal.glow || 'rgba(45, 212, 220, 0.65)',
-        coreColor: '#ffffff',
-        lifetime: 2.2,
-        penetration: 1
-      });
-
-      projectilePool.spawnMuzzleFlash(
-        muzzle.x,
-        muzzle.y,
-        droneThermal.core || '#2dd4dc',
-        14,
-        -Math.PI / 2
-      );
+        projectilePool.spawnMuzzleFlash(
+          muzzle.x,
+          muzzle.y,
+          droneThermal.core || '#2dd4dc',
+          16,
+          -Math.PI / 2
+        );
+      }
 
       if (soundManager && typeof soundManager.playVulcanFire === 'function') {
-        soundManager.playVulcanFire(muzzleIdx);
+        soundManager.playVulcanFire(this.barrelIndex);
       }
+      this.barrelIndex = (this.barrelIndex + 1) % muzzles.length;
 
       if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
         gameEngine.addCameraShake(this.recoilImpulse);

@@ -127,28 +127,28 @@ export const WEAPON_TYPES = {
     id: 'VULCAN',
     name: 'GAU-22 VULCAN',
     class: 'KINETIC',
-    description: 'Rapid-fire rotary cannon. High rate of fire, moderate damage.',
+    description: 'Twin rotary cannon. Max sustained kinetic DPS, ultra-low heat.',
     icon: '⦿',
-    stats: { damage: 1.0, fireRate: 8.0, range: 0.6, spread: 0.1 },
+    stats: { damage: 1.5, fireRate: 9.5, range: 0.7, spread: 0.05 },
     color: '#2dd4dc'
   },
   FLAK: {
     id: 'FLAK',
     name: 'MK-44 FLAK',
     class: 'EXPLOSIVE',
-    description: '3-5 way angled spread cannon. Wide area denial, crowd control.',
+    description: '5-way explosive canister fan. Wide area denial, crowd control.',
     icon: '✦',
-    stats: { damage: 0.7, fireRate: 3.5, range: 0.5, spread: 0.8 },
+    stats: { damage: 1.2, fireRate: 3.5, range: 0.5, spread: 0.8 },
     color: '#e8991a'
   },
   LASER: {
     id: 'LASER',
     name: 'ATHENA BEAM',
     class: 'DIRECTED ENERGY',
-    description: 'Sustained laser designator. Piercing beam with heat buildup.',
+    description: 'Piercing beam lance. Multi-target penetration with high thermal buildup.',
     icon: '◇',
-    stats: { damage: 1.4, fireRate: 0, range: 0.9, spread: 0.0 },
-    color: '#e8364b'
+    stats: { damage: 1.1, fireRate: 8.0, range: 1.0, spread: 0.0 },
+    color: '#c084fc'
   },
   HELLFIRE: {
     id: 'HELLFIRE',
@@ -156,8 +156,8 @@ export const WEAPON_TYPES = {
     class: 'GUIDED MUNITION',
     description: 'Self-propelling tracking missiles with area-of-effect warhead.',
     icon: '▲',
-    stats: { damage: 2.5, fireRate: 1.2, range: 1.0, spread: 0.0 },
-    color: '#2dd47a'
+    stats: { damage: 2.8, fireRate: 1.5, range: 1.0, spread: 0.0 },
+    color: '#ff003c'
   },
   ORBITAL: {
     id: 'ORBITAL',
