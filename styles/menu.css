@@ -1689,3 +1689,734 @@ body[data-active-screen="landing"] .bottom-bar,
   width: 100%;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   SETTINGS SCREEN & HARDWARE CONFIGURATION
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.settings-panel {
+  max-width: 580px;
+  width: 95vw;
+  max-height: 92vh;
+}
+
+.settings-scroll-area {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  max-height: 62vh;
+  padding-right: 6px;
+}
+
+.settings-scroll-area::-webkit-scrollbar,
+.manual-content-viewport::-webkit-scrollbar {
+  width: 4px;
+}
+
+.settings-scroll-area::-webkit-scrollbar-track,
+.manual-content-viewport::-webkit-scrollbar-track {
+  background: rgba(45, 212, 220, 0.05);
+}
+
+.settings-scroll-area::-webkit-scrollbar-thumb,
+.manual-content-viewport::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 220, 0.35);
+  border-radius: 2px;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(8, 16, 26, 0.4);
+  border: 1px solid rgba(45, 212, 220, 0.1);
+  padding: 10px 14px;
+}
+
+.settings-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(45, 212, 220, 0.08);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+.settings-group-title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-label {
+  font-family: var(--font-heading);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-bright);
+  text-transform: uppercase;
+}
+
+.setting-desc {
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+}
+
+.setting-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 6px;
+}
+
+.setting-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-slider-track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  background: rgba(45, 212, 220, 0.06);
+  border: 1px solid rgba(45, 212, 220, 0.2);
+  overflow: hidden;
+}
+
+.custom-slider-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  pointer-events: none;
+  transition: width 80ms ease-out;
+}
+
+.slider-native {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 5;
+  margin: 0;
+}
+
+/* Control Scheme Selector Cards */
+.control-schemes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.scheme-btn {
+  background: rgba(10, 18, 30, 0.6);
+  border: 1px solid rgba(45, 212, 220, 0.15);
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+  transition: all var(--t-fast);
+}
+
+.scheme-btn:hover {
+  background: rgba(14, 26, 44, 0.85);
+  border-color: rgba(45, 212, 220, 0.4);
+  transform: translateY(-1px);
+}
+
+.scheme-btn.active {
+  background: rgba(16, 42, 60, 0.85);
+  border-color: var(--cyan);
+  box-shadow: 0 0 10px rgba(45, 212, 220, 0.25);
+}
+
+.scheme-icon {
+  font-size: 1rem;
+}
+
+.scheme-title {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-bright);
+}
+
+.scheme-btn.active .scheme-title {
+  color: var(--cyan-bright);
+}
+
+.scheme-desc {
+  font-family: var(--font-body);
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+/* Callsign Input */
+.callsign-input-wrapper {
+  position: relative;
+  width: 150px;
+}
+
+.callsign-input {
+  width: 100%;
+  background: rgba(6, 12, 20, 0.8);
+  border: 1px solid rgba(45, 212, 220, 0.3);
+  color: var(--cyan-bright);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: bold;
+  letter-spacing: 0.15em;
+  text-align: center;
+  padding: 6px 8px;
+  outline: none;
+  text-transform: uppercase;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.callsign-input:focus {
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan-sm);
+}
+
+.data-mgmt-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* Screen Shake Animation */
+.screen-shake {
+  animation: screen-shake-anim 400ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes screen-shake-anim {
+  10%, 90% { transform: translate3d(-2px, 1px, 0); }
+  20%, 80% { transform: translate3d(3px, -2px, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 3px, 0); }
+  40%, 60% { transform: translate3d(4px, -3px, 0); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HOW TO PLAY SCREEN & COMBAT MANUAL
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.manual-panel {
+  max-width: 680px;
+  width: 95vw;
+  max-height: 92vh;
+}
+
+.manual-tabs {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  border-bottom: 1px solid rgba(45, 212, 220, 0.15);
+  padding-bottom: 4px;
+}
+
+.manual-tab-btn {
+  flex: 1;
+  background: rgba(10, 18, 30, 0.6);
+  border: 1px solid rgba(45, 212, 220, 0.15);
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 8px 6px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  text-align: center;
+}
+
+.manual-tab-btn:hover {
+  background: rgba(14, 26, 44, 0.85);
+  color: var(--text-bright);
+}
+
+.manual-tab-btn.active {
+  background: rgba(16, 42, 60, 0.9);
+  border-color: var(--cyan);
+  color: var(--cyan-bright);
+  box-shadow: inset 0 -2px 0 var(--cyan), var(--glow-cyan-sm);
+}
+
+.manual-content-viewport {
+  overflow-y: auto;
+  max-height: 58vh;
+  padding-right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manual-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manual-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(45, 212, 220, 0.12);
+  padding-bottom: 4px;
+}
+
+.manual-section-title {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+
+/* Interactive Key Tester Banner */
+.key-tester-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(45, 212, 220, 0.04);
+  border: 1px dashed rgba(45, 212, 220, 0.25);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-primary);
+  letter-spacing: 0.08em;
+  transition: all 150ms ease;
+}
+
+.key-tester-banner.active {
+  background: rgba(45, 212, 220, 0.12);
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan-sm);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+/* Keyboard Visual Diagram */
+.keyboard-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  background: rgba(6, 12, 20, 0.7);
+  border: 1px solid rgba(45, 212, 220, 0.15);
+  padding: 12px 10px;
+}
+
+.kb-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  width: 100%;
+}
+
+.kb-key {
+  background: rgba(12, 22, 36, 0.8);
+  border: 1px solid rgba(45, 212, 220, 0.25);
+  border-bottom: 2px solid rgba(45, 212, 220, 0.5);
+  padding: 6px 10px;
+  min-width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 100ms ease;
+  user-select: none;
+}
+
+.kb-key:hover {
+  background: rgba(18, 32, 52, 0.95);
+  border-color: var(--cyan);
+}
+
+.kb-key.active {
+  background: var(--cyan-soft);
+  border-color: var(--cyan);
+  border-bottom-width: 1px;
+  transform: translateY(1px);
+  box-shadow: var(--glow-cyan-md);
+}
+
+.kb-key.active .key-lbl {
+  color: #ffffff;
+}
+
+.kb-key.active .key-act {
+  color: var(--cyan-bright);
+}
+
+.kb-key-wide {
+  min-width: 220px;
+}
+
+.key-lbl {
+  font-family: var(--font-heading);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-bright);
+}
+
+.key-act {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  color: var(--cyan);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Control Guides Grid */
+.control-guides-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.guide-card {
+  background: rgba(8, 16, 26, 0.5);
+  border: 1px solid rgba(45, 212, 220, 0.12);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guide-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(45, 212, 220, 0.08);
+  padding-bottom: 4px;
+}
+
+.guide-icon {
+  font-size: 0.85rem;
+}
+
+.guide-title {
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-bright);
+}
+
+.guide-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+/* Intel Box */
+.intel-box {
+  background: rgba(18, 12, 6, 0.4);
+  border: 1px solid rgba(232, 153, 26, 0.25);
+  padding: 10px 12px;
+}
+
+.intel-title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--amber);
+  margin-bottom: 4px;
+}
+
+.intel-body {
+  font-family: var(--font-body);
+  font-size: 0.64rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+/* Weapon Cards */
+.weapon-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weapon-spec-card {
+  background: rgba(8, 16, 26, 0.6);
+  border: 1px solid rgba(45, 212, 220, 0.14);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.weapon-spec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.weapon-spec-name {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.weapon-spec-type {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+}
+
+.weapon-spec-desc {
+  font-family: var(--font-body);
+  font-size: 0.64rem;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.weapon-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 12px;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(45, 212, 220, 0.08);
+}
+
+.weapon-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-lbl {
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  color: var(--text-secondary);
+  min-width: 65px;
+}
+
+.stat-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(45, 212, 220, 0.08);
+  border: 1px solid rgba(45, 212, 220, 0.15);
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+}
+
+.stat-num {
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  color: var(--text-primary);
+  min-width: 25px;
+  text-align: right;
+}
+
+/* Threats & Drops */
+.threats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.threat-card {
+  background: rgba(8, 16, 26, 0.6);
+  border: 1px solid rgba(45, 212, 220, 0.14);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.threat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.threat-name {
+  font-family: var(--font-heading);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-bright);
+}
+
+.threat-role {
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  color: var(--text-secondary);
+}
+
+.threat-badge {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  padding: 1px 5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.threat-badge.threat-green  { background: rgba(45, 212, 122, 0.15); color: var(--green); border: 1px solid var(--green); }
+.threat-badge.threat-cyan   { background: rgba(45, 212, 220, 0.15); color: var(--cyan); border: 1px solid var(--cyan); }
+.threat-badge.threat-amber  { background: rgba(232, 153, 26, 0.15); color: var(--amber); border: 1px solid var(--amber); }
+.threat-badge.threat-red    { background: rgba(232, 54, 75, 0.15); color: var(--red); border: 1px solid var(--red); }
+.threat-badge.threat-purple { background: rgba(167, 139, 250, 0.15); color: var(--purple); border: 1px solid var(--purple); }
+
+.threat-desc {
+  font-family: var(--font-body);
+  font-size: 0.60rem;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.drops-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.drop-item-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(8, 16, 26, 0.5);
+  border: 1px solid rgba(45, 212, 220, 0.1);
+  padding: 6px 10px;
+}
+
+.drop-icon {
+  font-size: 1.1rem;
+}
+
+.drop-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.drop-name {
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.drop-effect {
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  color: var(--text-secondary);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS (SETTINGS & HOW TO PLAY)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .settings-panel,
+  .manual-panel {
+    width: 96vw;
+    padding: 16px 14px;
+    gap: 12px;
+  }
+
+  .settings-scroll-area,
+  .manual-content-viewport {
+    max-height: 56vh;
+  }
+
+  .control-schemes-grid,
+  .control-guides-grid,
+  .threats-grid,
+  .drops-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .weapon-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kb-key {
+    min-width: 48px;
+    padding: 4px 6px;
+  }
+
+  .kb-key-wide {
+    min-width: 150px;
+  }
+
+  .key-lbl {
+    font-size: 0.64rem;
+  }
+
+  .key-act {
+    font-size: 0.46rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .manual-tabs {
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .manual-tab-btn {
+    padding: 5px 8px;
+    font-size: 0.64rem;
+  }
+
+  .kb-row {
+    flex-wrap: wrap;
+  }
+
+  .kb-key {
+    min-width: 40px;
+  }
+}
+

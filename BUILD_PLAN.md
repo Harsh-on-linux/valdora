@@ -64,7 +64,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Web Audio UI sound feedback (beeps, clicks, power hums).
 - Output: Interactive landing navigation with auditory feedback.
 
-### Step 7 — How to Play / Settings screens 🔄 ← Current
+### Step 7 — How to Play / Settings screens ✅
 - How to Play: Interactive controls diagram, weapon stats legend, enemy threat guide.
 - Settings: Master volume, SFX volume, Music volume, control scheme toggle (Keyboard / Mouse / Touch), screen shake toggle.
 - Output: Settings persisted to `localStorage` and real-time audio gain adjustment.
@@ -73,7 +73,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE C — Level Select
 
-### Step 8 — Level select data model
+### Step 8 — Level select data model 🔄 ← Current
 - Define `levels.js` config: 10 levels with id, name, isBoss flag, unlock requirement, target score, enemy waves, reward stars.
 - Output: Validated level configuration module.
 

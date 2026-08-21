@@ -94,7 +94,7 @@ export const LandingScreen = {
           </button>
           
           <div class="screen-footer" style="margin-top: 4px; padding-top: 10px; border-top: 1px solid rgba(45, 212, 220, 0.15);">
-            <button class="console-btn btn-secondary btn-sm" data-nav="settings" style="flex: 1;">
+            <button class="console-btn btn-secondary btn-sm" data-nav="howToPlay" style="flex: 1;">
               <span>❓ HOW TO PLAY</span>
             </button>
             <button class="console-btn btn-amber btn-sm" data-nav="showcase" style="flex: 1;">

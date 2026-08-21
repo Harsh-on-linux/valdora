@@ -13,9 +13,10 @@ import {
   PauseScreen,
   ResultsScreen,
   SettingsScreen,
+  HowToPlayScreen,
   ShowcaseScreen
 } from './ui/index.js';
-import { Starfield, SaveManager } from './game/index.js';
+import { Starfield, SaveManager, SettingsManager } from './game/index.js';
 import { soundManager } from './audio/index.js';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -62,7 +63,10 @@ window.addEventListener('DOMContentLoaded', () => {
     starfield.start();
   }
 
-  // 3. Initialize Screen Manager & State Machine
+  // 3. Apply Saved User Settings (CRT scanlines, audio gain, control scheme)
+  SettingsManager.applySettings();
+
+  // 4. Initialize Screen Manager & State Machine
   const screenManager = new ScreenManager(uiRoot);
 
   screenManager
@@ -73,6 +77,7 @@ window.addEventListener('DOMContentLoaded', () => {
     .register('pause', PauseScreen)
     .register('results', ResultsScreen)
     .register('settings', SettingsScreen)
+    .register('howToPlay', HowToPlayScreen)
     .register('showcase', ShowcaseScreen);
 
   // Mount default starting screen
@@ -82,6 +87,7 @@ window.addEventListener('DOMContentLoaded', () => {
   window.__screenManager = screenManager;
   window.__soundManager = soundManager;
   window.__saveManager = SaveManager;
+  window.__settingsManager = SettingsManager;
 
-  console.log('✅ Global State Machine, Web Audio & Starfield active. Screens registered: landing, levelSelect, loadout, game, pause, results, settings, showcase.');
+  console.log('✅ Global State Machine, Web Audio & Starfield active. Screens registered: landing, levelSelect, loadout, game, pause, results, settings, howToPlay, showcase.');
 });

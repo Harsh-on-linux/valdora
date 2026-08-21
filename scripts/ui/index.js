@@ -12,4 +12,5 @@ export { GameScreen } from './screens/GameScreen.js';
 export { PauseScreen } from './screens/PauseScreen.js';
 export { ResultsScreen } from './screens/ResultsScreen.js';
 export { SettingsScreen } from './screens/SettingsScreen.js';
+export { HowToPlayScreen } from './screens/HowToPlayScreen.js';
 export { ShowcaseScreen } from './screens/ShowcaseScreen.js';

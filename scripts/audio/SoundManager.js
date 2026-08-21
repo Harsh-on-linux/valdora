@@ -9,9 +9,11 @@ export class SoundManager {
     this.ctx = null;
     this.masterGain = null;
     this.sfxGain = null;
+    this.musicGain = null;
     this.enabled = true;
     this.masterVolume = 0.8;
     this.sfxVolume = 0.85;
+    this.musicVolume = 0.7;
     this.isInitialized = false;
 
     // Load saved settings if available
@@ -22,6 +24,7 @@ export class SoundManager {
           const parsed = JSON.parse(savedSettings);
           if (typeof parsed.masterVolume === 'number') this.masterVolume = parsed.masterVolume;
           if (typeof parsed.sfxVolume === 'number') this.sfxVolume = parsed.sfxVolume;
+          if (typeof parsed.musicVolume === 'number') this.musicVolume = parsed.musicVolume;
           if (typeof parsed.soundEnabled === 'boolean') this.enabled = parsed.soundEnabled;
         }
       }
@@ -32,6 +35,16 @@ export class SoundManager {
     // Auto-unlock Web Audio API on first user gesture
     if (typeof window !== 'undefined') {
       this._bindUnlockEvents();
+
+      // Listen for settings updates dynamically
+      window.addEventListener('settings:updated', (e) => {
+        if (e.detail) {
+          if (typeof e.detail.masterVolume === 'number') this.setMasterVolume(e.detail.masterVolume);
+          if (typeof e.detail.sfxVolume === 'number') this.setSfxVolume(e.detail.sfxVolume);
+          if (typeof e.detail.musicVolume === 'number') this.setMusicVolume(e.detail.musicVolume);
+          if (typeof e.detail.soundEnabled === 'boolean') this.setEnabled(e.detail.soundEnabled);
+        }
+      });
     }
   }
 
@@ -51,11 +64,14 @@ export class SoundManager {
       this.ctx = new AudioCtx();
       this.masterGain = this.ctx.createGain();
       this.sfxGain = this.ctx.createGain();
+      this.musicGain = this.ctx.createGain();
 
       this.masterGain.gain.setValueAtTime(this.enabled ? this.masterVolume : 0, this.ctx.currentTime);
       this.sfxGain.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
+      this.musicGain.gain.setValueAtTime(this.musicVolume, this.ctx.currentTime);
 
       this.sfxGain.connect(this.masterGain);
+      this.musicGain.connect(this.masterGain);
       this.masterGain.connect(this.ctx.destination);
 
       this.isInitialized = true;
@@ -368,6 +384,42 @@ export class SoundManager {
     if (this.sfxGain && this.ctx) {
       this.sfxGain.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
     }
+  }
+
+  /**
+   * Set Music Volume (0.0 to 1.0)
+   * @param {number} vol
+   */
+  setMusicVolume(vol) {
+    this.musicVolume = Math.max(0, Math.min(1, vol));
+    if (this.musicGain && this.ctx) {
+      this.musicGain.gain.setValueAtTime(this.musicVolume, this.ctx.currentTime);
+    }
+  }
+
+  /**
+   * Play test sound for audio calibration
+   * @param {number} [freq=880]
+   */
+  playTestTone(freq = 880) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.2, now + 0.08);
+
+    gain.gain.setValueAtTime(0.12 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.13);
   }
 
   /**
