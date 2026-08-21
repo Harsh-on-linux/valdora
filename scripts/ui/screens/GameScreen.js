@@ -5,6 +5,11 @@
 import { SaveManager } from '../../game/SaveManager.js';
 import { getLevelById } from '../../game/levels.js';
 import { soundManager } from '../../audio/index.js';
+import { GameEngine, ENGINE_STATE } from '../../game/GameEngine.js';
+
+let activeEngine = null;
+let telemetryUnsub = null;
+let keyHandler = null;
 
 export const GameScreen = {
   mount(container, data = {}, router) {
@@ -24,7 +29,7 @@ export const GameScreen = {
         <div class="hud-top-bar">
           <div class="hud-info-card">
             <span class="hud-label">HULL INTEGRITY</span>
-            <span class="hud-value" style="color: var(--cyan-bright)">100%</span>
+            <span class="hud-value" id="hud-hull-val" style="color: var(--cyan-bright)">100%</span>
           </div>
 
           <div class="hud-info-card score-card" style="text-align: center;">
@@ -34,7 +39,12 @@ export const GameScreen = {
 
           <div class="hud-info-card score-card">
             <span class="hud-label">MISSION SCORE</span>
-            <span class="hud-value" style="color: var(--amber)">000,000</span>
+            <span class="hud-value" id="hud-score-val" style="color: var(--amber)">000,000</span>
+          </div>
+
+          <div class="hud-info-card" style="min-width: 80px; text-align: right;">
+            <span class="hud-label">SIM FPS</span>
+            <span class="hud-value" id="hud-fps-val" style="color: var(--glow-cyan); font-size: 0.95rem;">60</span>
           </div>
 
           <button class="console-btn btn-sm" id="btn-pause">
@@ -46,6 +56,11 @@ export const GameScreen = {
           <div class="hud-info-card">
             <span class="hud-label">PRIMARY WEAPON // CRAFT</span>
             <span class="hud-value" style="color: var(--glow-amber)">${escapeHtml(weaponName)} · ${escapeHtml(droneName)}</span>
+          </div>
+
+          <div class="hud-info-card" style="font-family: var(--font-hud-mono); font-size: 0.75rem; color: var(--text-secondary);">
+            <span>SIM TIME: <span id="hud-sim-time" style="color: var(--cyan)">0.0s</span></span>
+            <span style="margin-left: 12px;">STATUS: <span id="hud-sim-status" style="color: var(--green)">ACTIVE</span></span>
           </div>
 
           <div class="hud-actions-right">
@@ -60,12 +75,53 @@ export const GameScreen = {
       </div>
     `;
 
+    // 1. Initialize or connect to GameEngine
+    if (!window.__gameEngine && gameCanvas) {
+      window.__gameEngine = new GameEngine(gameCanvas);
+    }
+    activeEngine = window.__gameEngine;
+
+    if (activeEngine) {
+      // If coming back from pause, resume; otherwise start fresh
+      if (activeEngine.state === ENGINE_STATE.PAUSED && data.resuming) {
+        activeEngine.resume();
+      } else {
+        activeEngine.start({
+          sector: sectorId,
+          drone: droneName,
+          weapon: weaponName
+        });
+      }
+
+      // Hook up live HUD telemetry listener
+      const fpsEl = container.querySelector('#hud-fps-val');
+      const scoreEl = container.querySelector('#hud-score-val');
+      const hullEl = container.querySelector('#hud-hull-val');
+      const simTimeEl = container.querySelector('#hud-sim-time');
+      const statusEl = container.querySelector('#hud-sim-status');
+
+      const onTelemetry = (telem) => {
+        if (fpsEl) fpsEl.textContent = telem.fps;
+        if (scoreEl) scoreEl.textContent = String(telem.score).padStart(6, '0');
+        if (hullEl) hullEl.textContent = `${Math.round((telem.hull / (telem.maxHull || 100)) * 100)}%`;
+        if (simTimeEl) simTimeEl.textContent = `${telem.simTime}s`;
+        if (statusEl) statusEl.textContent = telem.state;
+      };
+
+      activeEngine.on('telemetry', onTelemetry);
+      telemetryUnsub = () => activeEngine.off('telemetry', onTelemetry);
+    }
+
+    // 2. Button Event Listeners
     const pauseBtn = container.querySelector('#btn-pause');
+    const triggerPause = () => {
+      soundManager.playClick();
+      if (activeEngine) activeEngine.pause();
+      if (router) router.show('pause', { sector: sectorId });
+    };
+
     if (pauseBtn) {
-      pauseBtn.addEventListener('click', () => {
-        soundManager.playClick();
-        if (router) router.show('pause', { sector: sectorId });
-      });
+      pauseBtn.addEventListener('click', triggerPause);
       pauseBtn.addEventListener('mouseenter', () => soundManager.playHover());
     }
 
@@ -73,6 +129,7 @@ export const GameScreen = {
     if (abortBtn) {
       abortBtn.addEventListener('click', () => {
         soundManager.playClick();
+        if (activeEngine) activeEngine.stop();
         if (router) router.show('levelSelect', { sector: sectorId });
       });
       abortBtn.addEventListener('mouseenter', () => soundManager.playHover());
@@ -82,16 +139,42 @@ export const GameScreen = {
     if (resultsBtn) {
       resultsBtn.addEventListener('click', () => {
         soundManager.playStart();
+        if (activeEngine) activeEngine.stop();
         if (router) router.show('results', { sector: sectorId });
       });
       resultsBtn.addEventListener('mouseenter', () => soundManager.playHover());
     }
+
+    // 3. Keyboard Escape to Pause
+    keyHandler = (e) => {
+      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+        triggerPause();
+      }
+    };
+    window.addEventListener('keydown', keyHandler);
   },
 
   unmount() {
-    // Hide the game canvas when leaving gameplay
-    const gameCanvas = document.getElementById('game-canvas');
-    if (gameCanvas) gameCanvas.classList.remove('active');
+    if (keyHandler) {
+      window.removeEventListener('keydown', keyHandler);
+      keyHandler = null;
+    }
+    if (telemetryUnsub) {
+      telemetryUnsub();
+      telemetryUnsub = null;
+    }
+
+    // Note: If navigating to 'pause', engine is paused, otherwise stop
+    const activeScreen = window.__screenManager?.currentScreenName;
+    if (activeEngine && activeScreen !== 'pause') {
+      activeEngine.stop();
+    }
+
+    // Hide the game canvas when leaving gameplay (unless in pause screen)
+    if (activeScreen !== 'pause') {
+      const gameCanvas = document.getElementById('game-canvas');
+      if (gameCanvas) gameCanvas.classList.remove('active');
+    }
   }
 };
 

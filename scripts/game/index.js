@@ -25,5 +25,7 @@ export {
   drawDronePreview,
   createDronePreviewWidget
 } from './DroneRenderer.js';
-export const GAME_MODULE_VERSION = '1.0.0';
+export { TacticalMapLayer } from './TacticalMapLayer.js';
+export { GameEngine, ENGINE_STATE } from './GameEngine.js';
+export const GAME_MODULE_VERSION = '1.1.0';
 

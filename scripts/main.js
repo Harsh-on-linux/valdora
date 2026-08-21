@@ -18,6 +18,7 @@ import {
 } from './ui/index.js';
 import {
   Starfield,
+  GameEngine,
   SaveManager,
   SettingsManager,
   LEVELS,
@@ -34,6 +35,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 1. High-DPI Responsive Canvas Resize Handler
   let starfield = null;
+  let gameEngine = null;
 
   function resizeCanvases() {
     const dpr = window.devicePixelRatio || 1;
@@ -52,9 +54,12 @@ window.addEventListener('DOMContentLoaded', () => {
     if (starfield) {
       starfield.resize();
     }
+    if (gameEngine) {
+      gameEngine.resize();
+    }
   }
 
-  // Size canvases to full viewport BEFORE creating Starfield
+  // Size canvases to full viewport BEFORE creating Starfield / Engine
   resizeCanvases();
   window.addEventListener('resize', resizeCanvases);
 
@@ -69,14 +74,20 @@ window.addEventListener('DOMContentLoaded', () => {
     starfield.start();
   }
 
-  // 3. Apply Saved User Settings & Validate Level Config
+  // 3. Initialize Game Engine Skeleton
+  if (gameCanvas) {
+    gameEngine = new GameEngine(gameCanvas);
+    window.__gameEngine = gameEngine;
+  }
+
+  // 4. Apply Saved User Settings & Validate Level Config
   SettingsManager.applySettings();
   const levelsValid = validateLevelsConfig();
   if (levelsValid) {
     console.log(`🗺️ Level Data Model — 10 Sector configurations verified.`);
   }
 
-  // 4. Initialize Screen Manager & State Machine
+  // 5. Initialize Screen Manager & State Machine
   const screenManager = new ScreenManager(uiRoot);
 
   screenManager

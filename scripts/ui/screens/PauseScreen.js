@@ -4,6 +4,8 @@
 
 import { soundManager } from '../../audio/index.js';
 
+let pauseKeyHandler = null;
+
 export const PauseScreen = {
   mount(container, data = {}, router) {
     const sectorId = data.sector || 1;
@@ -32,12 +34,14 @@ export const PauseScreen = {
       </div>
     `;
 
+    const resumeAction = () => {
+      soundManager.playClick();
+      if (router) router.show('game', { sector: sectorId, resuming: true });
+    };
+
     const resumeBtn = container.querySelector('#btn-resume-mission');
     if (resumeBtn) {
-      resumeBtn.addEventListener('click', () => {
-        soundManager.playClick();
-        if (router) router.show('game', { sector: sectorId });
-      });
+      resumeBtn.addEventListener('click', resumeAction);
       resumeBtn.addEventListener('mouseenter', () => soundManager.playHover());
     }
 
@@ -54,6 +58,7 @@ export const PauseScreen = {
     if (mapBtn) {
       mapBtn.addEventListener('click', () => {
         soundManager.playClick();
+        if (window.__gameEngine) window.__gameEngine.stop();
         if (router) router.show('levelSelect', { sector: sectorId });
       });
       mapBtn.addEventListener('mouseenter', () => soundManager.playHover());
@@ -63,11 +68,24 @@ export const PauseScreen = {
     if (abortBtn) {
       abortBtn.addEventListener('click', () => {
         soundManager.playClick();
+        if (window.__gameEngine) window.__gameEngine.stop();
         if (router) router.show('landing');
       });
       abortBtn.addEventListener('mouseenter', () => soundManager.playHover());
     }
+
+    pauseKeyHandler = (e) => {
+      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+        resumeAction();
+      }
+    };
+    window.addEventListener('keydown', pauseKeyHandler);
   },
 
-  unmount() {}
+  unmount() {
+    if (pauseKeyHandler) {
+      window.removeEventListener('keydown', pauseKeyHandler);
+      pauseKeyHandler = null;
+    }
+  }
 };

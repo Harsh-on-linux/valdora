@@ -104,12 +104,12 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE E — Core Gameplay Loop
 
-### Step 13 — Canvas game loop skeleton 🔄 ← Current
+### Step 13 — Canvas game loop skeleton ✅
 - Fixed-timestep update + interpolated render loop via `requestAnimationFrame` for rock-solid 60+ FPS.
 - Background satellite map layer integration inside gameplay canvas.
 - Output: Smooth running game engine skeleton.
 
-### Step 14 — Player drone movement
+### Step 14 — Player drone movement 🔄 ← Current
 - WASD / Arrow keys, Mouse follow mode, and virtual touch joystick for mobile.
 - Smooth acceleration, braking drag, banking angles on lateral movement, boundary clamping.
 - Output: Responsive, fluid drone handling.
