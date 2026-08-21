@@ -78,8 +78,8 @@ export class TacticalHUDOverlay {
       { deg: 330, label: '330' }
     ];
 
-    // Dynamic HUD visibility alpha (smoothly fades when moving)
-    this.hudAlpha = 1.0;
+    // Dynamic HUD visibility alpha (hidden by default, smoothly fades in when enabled)
+    this.hudAlpha = 0.0;
   }
 
   /**

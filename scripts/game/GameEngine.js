@@ -88,10 +88,11 @@ export class GameEngine {
     this.shield = 100;
     this.maxShield = 100;
 
-    // Dynamic HUD auto-hide tracking
+    // Dynamic HUD auto-hide tracking (hidden by default)
     this.isPlayerMoving = false;
     this.stationaryTimer = 0;
-    this.hudHidden = false;
+    this.panelsEnabled = false;
+    this.hudHidden = true;
 
     // Listener callbacks
     this.listeners = {
@@ -103,12 +104,14 @@ export class GameEngine {
     this._boundLoop = this._loop.bind(this);
     this._boundResize = this.resize.bind(this);
     this._boundRadarToggle = () => this.toggleRadarMode();
+    this._boundPanelsToggle = () => this.toggleHudPanels();
     this._boundDebugToggle = () => this.toggleCollisionDebug();
     this._boundWeaponCycle = (e) => this.cycleWeapon(e.detail?.direction || 1);
     this._boundWeaponSlot = (e) => this.selectWeaponSlot(e.detail?.slot || 1);
 
     window.addEventListener('resize', this._boundResize);
     window.addEventListener('radar:toggle', this._boundRadarToggle);
+    window.addEventListener('panels:toggle', this._boundPanelsToggle);
     window.addEventListener('collision:toggleDebug', this._boundDebugToggle);
     window.addEventListener('weapon:cycle', this._boundWeaponCycle);
     window.addEventListener('weapon:selectSlot', this._boundWeaponSlot);
@@ -202,9 +205,11 @@ export class GameEngine {
 
     this.isPlayerMoving = false;
     this.stationaryTimer = 0;
-    this.hudHidden = false;
+    this.panelsEnabled = false;
+    this.hudHidden = true;
     this._emit('hudVisibilityChange', {
-      hudHidden: false,
+      hudHidden: true,
+      panelsEnabled: false,
       isMoving: false,
       stationaryTimer: 0
     });
@@ -367,15 +372,36 @@ export class GameEngine {
       this.stationaryTimer += dt;
     }
 
-    // Hide UI when actively playing and (moving OR stationary for < 2.0s).
-    // Unhide UI if level completed (VICTORY / GAMEOVER), paused, or stationary for >= 2.0s.
+    // Determine HUD visibility:
+    // If level ended (VICTORY / GAMEOVER), show full HUD.
+    // When running:
+    //   - If moving: hide bulky panels
+    //   - If stationary >= 2.0s and panels are enabled: reveal panels
+    //   - If panels are disabled: remain hidden
     const isLevelEnded = this.state === ENGINE_STATE.VICTORY || this.state === ENGINE_STATE.GAMEOVER;
-    const shouldHideHud = (this.state === ENGINE_STATE.RUNNING && !isLevelEnded) && (this.isPlayerMoving || this.stationaryTimer < 2.0);
+    let shouldHideHud = true;
+
+    if (isLevelEnded) {
+      shouldHideHud = false;
+    } else if (this.state === ENGINE_STATE.RUNNING) {
+      if (this.isPlayerMoving) {
+        shouldHideHud = true;
+      } else if (this.panelsEnabled && this.stationaryTimer >= 2.0) {
+        shouldHideHud = false;
+      } else if (!this.panelsEnabled) {
+        shouldHideHud = true;
+      } else {
+        shouldHideHud = this.hudHidden;
+      }
+    } else {
+      shouldHideHud = false;
+    }
 
     if (this.hudHidden !== shouldHideHud) {
       this.hudHidden = shouldHideHud;
       this._emit('hudVisibilityChange', {
         hudHidden: shouldHideHud,
+        panelsEnabled: this.panelsEnabled,
         isMoving: this.isPlayerMoving,
         stationaryTimer: this.stationaryTimer
       });
@@ -713,6 +739,7 @@ export class GameEngine {
       // Dynamic HUD State
       isMoving: this.isPlayerMoving,
       stationaryTimer: Number(this.stationaryTimer.toFixed(1)),
+      panelsEnabled: this.panelsEnabled,
       hudHidden: this.hudHidden,
       // Active Weapon & Arsenal Telemetry
       activeWeapon: this.weapons?.activeWeaponId || 'VULCAN',
@@ -728,15 +755,38 @@ export class GameEngine {
   }
 
   /**
+   * Toggle tactical panels display state (manual HUD toggle).
+   */
+  toggleHudPanels() {
+    this.panelsEnabled = !this.panelsEnabled;
+    if (this.panelsEnabled) {
+      this.stationaryTimer = 2.0; // Ready to display
+      this.hudHidden = this.isPlayerMoving;
+    } else {
+      this.hudHidden = true;
+    }
+    soundManager.playClick();
+    this._emit('hudVisibilityChange', {
+      hudHidden: this.hudHidden,
+      panelsEnabled: this.panelsEnabled,
+      isMoving: this.isPlayerMoving,
+      stationaryTimer: this.stationaryTimer
+    });
+    console.log(`🎛️ Tactical Panels: ${this.panelsEnabled ? 'ENABLED (Visible when stationary)' : 'DISABLED (Hidden)'}`);
+    return this.panelsEnabled;
+  }
+
+  /**
    * Destroy instance and remove event listeners.
    */
   destroy() {
     this.stop();
     window.removeEventListener('resize', this._boundResize);
     window.removeEventListener('radar:toggle', this._boundRadarToggle);
+    window.removeEventListener('panels:toggle', this._boundPanelsToggle);
     window.removeEventListener('collision:toggleDebug', this._boundDebugToggle);
     window.removeEventListener('weapon:cycle', this._boundWeaponCycle);
     window.removeEventListener('weapon:selectSlot', this._boundWeaponSlot);
-    this.listeners = { stateChange: [], telemetry: [] };
+    this.listeners = { stateChange: [], telemetry: [], hudVisibilityChange: [] };
   }
 }

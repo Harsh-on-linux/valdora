@@ -121,6 +121,21 @@
   pointer-events: auto;
 }
 
+#btn-toggle-panels {
+  min-width: 72px;
+  letter-spacing: 0.06em;
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.70rem;
+  padding: 4px 8px;
+  transition: all 0.2s ease;
+}
+
+#btn-toggle-panels.btn-primary {
+  border-color: var(--cyan);
+  color: var(--cyan-bright);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    TACTICAL SIDE PANELS (LEFT & RIGHT)
    ═══════════════════════════════════════════════════════════════════ */
@@ -767,6 +782,12 @@
 @media (max-width: 480px) {
   .hud-fps-card {
     display: none;
+  }
+
+  #btn-toggle-panels {
+    min-width: unset;
+    padding: 3px 5px;
+    font-size: 0.62rem;
   }
 
   .hud-sidebar-right {

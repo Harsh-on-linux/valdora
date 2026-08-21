@@ -65,7 +65,11 @@ export const GameScreen = {
             <span class="hud-value" id="hud-fps-val" style="color: var(--glow-cyan); font-size: 0.95rem;">60</span>
           </div>
 
-          <div style="display: flex; gap: 6px;">
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="console-btn btn-sm btn-secondary" id="btn-toggle-panels" title="Toggle Tactical Panels (Hotkey: Tab / T)">
+              <span id="hud-toggle-icon">◧</span>
+              <span id="hud-toggle-label">PANELS</span>
+            </button>
             <button class="console-btn btn-sm btn-secondary" id="btn-toggle-hitboxes" title="Toggle Collision Hitbox Debug (Hotkey: H / F3)">
               <span>🎯 HITBOXES</span>
             </button>
@@ -469,21 +473,42 @@ export const GameScreen = {
       activeEngine.on('telemetry', onTelemetry);
       telemetryUnsub = () => activeEngine.off('telemetry', onTelemetry);
 
-      // Dynamic HUD auto-hide on movement listener
+      // Dynamic HUD auto-hide & panels toggle listener
       const hudLayer = container.querySelector('.hud-layer');
-      const onHudVisibility = ({ hudHidden }) => {
+      const panelsToggleBtn = container.querySelector('#btn-toggle-panels');
+      const onHudVisibility = ({ hudHidden, panelsEnabled }) => {
         if (hudLayer) {
           hudLayer.classList.toggle('hud-moving-hidden', !!hudHidden);
+        }
+        if (panelsToggleBtn) {
+          const isEnabled = panelsEnabled !== undefined ? panelsEnabled : !hudHidden;
+          panelsToggleBtn.classList.toggle('btn-primary', isEnabled);
+          panelsToggleBtn.classList.toggle('btn-secondary', !isEnabled);
+          const label = panelsToggleBtn.querySelector('#hud-toggle-label');
+          if (label) label.textContent = isEnabled ? 'PANELS ON' : 'PANELS';
         }
       };
 
       activeEngine.on('hudVisibilityChange', onHudVisibility);
       hudVisibilityUnsub = () => activeEngine.off('hudVisibilityChange', onHudVisibility);
 
-      // Initial state sync
+      // Initial state sync (hidden by default)
       if (hudLayer && activeEngine) {
         hudLayer.classList.toggle('hud-moving-hidden', !!activeEngine.hudHidden);
       }
+      if (panelsToggleBtn && activeEngine) {
+        panelsToggleBtn.classList.toggle('btn-primary', activeEngine.panelsEnabled);
+        panelsToggleBtn.classList.toggle('btn-secondary', !activeEngine.panelsEnabled);
+      }
+    }
+
+    // 1.5. Tactical Panels Toggle Click Handler
+    const panelsToggleBtn = container.querySelector('#btn-toggle-panels');
+    if (panelsToggleBtn) {
+      panelsToggleBtn.addEventListener('click', () => {
+        if (activeEngine) activeEngine.toggleHudPanels();
+      });
+      panelsToggleBtn.addEventListener('mouseenter', () => soundManager.playHover());
     }
 
     // 2. Hitbox Debug Toggle Click Handler
@@ -614,10 +639,13 @@ export const GameScreen = {
       window.addEventListener('mouseup', () => setBoost(false));
     }
 
-    // 5. Keyboard Escape to Pause
+    // 5. Keyboard Escape to Pause & Tab/T to Toggle Panels
     keyHandler = (e) => {
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
         triggerPause();
+      } else if (e.key === 'Tab' || e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        if (activeEngine) activeEngine.toggleHudPanels();
       }
     };
     window.addEventListener('keydown', keyHandler);
