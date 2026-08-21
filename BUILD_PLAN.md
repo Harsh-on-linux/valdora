@@ -77,12 +77,12 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Define `levels.js` config: 10 levels with id, name, isBoss flag, unlock requirement, target score, enemy waves, reward stars.
 - Output: Validated level configuration module.
 
-### Step 9 — Level select UI (Star-Map console style) 🔄 ← Current
+### Step 9 — Level select UI (Star-Map console style) ✅
 - Node graph / tactical map layout of 10 mission sectors; Boss levels (5 & 10) feature highlighted warning aesthetics.
 - Visual lock states with lock icons, star rating badges, and sector preview cards on hover.
 - Output: Responsive star-map level select interface.
 
-### Step 10 — Level select interactivity
+### Step 10 — Level select interactivity 🔄 ← Current
 - Audio-visual denial feedback on locked nodes; unlocked nodes launch level loadout / direct deployment.
 - Output: Full navigation flow into the game loop.
 

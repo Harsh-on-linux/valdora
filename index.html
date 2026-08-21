@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles/menu.css">
   <link rel="stylesheet" href="styles/game.css">
 </head>
-<body>
+<body data-active-screen="landing">
   <div id="app">
     <!-- Background Canvas (Starfield / Deep Space) -->
     <canvas id="starfield-canvas"></canvas>
@@ -23,7 +23,7 @@
     <div class="scanlines-overlay"></div>
 
     <!-- UI Overlay Root -->
-    <div id="ui-root">
+    <div id="ui-root" data-active-screen="landing">
       <div class="edge-layout">
         
         <!-- ═══════════ TOP BAR ═══════════ -->

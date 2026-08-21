@@ -65,13 +65,18 @@ body:not([data-active-screen="landing"]) .bottom-bar,
 /* Landing Screen: Keep sidebars smoothly visible */
 body[data-active-screen="landing"] .sidebar-left,
 body[data-active-screen="landing"] .sidebar-right,
-body[data-active-screen="landing"] .bottom-bar,
 #ui-root[data-active-screen="landing"] .sidebar-left,
-#ui-root[data-active-screen="landing"] .sidebar-right,
-#ui-root[data-active-screen="landing"] .bottom-bar {
+#ui-root[data-active-screen="landing"] .sidebar-right {
   opacity: 1;
   visibility: visible;
   transform: none;
+}
+
+body[data-active-screen="landing"] .bottom-bar,
+#ui-root[data-active-screen="landing"] .bottom-bar {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%);
 }
 
 
@@ -2417,6 +2422,547 @@ body[data-active-screen="landing"] .bottom-bar,
 
   .kb-key {
     min-width: 40px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STAR-MAP SECTOR SELECT CONSOLE UI (STEP 9)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.level-select-panel {
+  max-width: 980px;
+  width: 96vw;
+  max-height: 94vh;
+  padding: 16px 20px 14px;
+}
+
+.star-counter-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(232, 153, 26, 0.12);
+  border: 1px solid rgba(232, 153, 26, 0.35);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.star-counter-badge .star-icon {
+  font-size: 0.9rem;
+}
+
+.star-counter-badge .star-count {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.star-counter-badge .star-max {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+}
+
+/* Layout Grid: Star-Map on Left, Dossier on Right */
+.starmap-layout-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 14px;
+  height: 60vh;
+  min-height: 400px;
+  max-height: 520px;
+  width: 100%;
+}
+
+/* Star-Map Canvas Viewport */
+.starmap-canvas-container {
+  position: relative;
+  background: radial-gradient(ellipse at center, rgba(14, 26, 42, 0.75) 0%, rgba(4, 8, 14, 0.95) 100%);
+  border: 1px solid rgba(45, 212, 220, 0.2);
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.85);
+}
+
+/* Tactical Coordinate Grid Overlay */
+.starmap-grid-lines {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(45, 212, 220, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(45, 212, 220, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+/* Radar Sweep Line in Map Background */
+.starmap-radar-sweep {
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 270deg, rgba(45, 212, 220, 0.08) 360deg);
+  animation: map-radar-spin 12s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes map-radar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Map Corner Coordinates */
+.map-corner {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+.map-corner-tl { top: 6px; left: 8px; }
+.map-corner-tr { top: 6px; right: 8px; }
+.map-corner-bl { bottom: 6px; left: 8px; }
+.map-corner-br { bottom: 6px; right: 8px; }
+
+/* SVG Vector Lines */
+.starmap-svg-paths {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.starmap-path {
+  stroke-width: 1.2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.starmap-path.path-unlocked {
+  stroke: rgba(45, 212, 220, 0.5);
+  stroke-dasharray: 4 3;
+  animation: path-flow 1.5s linear infinite;
+}
+
+@keyframes path-flow {
+  from { stroke-dashoffset: 14; }
+  to { stroke-dashoffset: 0; }
+}
+
+.starmap-path.path-locked {
+  stroke: rgba(232, 54, 75, 0.18);
+  stroke-dasharray: 2 4;
+}
+
+/* Nodes Layer */
+.starmap-nodes-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+
+/* Individual Mission Node */
+.starmap-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 150ms ease;
+  user-select: none;
+}
+
+.starmap-node:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+  z-index: 10;
+}
+
+.node-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 38px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.node-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(8, 14, 24, 0.9);
+  border: 2px solid rgba(45, 212, 220, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 150ms ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+.node-id {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+.node-lock {
+  font-size: 0.72rem;
+  opacity: 0.6;
+}
+
+.node-label {
+  position: absolute;
+  top: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.node-name {
+  font-family: var(--font-heading);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  text-transform: uppercase;
+}
+
+.node-stars {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+
+.node-stars.has-stars {
+  color: var(--amber);
+  text-shadow: 0 0 4px var(--amber);
+}
+
+/* Node States: Cleared, Unlocked, Current, Locked */
+.starmap-node.cleared .node-marker {
+  border-color: var(--cyan);
+  background: rgba(14, 40, 56, 0.9);
+  box-shadow: var(--glow-cyan-sm);
+}
+
+.starmap-node.unlocked .node-marker {
+  border-color: var(--cyan-mid);
+  background: rgba(10, 24, 36, 0.85);
+}
+
+.starmap-node.current .node-marker {
+  border-color: var(--cyan-bright);
+  background: rgba(20, 60, 85, 0.95);
+  box-shadow: var(--glow-cyan-md);
+  animation: current-node-pulse 2s infinite ease-in-out;
+}
+
+.starmap-node.current .node-pulse-ring {
+  opacity: 1;
+  border: 1px solid var(--cyan-bright);
+  animation: node-ring-expand 2s infinite ease-out;
+}
+
+@keyframes current-node-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); box-shadow: var(--glow-cyan-lg); }
+}
+
+@keyframes node-ring-expand {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+.starmap-node.locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.starmap-node.locked .node-marker {
+  border-color: rgba(232, 54, 75, 0.3);
+  background: rgba(24, 8, 12, 0.8);
+}
+
+.starmap-node.locked:hover {
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+/* Boss Nodes (Sector 5 & Sector 10) */
+.starmap-node.boss-node .node-marker {
+  border-radius: 4px;
+  transform: rotate(45deg);
+  border-color: var(--red);
+  background: rgba(40, 10, 16, 0.95);
+  box-shadow: var(--glow-red-sm);
+}
+
+.starmap-node.boss-node .node-marker > * {
+  transform: rotate(-45deg);
+}
+
+.starmap-node.boss-node .node-boss-skull {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  font-size: 0.65rem;
+  color: var(--red);
+}
+
+.starmap-node.boss-node.current .node-marker,
+.starmap-node.boss-node.selected .node-marker {
+  border-color: #ff003c;
+  box-shadow: 0 0 16px rgba(255, 0, 60, 0.7);
+}
+
+/* Selected Node Indicator */
+.starmap-node.selected .node-marker {
+  border-color: #ffffff;
+  box-shadow: 0 0 14px var(--cyan-bright), inset 0 0 6px var(--cyan);
+}
+
+.starmap-node.selected .node-name {
+  color: var(--cyan-bright);
+  font-weight: 700;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SECTOR DOSSIER PANEL (RIGHT COLUMN)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.sector-dossier-panel {
+  background: rgba(8, 14, 22, 0.65);
+  border: 1px solid rgba(45, 212, 220, 0.16);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.dossier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(45, 212, 220, 0.15);
+  padding-bottom: 8px;
+}
+
+.dossier-header.boss-dossier-header {
+  border-bottom-color: rgba(232, 54, 75, 0.35);
+}
+
+.dossier-code {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+}
+
+.dossier-title {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-bright);
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.dossier-title.boss-title {
+  color: #ff3366;
+  text-shadow: 0 0 10px rgba(255, 51, 102, 0.4);
+}
+
+.dossier-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.dossier-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.dossier-label {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.dossier-desc-box {
+  background: rgba(45, 212, 220, 0.03);
+  border: 1px solid rgba(45, 212, 220, 0.1);
+  padding: 8px 10px;
+}
+
+.dossier-desc {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+/* Specs Grid */
+.dossier-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.spec-cell {
+  background: rgba(10, 18, 30, 0.6);
+  border: 1px solid rgba(45, 212, 220, 0.1);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spec-cell-label {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+
+.spec-cell-value {
+  font-family: var(--font-heading);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+/* Stars Section */
+.dossier-stars-section {
+  background: rgba(10, 18, 30, 0.5);
+  border: 1px solid rgba(45, 212, 220, 0.1);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stars-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stars-display {
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+}
+
+.stars-display .star-earned {
+  color: var(--amber);
+  text-shadow: 0 0 6px var(--amber);
+}
+
+.stars-display .star-empty {
+  color: var(--text-dim);
+}
+
+.stars-thresholds-row {
+  display: flex;
+  gap: 6px;
+}
+
+.thresh-pill {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  padding: 3px 6px;
+  background: rgba(45, 212, 220, 0.04);
+  border: 1px solid rgba(45, 212, 220, 0.1);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.thresh-pill.reached {
+  background: rgba(232, 153, 26, 0.15);
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+/* Threat Tags */
+.dossier-threat-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.threat-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.threat-tag {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  padding: 2px 6px;
+  background: rgba(232, 54, 75, 0.1);
+  border: 1px solid rgba(232, 54, 75, 0.3);
+  color: var(--text-bright);
+}
+
+.dossier-actions {
+  margin-top: 4px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LEVEL SELECT MOBILE RESPONSIVENESS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 850px) {
+  .starmap-layout-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+    max-height: 68vh;
+    overflow-y: auto;
+  }
+
+  .starmap-canvas-container {
+    height: 280px;
+    min-height: 280px;
+  }
+
+  .sector-dossier-panel {
+    min-height: auto;
+  }
+
+  .node-marker {
+    width: 26px;
+    height: 26px;
+  }
+
+  .node-id {
+    font-size: 0.68rem;
+  }
+
+  .node-name {
+    font-size: 0.52rem;
   }
 }
 

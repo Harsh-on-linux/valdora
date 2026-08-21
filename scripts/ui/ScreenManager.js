@@ -60,6 +60,10 @@ export class ScreenManager {
     const previousScreenElement = this.activeScreenElement;
     const nextScreenModule = this.screens.get(targetScreenId);
 
+    // Set active screen attribute on body and root for contextual layout styling immediately
+    document.body.setAttribute('data-active-screen', targetScreenId);
+    this.uiRoot.setAttribute('data-active-screen', targetScreenId);
+
     // 1. Create container for the new screen
     const newScreenElement = document.createElement('div');
     newScreenElement.className = `screen-container screen-${targetScreenId}`;
