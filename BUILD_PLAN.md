@@ -73,11 +73,11 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE C — Level Select
 
-### Step 8 — Level select data model 🔄 ← Current
+### Step 8 — Level select data model ✅
 - Define `levels.js` config: 10 levels with id, name, isBoss flag, unlock requirement, target score, enemy waves, reward stars.
 - Output: Validated level configuration module.
 
-### Step 9 — Level select UI (Star-Map console style)
+### Step 9 — Level select UI (Star-Map console style) 🔄 ← Current
 - Node graph / tactical map layout of 10 mission sectors; Boss levels (5 & 10) feature highlighted warning aesthetics.
 - Visual lock states with lock icons, star rating badges, and sector preview cards on hover.
 - Output: Responsive star-map level select interface.

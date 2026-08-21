@@ -16,7 +16,13 @@ import {
   HowToPlayScreen,
   ShowcaseScreen
 } from './ui/index.js';
-import { Starfield, SaveManager, SettingsManager } from './game/index.js';
+import {
+  Starfield,
+  SaveManager,
+  SettingsManager,
+  LEVELS,
+  validateLevelsConfig
+} from './game/index.js';
 import { soundManager } from './audio/index.js';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -63,8 +69,12 @@ window.addEventListener('DOMContentLoaded', () => {
     starfield.start();
   }
 
-  // 3. Apply Saved User Settings (CRT scanlines, audio gain, control scheme)
+  // 3. Apply Saved User Settings & Validate Level Config
   SettingsManager.applySettings();
+  const levelsValid = validateLevelsConfig();
+  if (levelsValid) {
+    console.log(`🗺️ Level Data Model — 10 Sector configurations verified.`);
+  }
 
   // 4. Initialize Screen Manager & State Machine
   const screenManager = new ScreenManager(uiRoot);
@@ -88,6 +98,7 @@ window.addEventListener('DOMContentLoaded', () => {
   window.__soundManager = soundManager;
   window.__saveManager = SaveManager;
   window.__settingsManager = SettingsManager;
+  window.__levels = LEVELS;
 
   console.log('✅ Global State Machine, Web Audio & Starfield active. Screens registered: landing, levelSelect, loadout, game, pause, results, settings, howToPlay, showcase.');
 });
