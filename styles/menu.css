@@ -3126,3 +3126,453 @@ body[data-active-screen="landing"] .bottom-bar,
 }
 
 
+/* ══════════════════════════════════════════════════════════════════════════
+   LOADOUT SCREEN — Drone Selection & Weapon Configuration
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.loadout-screen {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* ── Loadout Header ── */
+.loadout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(45, 212, 220, 0.15);
+}
+
+.loadout-header .hud-heading {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-bright);
+  text-transform: uppercase;
+}
+
+.loadout-header .hud-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+/* ── Drone Selection Section ── */
+.loadout-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── Drone Preview Panel ── */
+.drone-preview-panel {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid rgba(45, 212, 220, 0.14);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.drone-preview-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, var(--cyan) 10px, transparent 10px) 0 0,
+    linear-gradient(to bottom, var(--cyan) 10px, transparent 10px) 0 0,
+    linear-gradient(to left, var(--cyan) 10px, transparent 10px) 100% 0,
+    linear-gradient(to bottom, var(--cyan) 10px, transparent 10px) 100% 0,
+    linear-gradient(to right, var(--cyan) 10px, transparent 10px) 0 100%,
+    linear-gradient(to top, var(--cyan) 10px, transparent 10px) 0 100%,
+    linear-gradient(to left, var(--cyan) 10px, transparent 10px) 100% 100%,
+    linear-gradient(to top, var(--cyan) 10px, transparent 10px) 100% 100%;
+  background-size:
+    10px 2px, 2px 10px,
+    10px 2px, 2px 10px,
+    10px 2px, 2px 10px,
+    10px 2px, 2px 10px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.drone-preview-canvas {
+  border: 1px solid rgba(45, 212, 220, 0.08);
+  background: rgba(5, 7, 10, 0.6);
+}
+
+.drone-preview-label {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-bright);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.drone-preview-class {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  margin-top: -6px;
+}
+
+.drone-preview-desc {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.5;
+  padding: 0 4px;
+}
+
+/* ── Drone Selection Right Column ── */
+.loadout-right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Drone Chassis Selection Cards ── */
+.drone-selector-section .section-label {
+  font-family: var(--font-heading);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drone-selector-section .section-label::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: var(--cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 4px var(--cyan);
+}
+
+.drone-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.drone-card {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid rgba(45, 212, 220, 0.1);
+  padding: 12px 10px;
+  cursor: pointer;
+  transition: all 180ms ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.drone-card:hover {
+  border-color: rgba(45, 212, 220, 0.3);
+  background: var(--bg-panel-hover);
+  box-shadow: 0 0 12px rgba(45, 212, 220, 0.08);
+}
+
+.drone-card.selected {
+  border-color: var(--cyan);
+  background: var(--cyan-soft);
+  box-shadow: 0 0 16px rgba(45, 212, 220, 0.15), inset 0 0 20px rgba(45, 212, 220, 0.06);
+}
+
+.drone-card.selected::after {
+  content: '◆ SELECTED';
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.42rem;
+  color: var(--cyan);
+  letter-spacing: 0.08em;
+}
+
+.drone-card-name {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.drone-card-class {
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.drone-card-mini-canvas {
+  border: 1px solid rgba(45, 212, 220, 0.06);
+  background: rgba(5, 7, 10, 0.4);
+}
+
+/* ── Stat Bars inside drone cards ── */
+.drone-stat-bars {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.drone-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drone-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  min-width: 32px;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.drone-stat-track {
+  flex: 1;
+  height: 3px;
+  background: rgba(45, 212, 220, 0.08);
+  border: 1px solid rgba(45, 212, 220, 0.06);
+  overflow: hidden;
+}
+
+.drone-stat-fill {
+  height: 100%;
+  transition: width 350ms var(--ease-out);
+}
+
+.drone-stat-fill.fill-cyan { background: linear-gradient(90deg, var(--cyan-dim), var(--cyan)); }
+.drone-stat-fill.fill-amber { background: linear-gradient(90deg, var(--amber-dim), var(--amber)); }
+.drone-stat-fill.fill-red { background: linear-gradient(90deg, var(--red-dim), var(--red)); }
+.drone-stat-fill.fill-green { background: linear-gradient(90deg, var(--green-dim), var(--green)); }
+.drone-stat-fill.fill-purple { background: linear-gradient(90deg, #2d1a5e, var(--purple)); }
+
+/* ── Weapon Payload Section ── */
+.weapon-selector-section .section-label {
+  font-family: var(--font-heading);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.weapon-selector-section .section-label::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 4px var(--green);
+}
+
+.weapon-cards {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.weapon-card {
+  flex: 1;
+  min-width: 100px;
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid rgba(45, 212, 220, 0.1);
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: all 180ms ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.weapon-card:hover {
+  border-color: rgba(45, 212, 220, 0.3);
+  background: var(--bg-panel-hover);
+}
+
+.weapon-card.selected {
+  border-color: var(--cyan);
+  background: var(--cyan-soft);
+  box-shadow: 0 0 12px rgba(45, 212, 220, 0.12);
+}
+
+.weapon-card.locked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.weapon-card-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.weapon-card-name {
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.weapon-card-class {
+  font-family: var(--font-mono);
+  font-size: 0.42rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Weapon Stats Mini Grid ── */
+.weapon-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 8px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.weapon-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weapon-stat-key {
+  font-family: var(--font-mono);
+  font-size: 0.42rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.weapon-stat-val {
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  color: var(--cyan);
+  letter-spacing: 0.04em;
+}
+
+/* ── Loadout Footer ── */
+.loadout-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid rgba(45, 212, 220, 0.1);
+}
+
+.loadout-footer .console-btn {
+  flex: 1;
+  max-width: 260px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LOADOUT RESPONSIVE — Tablet & Mobile
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .loadout-screen {
+    max-width: 100%;
+    padding: 12px;
+  }
+
+  .loadout-body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .drone-preview-panel {
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .drone-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .weapon-cards {
+    flex-wrap: wrap;
+  }
+
+  .weapon-card {
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .drone-cards {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .drone-card {
+    flex-direction: row;
+    text-align: left;
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .drone-card.selected::after {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .weapon-card {
+    min-width: 70px;
+    padding: 8px 6px;
+  }
+
+  .loadout-footer {
+    flex-direction: column;
+  }
+
+  .loadout-footer .console-btn {
+    max-width: 100%;
+  }
+}
+

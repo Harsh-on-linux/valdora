@@ -90,12 +90,12 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE D — Loadout / Drone Selection
 
-### Step 11 — Drone data & procedural rendering function 🔄 ← Current
+### Step 11 — Drone data & procedural rendering function ✅
 - Procedural canvas drone drawing function: top-down tactical wireframes or high-contrast silhouette representations (Predator, Reaper, Ghost).
 - Color theme parameterization for heat signatures.
 - Output: Isolated drone preview canvas with targeting crosshairs.
 
-### Step 12 — Loadout screen
+### Step 12 — Loadout screen 🔄 ← Current
 - Selection cards for drone chassis variants (Surveillance, Heavy Strike, Electronic Warfare) and payload presets (Vulcan, Flak, Laser, Hellfire).
 - Persist player loadout choices to active game state.
 - Output: Fully interactive loadout configuration screen.

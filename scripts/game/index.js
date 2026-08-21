@@ -12,5 +12,18 @@ export {
   calculateStars,
   validateLevelsConfig
 } from './levels.js';
+export {
+  DRONE_TYPES,
+  WEAPON_TYPES,
+  getDroneById,
+  getWeaponById,
+  getAllDrones,
+  getAllWeapons,
+  getCompatibleWeapons
+} from './drones.js';
+export {
+  drawDronePreview,
+  createDronePreviewWidget
+} from './DroneRenderer.js';
 export const GAME_MODULE_VERSION = '1.0.0';
 
