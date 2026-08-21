@@ -127,10 +127,58 @@ export const GameScreen = {
               </button>
             </div>
 
+            <!-- Ordnance Weapon Bay / Cycle Selector -->
+            <div class="hud-data-panel hud-weapon-bay-panel">
+              <div class="hud-panel-title">
+                <span class="hud-panel-dot amber"></span> WEAPON ARSENAL
+                <span class="hud-panel-hint">[Q / E]</span>
+              </div>
+
+              <!-- Active Weapon Overview Display -->
+              <div class="hud-active-weapon-card">
+                <span class="hud-weapon-icon-badge" id="hud-weapon-icon">⦿</span>
+                <div class="hud-weapon-details">
+                  <div class="hud-weapon-name" id="hud-weapon-name">GAU-22 VULCAN</div>
+                  <div class="hud-weapon-meta" id="hud-weapon-meta">KINETIC // RAPID TWIN</div>
+                </div>
+              </div>
+
+              <!-- Weapon Slots Selector (1 to 4) -->
+              <div class="hud-weapon-slots" id="hud-weapon-slots">
+                <button class="weapon-slot-chip active" data-slot="1" data-weapon="VULCAN" title="Slot 1: Vulcan Cannon (Hotkey: 1)">
+                  <span class="slot-num">1</span>
+                  <span class="slot-icon">⦿</span>
+                  <span class="slot-name">VULCAN</span>
+                </button>
+                <button class="weapon-slot-chip" data-slot="2" data-weapon="FLAK" title="Slot 2: MK-44 Flak Cannon (Hotkey: 2)">
+                  <span class="slot-num">2</span>
+                  <span class="slot-icon">✦</span>
+                  <span class="slot-name">FLAK</span>
+                </button>
+                <button class="weapon-slot-chip" data-slot="3" data-weapon="LASER" title="Slot 3: Athena Beam (Hotkey: 3)">
+                  <span class="slot-num">3</span>
+                  <span class="slot-icon">◇</span>
+                  <span class="slot-name">LASER</span>
+                </button>
+                <button class="weapon-slot-chip" data-slot="4" data-weapon="HELLFIRE" title="Slot 4: Hellfire Swarm (Hotkey: 4)">
+                  <span class="slot-num">4</span>
+                  <span class="slot-icon">▲</span>
+                  <span class="slot-name">MISSILE</span>
+                </button>
+              </div>
+
+              <!-- Prev / Next Weapon Cycle Buttons -->
+              <div class="hud-weapon-cycle-row">
+                <button class="hud-cycle-btn" id="btn-weapon-prev" title="Cycle Previous Weapon (Hotkey: Q)">◀ Q</button>
+                <span class="hud-cycle-label">CYCLE WEAPON</span>
+                <button class="hud-cycle-btn" id="btn-weapon-next" title="Cycle Next Weapon (Hotkey: E)">E ▶</button>
+              </div>
+            </div>
+
             <!-- Ordnance Status Gauges -->
             <div class="hud-data-panel hud-ordnance-panel">
               <div class="hud-panel-title">
-                <span class="hud-panel-dot cyan"></span> ORDNANCE
+                <span class="hud-panel-dot cyan"></span> ORDNANCE METERS
               </div>
 
               <!-- Primary Weapon Ammo -->
@@ -189,6 +237,10 @@ export const GameScreen = {
           </div>
 
           <div class="hud-touch-right-actions">
+            <button class="touch-action-btn weapon-btn" id="btn-touch-weapon" title="Cycle Weapon Payload (Q/E)">
+              <span class="touch-action-icon" id="hud-touch-weapon-icon">✦</span>
+              <span id="hud-touch-weapon-label">WEAPON</span>
+            </button>
             <button class="touch-action-btn radar-btn" id="btn-touch-radar" title="Toggle Radar (Active/Passive)">
               <span class="touch-action-icon">📡</span>
               <span>RADAR</span>
@@ -273,6 +325,13 @@ export const GameScreen = {
       const radarRfBadge = container.querySelector('#hud-radar-rf-badge');
       const radarStatusDot = container.querySelector('#hud-radar-status-dot');
 
+      const weaponIconEl = container.querySelector('#hud-weapon-icon');
+      const weaponNameEl = container.querySelector('#hud-weapon-name');
+      const weaponMetaEl = container.querySelector('#hud-weapon-meta');
+      const weaponSlotChips = container.querySelectorAll('.weapon-slot-chip');
+      const touchWeaponIcon = container.querySelector('#hud-touch-weapon-icon');
+      const touchWeaponLabel = container.querySelector('#hud-touch-weapon-label');
+
       const ammoValEl = container.querySelector('#hud-ammo-val');
       const ammoFillEl = container.querySelector('#hud-ammo-fill');
       const heatValEl = container.querySelector('#hud-heat-val');
@@ -322,6 +381,24 @@ export const GameScreen = {
         }
         if (radarStatusDot) {
           radarStatusDot.className = `hud-panel-dot ${isRadarActive ? 'cyan pulse' : 'amber'}`;
+        }
+
+        // Active Weapon Arsenal Updates
+        if (weaponIconEl && telem.weaponIcon) weaponIconEl.textContent = telem.weaponIcon;
+        if (weaponNameEl && telem.weaponName) weaponNameEl.textContent = telem.weaponName;
+        if (weaponMetaEl && telem.weaponClass) {
+          weaponMetaEl.textContent = `${telem.weaponClass} // ARMED`;
+          weaponMetaEl.style.color = telem.weaponColor || 'var(--text-secondary)';
+        }
+        if (touchWeaponIcon && telem.weaponIcon) touchWeaponIcon.textContent = telem.weaponIcon;
+        if (touchWeaponLabel && telem.activeWeapon) touchWeaponLabel.textContent = telem.activeWeapon;
+
+        // Weapon slot chip highlights
+        if (weaponSlotChips && telem.activeWeapon) {
+          weaponSlotChips.forEach(chip => {
+            const isMatch = chip.dataset.weapon === telem.activeWeapon;
+            chip.classList.toggle('active', isMatch);
+          });
         }
 
         // Coordinates & Telemetry stream
@@ -413,6 +490,40 @@ export const GameScreen = {
     if (touchRadarBtn) {
       touchRadarBtn.addEventListener('click', toggleRadarHandler);
     }
+
+    // 4. Weapon Cycle & Slot Selection Handlers
+    const weaponPrevBtn = container.querySelector('#btn-weapon-prev');
+    if (weaponPrevBtn) {
+      weaponPrevBtn.addEventListener('click', () => {
+        if (activeEngine) activeEngine.cycleWeapon(-1);
+      });
+      weaponPrevBtn.addEventListener('mouseenter', () => soundManager.playHover());
+    }
+
+    const weaponNextBtn = container.querySelector('#btn-weapon-next');
+    if (weaponNextBtn) {
+      weaponNextBtn.addEventListener('click', () => {
+        if (activeEngine) activeEngine.cycleWeapon(1);
+      });
+      weaponNextBtn.addEventListener('mouseenter', () => soundManager.playHover());
+    }
+
+    const touchWeaponBtn = container.querySelector('#btn-touch-weapon');
+    if (touchWeaponBtn) {
+      touchWeaponBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (activeEngine) activeEngine.cycleWeapon(1);
+      });
+    }
+
+    const weaponChips = container.querySelectorAll('.weapon-slot-chip');
+    weaponChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const slot = Number(chip.dataset.slot) || 1;
+        if (activeEngine) activeEngine.selectWeaponSlot(slot);
+      });
+      chip.addEventListener('mouseenter', () => soundManager.playHover());
+    });
 
     // 4. Navigation Buttons
     const pauseBtn = container.querySelector('#btn-pause');

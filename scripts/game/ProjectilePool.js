@@ -222,6 +222,35 @@ export class ProjectilePool {
   }
 
   /**
+   * Spawn a radial explosive flak detonation ring and shrapnel cluster.
+   * @param {number} x
+   * @param {number} y
+   * @param {string} [color='#ff9e1b']
+   * @param {number} [count=14]
+   */
+  spawnFlakDetonation(x, y, color = '#ff9e1b', count = 14) {
+    let spawned = 0;
+    for (let i = 0; i < this.maxSparks && spawned < count; i++) {
+      const sp = this.sparks[i];
+      if (!sp.active) {
+        sp.active = true;
+        sp.x = x + (Math.random() * 6 - 3);
+        sp.y = y + (Math.random() * 6 - 3);
+        const angle = (spawned / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+        const speed = Math.random() * 220 + 100;
+        sp.vx = Math.cos(angle) * speed;
+        sp.vy = Math.sin(angle) * speed;
+        sp.size = Math.random() * 3.2 + 1.8;
+        sp.color = color;
+        sp.alpha = 1.0;
+        sp.life = 0;
+        sp.maxLife = Math.random() * 0.28 + 0.14;
+        spawned++;
+      }
+    }
+  }
+
+  /**
    * Deactivate a specific projectile.
    * @param {Object} p
    */
@@ -254,6 +283,26 @@ export class ProjectilePool {
       p.y += p.vy * dt;
       p.age += dt;
 
+      // Flak projectile propellant trailing micro-sparks
+      if (p.type === PROJECTILE_TYPES.FLAK && Math.random() < 0.22) {
+        for (let s = 0; s < this.maxSparks; s++) {
+          const sp = this.sparks[s];
+          if (!sp.active) {
+            sp.active = true;
+            sp.x = p.x;
+            sp.y = p.y;
+            sp.vx = (Math.random() - 0.5) * 30;
+            sp.vy = Math.random() * 50 + 20;
+            sp.size = 1.8;
+            sp.color = p.color;
+            sp.alpha = 0.8;
+            sp.life = 0;
+            sp.maxLife = 0.12;
+            break;
+          }
+        }
+      }
+
       // Despawn on lifetime expiration or out of bounds
       if (
         p.age >= p.lifetime ||
@@ -263,6 +312,10 @@ export class ProjectilePool {
         p.y > height + pad ||
         p.hitsRemaining <= 0
       ) {
+        if (p.type === PROJECTILE_TYPES.FLAK && p.age >= p.lifetime) {
+          // Timed fuse detonation micro-burst
+          this.spawnHitSparks(p.x, p.y, p.color, 4);
+        }
         p.active = false;
       }
     }
@@ -321,26 +374,31 @@ export class ProjectilePool {
       const dirX = p.vx / vMag;
       const dirY = p.vy / vMag;
 
+      const isFlak = p.type === PROJECTILE_TYPES.FLAK;
+      const isLaser = p.type === PROJECTILE_TYPES.LASER;
+      const isMissile = p.type === PROJECTILE_TYPES.HELLFIRE;
+
       // Tail length scales with velocity and tracer length config
-      const tailLen = Math.min(p.length, vMag * 0.035 + 8);
+      let tailLen = Math.min(p.length, vMag * (isFlak ? 0.022 : (isLaser ? 0.045 : 0.035)) + 6);
+      if (isLaser) tailLen = p.length || 54;
       const tailX = curX - dirX * tailLen;
       const tailY = curY - dirY * tailLen;
 
       // A. Outer Glow / FLIR Bloom Trail
       ctx.save();
       ctx.shadowColor = p.color;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = isFlak ? 14 : (isLaser ? 16 : 10);
       ctx.strokeStyle = p.glowColor;
-      ctx.lineWidth = p.width + 3.0;
-      ctx.lineCap = 'round';
+      ctx.lineWidth = p.width + (isFlak ? 4.5 : (isLaser ? 4.0 : 3.0));
+      ctx.lineCap = isLaser ? 'butt' : 'round';
       ctx.beginPath();
       ctx.moveTo(tailX, tailY);
       ctx.lineTo(curX, curY);
       ctx.stroke();
 
       // B. High-Contrast Core Beam
-      ctx.shadowBlur = 4;
-      ctx.strokeStyle = p.color;
+      ctx.shadowBlur = isLaser ? 8 : 5;
+      ctx.strokeStyle = isLaser ? '#e879f9' : p.color;
       ctx.lineWidth = p.width;
       ctx.beginPath();
       ctx.moveTo(tailX, tailY);
@@ -349,17 +407,67 @@ export class ProjectilePool {
 
       // C. Ultra-Hot White Core Tip
       ctx.strokeStyle = p.coreColor;
-      ctx.lineWidth = Math.max(1.2, p.width * 0.45);
+      ctx.lineWidth = Math.max(1.2, p.width * (isLaser ? 0.6 : 0.45));
       ctx.beginPath();
-      ctx.moveTo(curX - dirX * (tailLen * 0.4), curY - dirY * (tailLen * 0.4));
+      ctx.moveTo(curX - dirX * (tailLen * (isLaser ? 0.75 : 0.45)), curY - dirY * (tailLen * (isLaser ? 0.75 : 0.45)));
       ctx.lineTo(curX, curY);
       ctx.stroke();
 
-      // D. Leading Muzzle / Projectile Head Star Dot
-      ctx.fillStyle = p.coreColor;
-      ctx.beginPath();
-      ctx.arc(curX, curY, p.radius * 0.65, 0, Math.PI * 2);
-      ctx.fill();
+      // D. Leading Projectile Head / Warhead
+      if (isFlak) {
+        // Chunky explosive flak canister diamond head
+        ctx.fillStyle = p.coreColor;
+        ctx.beginPath();
+        ctx.arc(curX, curY, p.radius * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 4-point explosive diamond cross
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.moveTo(curX, curY - p.radius * 1.5);
+        ctx.lineTo(curX + p.radius * 0.6, curY);
+        ctx.lineTo(curX, curY + p.radius * 1.5);
+        ctx.lineTo(curX - p.radius * 0.6, curY);
+        ctx.closePath();
+        ctx.fill();
+      } else if (isLaser) {
+        // Coherent ionizing needle head & corona
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(curX, curY, p.radius * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ionizing cross spike
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.moveTo(curX, curY - p.radius * 1.8);
+        ctx.lineTo(curX + p.radius * 0.4, curY);
+        ctx.lineTo(curX, curY + p.radius * 1.2);
+        ctx.lineTo(curX - p.radius * 0.4, curY);
+        ctx.closePath();
+        ctx.fill();
+      } else if (isMissile) {
+        // Rocket warhead & aerodynamic nosecone
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.moveTo(curX, curY - p.radius * 1.4);
+        ctx.lineTo(curX + p.radius * 0.8, curY + p.radius * 0.8);
+        ctx.lineTo(curX - p.radius * 0.8, curY + p.radius * 0.8);
+        ctx.closePath();
+        ctx.fill();
+
+        // Exhaust core
+        ctx.fillStyle = '#ffeedd';
+        ctx.beginPath();
+        ctx.arc(curX, curY + p.radius * 0.5, p.radius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Standard kinetic dot head
+        ctx.fillStyle = p.coreColor;
+        ctx.beginPath();
+        ctx.arc(curX, curY, p.radius * 0.65, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       ctx.restore();
     }

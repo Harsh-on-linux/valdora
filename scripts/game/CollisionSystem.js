@@ -457,19 +457,31 @@ export class CollisionSystem {
         target.hull = Math.max(0, target.hull - damage);
         target.flashTimer = 0.12;
 
-        // 2. Spawn propellant impact sparks at contact point
+        // 2. Spawn propellant / explosive / ionization impact sparks at contact point
         if (gameEngine.projectiles) {
           const sparkColor = proj.color || '#2dd4dc';
-          gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, sparkColor, 8);
+          if (proj.type === 'FLAK') {
+            gameEngine.projectiles.spawnFlakDetonation(hitResult.hitX, hitResult.hitY, sparkColor, 12);
+          } else if (proj.type === 'LASER') {
+            gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#e879f9', 10);
+            gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#ffffff', 4);
+          } else {
+            gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, sparkColor, 8);
+          }
         }
 
         // 3. Play impact audio
-        if (soundManager && typeof soundManager.playHitImpact === 'function') {
-          soundManager.playHitImpact();
+        if (soundManager) {
+          if (proj.type === 'FLAK' && typeof soundManager.playFlakDetonation === 'function') {
+            soundManager.playFlakDetonation(0.8);
+          } else if (typeof soundManager.playHitImpact === 'function') {
+            soundManager.playHitImpact();
+          }
         }
 
         // 4. Record contact for debug visualization
-        this._recordContact(hitResult.hitX, hitResult.hitY, '#00f0ff');
+        const debugCol = proj.type === 'FLAK' ? '#ff9e1b' : (proj.type === 'LASER' ? '#c084fc' : '#00f0ff');
+        this._recordContact(hitResult.hitX, hitResult.hitY, debugCol);
 
         // 5. Decrement projectile penetration
         proj.hitsRemaining--;

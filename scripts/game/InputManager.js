@@ -301,10 +301,34 @@ export class InputManager {
       window.dispatchEvent(new CustomEvent('collision:toggleDebug'));
     }
 
-    if (e.code === 'Digit1') this.actions.weaponSlot = 1;
-    if (e.code === 'Digit2') this.actions.weaponSlot = 2;
-    if (e.code === 'Digit3') this.actions.weaponSlot = 3;
-    if (e.code === 'Digit4') this.actions.weaponSlot = 4;
+    // Weapon Cycling (Q = Prev, E = Next)
+    if (e.code === 'KeyQ') {
+      this.actions.cyclePrev = true;
+      window.dispatchEvent(new CustomEvent('weapon:cycle', { detail: { direction: -1 } }));
+    }
+
+    if (e.code === 'KeyE') {
+      this.actions.cycleNext = true;
+      window.dispatchEvent(new CustomEvent('weapon:cycle', { detail: { direction: 1 } }));
+    }
+
+    // Direct Weapon Slot Selection (1 - 4)
+    if (e.code === 'Digit1') {
+      this.actions.weaponSlot = 1;
+      window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 1 } }));
+    }
+    if (e.code === 'Digit2') {
+      this.actions.weaponSlot = 2;
+      window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 2 } }));
+    }
+    if (e.code === 'Digit3') {
+      this.actions.weaponSlot = 3;
+      window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 3 } }));
+    }
+    if (e.code === 'Digit4') {
+      this.actions.weaponSlot = 4;
+      window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 4 } }));
+    }
   }
 
   _handleKeyUp(e) {
@@ -312,6 +336,8 @@ export class InputManager {
     if (e.code === 'Escape' || e.code === 'KeyP') {
       this.actions.pause = false;
     }
+    if (e.code === 'KeyQ') this.actions.cyclePrev = false;
+    if (e.code === 'KeyE') this.actions.cycleNext = false;
   }
 
   _handleMouseMove(e) {

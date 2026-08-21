@@ -98,10 +98,14 @@ export class GameEngine {
     this._boundResize = this.resize.bind(this);
     this._boundRadarToggle = () => this.toggleRadarMode();
     this._boundDebugToggle = () => this.toggleCollisionDebug();
+    this._boundWeaponCycle = (e) => this.cycleWeapon(e.detail?.direction || 1);
+    this._boundWeaponSlot = (e) => this.selectWeaponSlot(e.detail?.slot || 1);
 
     window.addEventListener('resize', this._boundResize);
     window.addEventListener('radar:toggle', this._boundRadarToggle);
     window.addEventListener('collision:toggleDebug', this._boundDebugToggle);
+    window.addEventListener('weapon:cycle', this._boundWeaponCycle);
+    window.addEventListener('weapon:selectSlot', this._boundWeaponSlot);
     this.resize();
   }
 
@@ -166,10 +170,8 @@ export class GameEngine {
     this.player.applyArchetype(droneId);
     const startX = this.width / 2;
     const startY = this.height * 0.82;
-    this.player.spawn(startX, startY);
-
-    // Initialize weapon system with loadout & drone multipliers
-    this.weapons.setWeapon(weaponId);
+    // Initialize fresh weapon system with loadout & drone multipliers
+    this.weapons = new WeaponSystem(this.weaponConfig ? this.weaponConfig.id : weaponId);
     this.weapons.applyDroneModifiers(this.droneConfig);
 
     // Clear projectile and particle pools
@@ -571,11 +573,60 @@ export class GameEngine {
   }
 
   /**
+   * Cycle player weapon payload forward or backward.
+   * @param {number} [direction=1] - (+1 next, -1 prev)
+   * @returns {string} Active weapon ID
+   */
+  cycleWeapon(direction = 1) {
+    const allowed = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'];
+    if (!this.weapons || typeof this.weapons.cycleWeapon !== 'function') {
+      this.weapons = new WeaponSystem(this.weaponConfig?.id || 'VULCAN');
+    }
+    const newWeaponId = this.weapons.cycleWeapon(direction, allowed);
+    this.weaponConfig = this.weapons.weaponConfig;
+    soundManager.playWeaponSwitch(newWeaponId);
+    console.log(`🔄 Weapon cycled to: ${newWeaponId} (${this.weapons.weaponConfig.name})`);
+    this._emit('telemetry', this.getTelemetry());
+    return newWeaponId;
+  }
+
+  /**
+   * Select a specific weapon slot (1 to 4).
+   * @param {number} slot
+   * @returns {string} Active weapon ID
+   */
+  selectWeaponSlot(slot) {
+    const allowed = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'];
+    if (!this.weapons || typeof this.weapons.selectWeaponSlot !== 'function') {
+      this.weapons = new WeaponSystem(this.weaponConfig?.id || 'VULCAN');
+    }
+    const newWeaponId = this.weapons.selectWeaponSlot(slot, allowed);
+    this.weaponConfig = this.weapons.weaponConfig;
+    soundManager.playWeaponSwitch(newWeaponId);
+    console.log(`🎯 Weapon slot ${slot} selected: ${newWeaponId} (${this.weapons.weaponConfig.name})`);
+    this._emit('telemetry', this.getTelemetry());
+    return newWeaponId;
+  }
+
+  /**
+   * Set specific weapon payload by ID.
+   * @param {string} weaponId
+   */
+  setWeapon(weaponId) {
+    this.weapons.setWeapon(weaponId);
+    this.weapons.applyDroneModifiers(this.droneConfig);
+    this.weaponConfig = this.weapons.weaponConfig;
+    soundManager.playWeaponSwitch(weaponId);
+    this._emit('telemetry', this.getTelemetry());
+  }
+
+  /**
    * Get engine telemetry data snapshot.
    */
   getTelemetry() {
     const p = this.player;
     const hudSnapshot = this.hudOverlay ? this.hudOverlay.getTelemetrySnapshot() : {};
+    const allowedWeapons = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'];
 
     return {
       fps: this.fps,
@@ -599,6 +650,14 @@ export class GameEngine {
       controlScheme: this.input.getEffectiveControlScheme(),
       collisionDebug: this.collisions ? this.collisions.debug : false,
       collisionStats: this.collisions ? this.collisions.stats : null,
+      // Active Weapon & Arsenal Telemetry
+      activeWeapon: this.weapons?.activeWeaponId || 'VULCAN',
+      weaponName: this.weapons?.weaponConfig?.name || 'GAU-22 VULCAN',
+      weaponClass: this.weapons?.weaponConfig?.class || 'KINETIC',
+      weaponIcon: this.weapons?.weaponConfig?.icon || '⦿',
+      weaponColor: this.weapons?.weaponConfig?.color || '#2dd4dc',
+      weaponSlot: (this.weapons && typeof this.weapons.getActiveSlotIndex === 'function') ? this.weapons.getActiveSlotIndex(allowedWeapons) : 1,
+      availableWeapons: allowedWeapons,
       // Merge rich tactical HUD snapshot
       ...hudSnapshot
     };
@@ -612,6 +671,8 @@ export class GameEngine {
     window.removeEventListener('resize', this._boundResize);
     window.removeEventListener('radar:toggle', this._boundRadarToggle);
     window.removeEventListener('collision:toggleDebug', this._boundDebugToggle);
+    window.removeEventListener('weapon:cycle', this._boundWeaponCycle);
+    window.removeEventListener('weapon:selectSlot', this._boundWeaponSlot);
     this.listeners = { stateChange: [], telemetry: [] };
   }
 }

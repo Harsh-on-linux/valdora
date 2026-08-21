@@ -132,17 +132,17 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Bullet vs. Target, Drone vs. Target, Drone vs. Hazard collision resolution.
 - Output: Collision detection pipeline with debug visualization toggle.
 
-### Step 18 — Flak Cannon Weapon 🔄 ← Current
+### Step 18 — Flak Cannon Weapon ✅
 - 3 to 5-way angled spread with wide coverage, custom explosive particle tint.
 - Weapon cycle key (Q/E or 1-4) with HUD icon swap.
 - Output: Multi-directional crowd control firing.
 
-### Step 19 — Laser Designator Beam
+### Step 19 — Laser Designator Beam ✅
 - Sustained high-energy beam with animated core, outer corona, and contact sparks.
 - Heat buildup mechanics with overheat lockout and cooling dissipation.
 - Output: Thermal-limited piercing beam weapon.
 
-### Step 20 — Hellfire Swarm Missiles
+### Step 20 — Hellfire Swarm Missiles 🔄 ← Current
 - Self-propelling tracking missiles with smoke trails, auto-acquiring target lock, and area-of-effect blast on impact.
 - Output: Autonomous guided ordinance.
 

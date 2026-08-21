@@ -1,15 +1,19 @@
 /**
- * WeaponSystem — Player Ordnance Controller & Weapon Mechanics
+ * WeaponSystem — Player Ordnance Controller & Multi-Weapon Arsenal
  * Features:
  * - Deterministic weapon cooldown & cadence timers (fixed 60Hz update)
- * - Dynamic barrel cycling (alternating twin-barrel & quad-pod firing)
+ * - Multi-weapon cycling (Q/E or 1-4 hotkeys) with HUD state sync
+ * - GAU-22 Vulcan Rotary Cannon (Rapid kinetic twin-barrel alternating fire)
+ * - MK-44 Flak Cannon (5-way high-impact multi-directional crowd control spread)
  * - Velocity inheritance & ballistic micro-spread dispersion
  * - Real-time integration with TacticalHUDOverlay (Ammo capacitor & Thermal heat)
- * - Procedural muzzle flash flare & audio synthesis triggers
+ * - Procedural muzzle flash flare, propellant spark bursts & audio synthesis triggers
  */
 
 import { WEAPON_TYPES, getWeaponById } from './drones.js';
 import { PROJECTILE_TYPES } from './ProjectilePool.js';
+
+export const WEAPON_ORDER = ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'];
 
 export class WeaponSystem {
   /**
@@ -24,26 +28,26 @@ export class WeaponSystem {
     this.barrelIndex = 0;
 
     // Weapon parameters (scaled by drone stats)
-    this.baseFireRate = 9.0; // Rounds per second (Hz)
+    this.baseFireRate = 9.5; // Rounds per second (Hz)
     this.fireRateMultiplier = 1.0;
     this.projectileSpeed = 920; // px/s
     this.spread = 0.025; // Radians (+/- 1.4 degrees dispersion)
     this.damage = 15;
-    this.heatPerShot = 3.2;
-    this.ammoPerShot = 1.8;
-
-    this.recoilImpulse = 0.6; // Screen shake per shot
+    this.heatPerShot = 3.0;
+    this.ammoPerShot = 1.6;
+    this.recoilImpulse = 0.5; // Screen shake per shot
 
     this.setWeapon(initialWeaponId);
   }
 
   /**
-   * Configure active weapon and reset cooldowns.
+   * Configure active weapon and reset parameters & cooldowns.
    * @param {string} weaponId
    */
   setWeapon(weaponId) {
-    this.activeWeaponId = weaponId;
-    this.weaponConfig = getWeaponById(weaponId) || WEAPON_TYPES.VULCAN;
+    const config = getWeaponById(weaponId) || WEAPON_TYPES.VULCAN;
+    this.activeWeaponId = config.id;
+    this.weaponConfig = config;
 
     // Apply baseline weapon archetype parameters
     switch (this.weaponConfig.id) {
@@ -53,27 +57,27 @@ export class WeaponSystem {
         this.projectileSpeed = 920;
         this.spread = 0.025;
         this.damage = 15;
-        this.heatPerShot = 3.0;
-        this.ammoPerShot = 1.6;
+        this.heatPerShot = 2.8;
+        this.ammoPerShot = 1.5;
         this.recoilImpulse = 0.5;
         break;
 
       case 'FLAK':
-        this.baseFireRate = 3.5;
-        this.projectileSpeed = 740;
-        this.spread = 0.22;
-        this.damage = 28;
-        this.heatPerShot = 9.0;
+        this.baseFireRate = 3.2; // ~312ms interval per 5-way salvo
+        this.projectileSpeed = 760;
+        this.spread = 0.28; // ~16 deg fan spread
+        this.damage = 26; // per pellet (5 pellets = 130 max close-range damage)
+        this.heatPerShot = 8.5;
         this.ammoPerShot = 6.0;
-        this.recoilImpulse = 1.8;
+        this.recoilImpulse = 2.2;
         break;
 
       case 'LASER':
-        this.baseFireRate = 20.0;
+        this.baseFireRate = 18.0;
         this.projectileSpeed = 1600;
         this.spread = 0.0;
-        this.damage = 8;
-        this.heatPerShot = 2.2;
+        this.damage = 9;
+        this.heatPerShot = 2.4;
         this.ammoPerShot = 1.2;
         this.recoilImpulse = 0.2;
         break;
@@ -85,11 +89,54 @@ export class WeaponSystem {
         this.damage = 80;
         this.heatPerShot = 14.0;
         this.ammoPerShot = 10.0;
-        this.recoilImpulse = 2.5;
+        this.recoilImpulse = 2.8;
         break;
     }
 
     this.fireTimer = 0;
+  }
+
+  /**
+   * Cycle weapon forward (+1) or backward (-1).
+   * @param {number} [direction=1]
+   * @param {Array<string>} [allowedWeapons=null]
+   * @returns {string} New active weapon ID
+   */
+  cycleWeapon(direction = 1, allowedWeapons = null) {
+    const list = (allowedWeapons && allowedWeapons.length > 0) ? allowedWeapons : WEAPON_ORDER;
+    const currentId = this.activeWeaponId;
+    let idx = list.indexOf(currentId);
+    if (idx === -1) idx = 0;
+
+    const nextIdx = (idx + direction + list.length) % list.length;
+    this.setWeapon(list[nextIdx]);
+    return this.activeWeaponId;
+  }
+
+  /**
+   * Select weapon by 1-based slot index (1=VULCAN, 2=FLAK, 3=LASER, 4=HELLFIRE).
+   * @param {number} slotNumber
+   * @param {Array<string>} [allowedWeapons=null]
+   * @returns {string} New active weapon ID
+   */
+  selectWeaponSlot(slotNumber, allowedWeapons = null) {
+    const list = (allowedWeapons && allowedWeapons.length > 0) ? allowedWeapons : WEAPON_ORDER;
+    const idx = Math.max(0, Math.min(list.length - 1, slotNumber - 1));
+    if (list[idx]) {
+      this.setWeapon(list[idx]);
+    }
+    return this.activeWeaponId;
+  }
+
+  /**
+   * Get 1-based index of active weapon slot.
+   * @param {Array<string>} [allowedWeapons=null]
+   * @returns {number}
+   */
+  getActiveSlotIndex(allowedWeapons = null) {
+    const list = (allowedWeapons && allowedWeapons.length > 0) ? allowedWeapons : WEAPON_ORDER;
+    const idx = list.indexOf(this.activeWeaponId);
+    return idx >= 0 ? idx + 1 : 1;
   }
 
   /**
@@ -112,7 +159,7 @@ export class WeaponSystem {
   }
 
   /**
-   * Attempt to fire primary weapon stream.
+   * Attempt to discharge the active primary weapon.
    * @param {import('./PlayerDrone.js').PlayerDrone} player
    * @param {import('./ProjectilePool.js').ProjectilePool} projectilePool
    * @param {import('./TacticalHUDOverlay.js').TacticalHUDOverlay} hudOverlay
@@ -121,15 +168,14 @@ export class WeaponSystem {
    * @returns {boolean} true if shot was discharged
    */
   fire(player, projectilePool, hudOverlay, soundManager, gameEngine) {
-    // 1. Check if weapon is ready (cooldown elapsed)
+    // 1. Check cooldown
     if (this.fireTimer > 0) return false;
 
-    // 2. Check thermal and ammo allowance via HUD
+    // 2. Check thermal & capacitor allowance
     if (hudOverlay) {
       const allowed = hudOverlay.registerFire(this.heatPerShot, this.ammoPerShot);
       if (!allowed) {
-        // Enforce brief delay before checking again so warning/deny audio doesn't spam every frame
-        this.fireTimer = 0.15;
+        this.fireTimer = 0.15; // Prevent warning spam every tick
         return false;
       }
     }
@@ -141,22 +187,20 @@ export class WeaponSystem {
     const droneThermal = player.config?.thermal || { core: '#2dd4dc', glow: 'rgba(45, 212, 220, 0.6)' };
     const effectiveFireRate = this.baseFireRate * this.fireRateMultiplier;
 
-    // 4. Fire Vulcan Cannon
-    if (this.weaponConfig.id === 'VULCAN' || !this.weaponConfig.id) {
-      // Alternating twin-barrel fire: selects next muzzle in sequence
+    // ══════════════════════════════════════════════════════════════
+    // WEAPON 1: GAU-22 VULCAN ROTARY CANNON
+    // ══════════════════════════════════════════════════════════════
+    if (this.activeWeaponId === 'VULCAN') {
       const muzzleIdx = this.barrelIndex % muzzles.length;
       const muzzle = muzzles[muzzleIdx];
       this.barrelIndex = (this.barrelIndex + 1) % muzzles.length;
 
-      // Calculate trajectory with slight spread dispersion
       const spreadAngle = (Math.random() - 0.5) * this.spread;
-      const baseAngle = -Math.PI / 2 + spreadAngle; // Upward
+      const baseAngle = -Math.PI / 2 + spreadAngle;
 
-      // Bullet velocity + partial player lateral velocity inheritance
       const vx = Math.cos(baseAngle) * this.projectileSpeed + player.vx * 0.18;
       const vy = Math.sin(baseAngle) * this.projectileSpeed;
 
-      // Spawn projectile into pool
       projectilePool.spawn({
         owner: 'player',
         type: PROJECTILE_TYPES.VULCAN,
@@ -178,7 +222,6 @@ export class WeaponSystem {
         penetration: 1
       });
 
-      // Spawn diamond muzzle flash & sparks at exact hardpoint
       projectilePool.spawnMuzzleFlash(
         muzzle.x,
         muzzle.y,
@@ -187,22 +230,221 @@ export class WeaponSystem {
         -Math.PI / 2
       );
 
-      // Play procedural Vulcan audio pop
       if (soundManager && typeof soundManager.playVulcanFire === 'function') {
         soundManager.playVulcanFire(muzzleIdx);
       }
 
-      // Add subtle tactical camera recoil impulse
       if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
         gameEngine.addCameraShake(this.recoilImpulse);
       }
 
-      // Set cooldown timer for next round
       this.fireTimer = 1.0 / effectiveFireRate;
       return true;
     }
 
-    // Default fallback
+    // ══════════════════════════════════════════════════════════════
+    // WEAPON 2: MK-44 FLAK CANNON (5-Way Explosive Fan Spread)
+    // ══════════════════════════════════════════════════════════════
+    if (this.activeWeaponId === 'FLAK') {
+      // 5-way spread angles in radians: [-16°, -8°, 0°, +8°, +16°]
+      const spreadAngles = [-0.28, -0.14, 0.0, 0.14, 0.28];
+      const flakColor = '#ff9e1b';
+      const flakGlow = 'rgba(255, 158, 27, 0.75)';
+
+      // Calculate center launch origin from muzzles
+      let avgX = 0;
+      let avgY = 0;
+      for (let m = 0; m < muzzles.length; m++) {
+        avgX += muzzles[m].x;
+        avgY += muzzles[m].y;
+      }
+      avgX /= muzzles.length;
+      avgY /= muzzles.length;
+
+      // Spawn all 5 flak pellets in multi-directional fan
+      for (let i = 0; i < spreadAngles.length; i++) {
+        const angleOffset = spreadAngles[i] + (Math.random() - 0.5) * 0.035;
+        const baseAngle = -Math.PI / 2 + angleOffset;
+        const pelletSpeed = this.projectileSpeed + (Math.random() - 0.5) * 50;
+
+        // Slight horizontal origin offset to match wing guns
+        const originMuzzle = muzzles[i % muzzles.length] || { x: avgX, y: avgY };
+
+        const vx = Math.cos(baseAngle) * pelletSpeed + player.vx * 0.12;
+        const vy = Math.sin(baseAngle) * pelletSpeed;
+
+        projectilePool.spawn({
+          owner: 'player',
+          type: PROJECTILE_TYPES.FLAK,
+          x: originMuzzle.x,
+          y: originMuzzle.y,
+          prevX: originMuzzle.x,
+          prevY: originMuzzle.y,
+          vx: vx,
+          vy: vy,
+          speed: pelletSpeed,
+          damage: this.damage,
+          radius: 4.5,
+          length: 16,
+          width: 4.5,
+          color: flakColor,
+          glowColor: flakGlow,
+          coreColor: '#ffffff',
+          lifetime: 1.35,
+          penetration: 1
+        });
+      }
+
+      // Heavy explosive muzzle blasts at all hardpoints
+      for (let m = 0; m < muzzles.length; m++) {
+        projectilePool.spawnMuzzleFlash(
+          muzzles[m].x,
+          muzzles[m].y,
+          flakColor,
+          22,
+          -Math.PI / 2
+        );
+        projectilePool.spawnHitSparks(muzzles[m].x, muzzles[m].y, flakColor, 6);
+      }
+
+      // Play MK-44 Flak audio report
+      if (soundManager && typeof soundManager.playFlakFire === 'function') {
+        soundManager.playFlakFire();
+      }
+
+      // Concussive camera recoil kick
+      if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
+        gameEngine.addCameraShake(this.recoilImpulse);
+      }
+
+      this.fireTimer = 1.0 / effectiveFireRate;
+      return true;
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // WEAPON 3: ATHENA BEAM (High-Velocity Piercing Energy Lance)
+    // ══════════════════════════════════════════════════════════════
+    if (this.activeWeaponId === 'LASER') {
+      const muzzleIdx = this.barrelIndex % muzzles.length;
+      const muzzle = muzzles[muzzleIdx];
+      this.barrelIndex = (this.barrelIndex + 1) % muzzles.length;
+
+      const laserColor = '#c084fc'; // Energetic royal purple/violet
+      const laserGlow = 'rgba(192, 132, 252, 0.85)';
+      const laserCore = '#ffffff';
+
+      const baseAngle = -Math.PI / 2;
+      const vx = Math.cos(baseAngle) * this.projectileSpeed + player.vx * 0.08;
+      const vy = Math.sin(baseAngle) * this.projectileSpeed;
+
+      projectilePool.spawn({
+        owner: 'player',
+        type: PROJECTILE_TYPES.LASER,
+        x: muzzle.x,
+        y: muzzle.y,
+        prevX: muzzle.x,
+        prevY: muzzle.y,
+        vx: vx,
+        vy: vy,
+        speed: this.projectileSpeed,
+        damage: this.damage,
+        radius: 3.8,
+        length: 54,
+        width: 3.4,
+        color: laserColor,
+        glowColor: laserGlow,
+        coreColor: laserCore,
+        lifetime: 1.6,
+        penetration: 3,
+        hitsRemaining: 3
+      });
+
+      // Ionizing beam needle flash at hardpoint
+      projectilePool.spawnMuzzleFlash(
+        muzzle.x,
+        muzzle.y,
+        laserColor,
+        18,
+        -Math.PI / 2
+      );
+
+      // Trailing energetic ionization spark
+      projectilePool.spawnHitSparks(muzzle.x, muzzle.y, '#e879f9', 3);
+
+      if (soundManager && typeof soundManager.playLaserFire === 'function') {
+        soundManager.playLaserFire(muzzleIdx);
+      }
+
+      if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
+        gameEngine.addCameraShake(this.recoilImpulse);
+      }
+
+      this.fireTimer = 1.0 / effectiveFireRate;
+      return true;
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // WEAPON 4: HELLFIRE SWARM (Heavy Armor-Piercing Micro-Missiles)
+    // ══════════════════════════════════════════════════════════════
+    if (this.activeWeaponId === 'HELLFIRE') {
+      const muzzleIdx = this.barrelIndex % muzzles.length;
+      const muzzle = muzzles[muzzleIdx];
+      this.barrelIndex = (this.barrelIndex + 1) % muzzles.length;
+
+      const missileColor = '#ff003c';
+      const missileGlow = 'rgba(255, 0, 60, 0.8)';
+      const missileCore = '#ffeedd';
+
+      const spreadAngle = (Math.random() - 0.5) * this.spread;
+      const baseAngle = -Math.PI / 2 + spreadAngle;
+      const vx = Math.cos(baseAngle) * this.projectileSpeed + player.vx * 0.15;
+      const vy = Math.sin(baseAngle) * this.projectileSpeed;
+
+      projectilePool.spawn({
+        owner: 'player',
+        type: PROJECTILE_TYPES.HELLFIRE,
+        x: muzzle.x,
+        y: muzzle.y,
+        prevX: muzzle.x,
+        prevY: muzzle.y,
+        vx: vx,
+        vy: vy,
+        speed: this.projectileSpeed,
+        damage: this.damage,
+        radius: 6.0,
+        length: 26,
+        width: 5.5,
+        color: missileColor,
+        glowColor: missileGlow,
+        coreColor: missileCore,
+        lifetime: 2.5,
+        penetration: 1,
+        hitsRemaining: 1
+      });
+
+      // Rocket backblast flash
+      projectilePool.spawnMuzzleFlash(
+        muzzle.x,
+        muzzle.y,
+        '#ff9e1b',
+        20,
+        -Math.PI / 2
+      );
+      projectilePool.spawnHitSparks(muzzle.x, muzzle.y, '#ff9e1b', 8);
+
+      if (soundManager && typeof soundManager.playHellfireFire === 'function') {
+        soundManager.playHellfireFire();
+      }
+
+      if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
+        gameEngine.addCameraShake(this.recoilImpulse);
+      }
+
+      this.fireTimer = 1.0 / effectiveFireRate;
+      return true;
+    }
+
+    // Default fallback (single shot)
     this.fireTimer = 1.0 / effectiveFireRate;
     return false;
   }

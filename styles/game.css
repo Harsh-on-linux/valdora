@@ -279,6 +279,158 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   WEAPON ARSENAL & CYCLE SELECTOR
+   ═══════════════════════════════════════════════════════════════════ */
+
+.hud-weapon-bay-panel {
+  border-right: 2px solid var(--amber) !important;
+}
+
+.hud-panel-hint {
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+  letter-spacing: 0.05em;
+}
+
+.hud-active-weapon-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 20, 30, 0.75);
+  border: 1px solid rgba(255, 183, 3, 0.25);
+  padding: 4px 6px;
+  margin: 2px 0 4px;
+}
+
+.hud-weapon-icon-badge {
+  font-size: 1.25rem;
+  color: var(--amber);
+  text-shadow: 0 0 8px rgba(255, 183, 3, 0.6);
+  min-width: 24px;
+  text-align: center;
+}
+
+.hud-weapon-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hud-weapon-name {
+  font-family: var(--font-hud-heading, 'Rajdhani', sans-serif);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--amber);
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+}
+
+.hud-weapon-meta {
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.hud-weapon-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.weapon-slot-chip {
+  background: rgba(10, 14, 22, 0.85);
+  border: 1px solid rgba(45, 212, 220, 0.2);
+  color: var(--text-secondary);
+  padding: 3px 4px;
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.60rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.weapon-slot-chip:hover {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--cyan);
+  color: var(--text-primary);
+}
+
+.weapon-slot-chip.active {
+  background: rgba(255, 183, 3, 0.18);
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 10px rgba(255, 183, 3, 0.35);
+  font-weight: 700;
+}
+
+.slot-num {
+  font-weight: 700;
+  color: var(--cyan-bright);
+  font-size: 0.55rem;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1px 3px;
+  border-radius: 1px;
+}
+
+.weapon-slot-chip.active .slot-num {
+  color: #000000;
+  background: var(--amber);
+}
+
+.slot-icon {
+  font-size: 0.7rem;
+}
+
+.slot-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-weapon-cycle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.hud-cycle-btn {
+  background: rgba(10, 14, 22, 0.85);
+  border: 1px solid rgba(45, 212, 220, 0.25);
+  color: var(--cyan-bright);
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.62rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.hud-cycle-btn:hover {
+  background: rgba(0, 240, 255, 0.2);
+  border-color: #ffffff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
+.hud-cycle-btn:active {
+  transform: scale(0.94);
+}
+
+.hud-cycle-label {
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    ORDNANCE METERS (AMMO, HEAT, MISSILES)
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -439,6 +591,22 @@
   background: rgba(45, 212, 220, 0.35);
   border-color: #ffffff;
   box-shadow: 0 0 24px rgba(45, 212, 220, 0.6);
+}
+
+.touch-action-btn.weapon-btn {
+  width: 54px;
+  height: 54px;
+  border-color: var(--amber);
+  color: var(--amber);
+  font-size: 0.62rem;
+  box-shadow: 0 0 16px rgba(255, 183, 3, 0.25);
+}
+
+.touch-action-btn.weapon-btn:active,
+.touch-action-btn.weapon-btn.active {
+  background: rgba(255, 183, 3, 0.35);
+  border-color: #ffffff;
+  box-shadow: 0 0 24px rgba(255, 183, 3, 0.6);
 }
 
 .touch-action-btn.radar-btn {

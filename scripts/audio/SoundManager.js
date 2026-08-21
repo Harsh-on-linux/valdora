@@ -508,6 +508,194 @@ export class SoundManager {
   }
 
   /**
+   * Play procedural MK-44 Flak Cannon heavy explosive report
+   * Dual-stage sound: heavy concussive bass blast + metallic breech ring + propellant pop
+   */
+  playFlakFire() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Heavy Concussive Bass Blast (sub-bass drop 220Hz -> 30Hz)
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+
+    subOsc.type = 'sawtooth';
+    subOsc.frequency.setValueAtTime(220, now);
+    subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.075);
+
+    subGain.gain.setValueAtTime(0.28 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+
+    subOsc.start(now);
+    subOsc.stop(now + 0.085);
+
+    // 2. Resonant Metallic Breech Ring & Explosive Crack
+    const crackOsc = this.ctx.createOscillator();
+    const crackGain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    crackOsc.type = 'square';
+    crackOsc.frequency.setValueAtTime(850, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(120, now + 0.045);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1700, now);
+    filter.Q.setValueAtTime(3.5, now);
+
+    crackGain.gain.setValueAtTime(0.19 * this.sfxVolume, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    crackOsc.connect(filter);
+    filter.connect(crackGain);
+    crackGain.connect(this.sfxGain);
+
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.055);
+  }
+
+  /**
+   * Play weapon cycle / switch sound (tactical mechanical servo clack + electronic chirp)
+   * @param {string} [weaponId='']
+   */
+  playWeaponSwitch(weaponId = '') {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // Fast mechanical servo clack
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'square';
+    osc1.frequency.setValueAtTime(1100, now);
+    osc1.frequency.exponentialRampToValueAtTime(2400, now + 0.03);
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(550, now);
+    osc2.frequency.exponentialRampToValueAtTime(1500, now + 0.04);
+
+    gain.gain.setValueAtTime(0.14 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.05);
+    osc2.stop(now + 0.05);
+  }
+
+  /**
+   * Play Athena Laser beam pulse / ionizing energy crackle
+   * @param {number} [barrelIdx=0]
+   */
+  playLaserFire(barrelIdx = 0) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // 1. High-frequency ionizing plasma beam chirp (1400Hz -> 650Hz)
+    const baseFreq = barrelIdx % 2 === 0 ? 1480 : 1380;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.045);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2200, now);
+    filter.Q.setValueAtTime(4.0, now);
+
+    gain.gain.setValueAtTime(0.18 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.055);
+
+    // 2. Resonant sub-harmonic laser tone
+    const toneOsc = this.ctx.createOscillator();
+    const toneGain = this.ctx.createGain();
+
+    toneOsc.type = 'triangle';
+    toneOsc.frequency.setValueAtTime(720, now);
+    toneOsc.frequency.exponentialRampToValueAtTime(240, now + 0.04);
+
+    toneGain.gain.setValueAtTime(0.12 * this.sfxVolume, now);
+    toneGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+    toneOsc.connect(toneGain);
+    toneGain.connect(this.sfxGain);
+
+    toneOsc.start(now);
+    toneOsc.stop(now + 0.05);
+  }
+
+  /**
+   * Play Hellfire Swarm Rocket launch motor roar & propellant whoosh
+   */
+  playHellfireFire() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Rocket ignition thud & motor roar
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.18);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1400, now);
+    filter.frequency.exponentialRampToValueAtTime(400, now + 0.18);
+
+    gain.gain.setValueAtTime(0.24 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.21);
+  }
+
+  /**
+   * Play explosive flak detonation pop & shrapnel burst
+   * @param {number} [intensity=1.0]
+   */
+  playFlakDetonation(intensity = 1.0) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+
+    const dur = 0.12 * Math.max(0.5, intensity);
+    gain.gain.setValueAtTime(0.20 * this.sfxVolume * Math.min(1.5, intensity), now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  /**
    * Play ballistic hit impact / armor defilade ping
    */
   playHitImpact() {
