@@ -26,7 +26,34 @@ import { soundManager } from './audio/index.js';
     initCollapsePanel();
     initEdgeNavigation();
     initGlobalAudioHooks();
+    initSaveSync();
     console.log('🎛️ HUD Controller — All interactive systems & audio online.');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  SAVE SYNCHRONIZATION — Reflect active loadout & sector in HUD
+  // ═══════════════════════════════════════════════════════════════════
+
+  function initSaveSync() {
+    function updateHUDFromSave(save) {
+      if (!save) return;
+      const loadoutVal = document.querySelector('.top-meta .loadout-value');
+      if (loadoutVal && save.selectedDrone) {
+        const payloadText = save.selectedPayload ? ` // ${save.selectedPayload}` : '';
+        loadoutVal.textContent = `${save.selectedDrone}${payloadText}`;
+      }
+    }
+
+    // Try reading current save on load
+    try {
+      const raw = localStorage.getItem('space_shooter_save');
+      if (raw) updateHUDFromSave(JSON.parse(raw));
+    } catch (_) {}
+
+    // Listen for live updates
+    window.addEventListener('save:updated', (e) => {
+      if (e.detail) updateHUDFromSave(e.detail);
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════

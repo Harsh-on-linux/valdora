@@ -3165,6 +3165,12 @@ body[data-active-screen="landing"] .bottom-bar,
   margin-top: 2px;
 }
 
+.loadout-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ── Drone Selection Section ── */
 .loadout-body {
   display: grid;
@@ -3182,7 +3188,7 @@ body[data-active-screen="landing"] .bottom-bar,
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -3244,6 +3250,36 @@ body[data-active-screen="landing"] .bottom-bar,
   padding: 0 4px;
 }
 
+.drone-preview-stats {
+  width: 100%;
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px solid rgba(45, 212, 220, 0.08);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.preview-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.05em;
+}
+
+.spec-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.spec-val {
+  color: var(--cyan);
+  font-weight: 600;
+}
+
 /* ── Drone Selection Right Column ── */
 .loadout-right {
   display: flex;
@@ -3252,7 +3288,8 @@ body[data-active-screen="landing"] .bottom-bar,
 }
 
 /* ── Drone Chassis Selection Cards ── */
-.drone-selector-section .section-label {
+.drone-selector-section .section-label,
+.weapon-selector-section .section-label {
   font-family: var(--font-heading);
   font-size: 0.62rem;
   font-weight: 500;
@@ -3262,7 +3299,7 @@ body[data-active-screen="landing"] .bottom-bar,
   margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
 }
 
 .drone-selector-section .section-label::before {
@@ -3272,6 +3309,27 @@ body[data-active-screen="landing"] .bottom-bar,
   background: var(--cyan);
   border-radius: 50%;
   box-shadow: 0 0 4px var(--cyan);
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.weapon-selector-section .section-label::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 4px var(--green);
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.section-hint {
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  font-weight: 400;
 }
 
 .drone-cards {
@@ -3317,6 +3375,18 @@ body[data-active-screen="landing"] .bottom-bar,
   letter-spacing: 0.08em;
 }
 
+.card-key-badge {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  color: var(--text-muted);
+  border: 1px solid rgba(45, 212, 220, 0.15);
+  padding: 0px 4px;
+  line-height: 1.2;
+}
+
 .drone-card-name {
   font-family: var(--font-heading);
   font-size: 0.72rem;
@@ -3351,15 +3421,15 @@ body[data-active-screen="landing"] .bottom-bar,
 .drone-stat-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .drone-stat-label {
   font-family: var(--font-mono);
-  font-size: 0.48rem;
+  font-size: 0.46rem;
   color: var(--text-muted);
-  letter-spacing: 0.06em;
-  min-width: 32px;
+  letter-spacing: 0.04em;
+  min-width: 24px;
   text-align: right;
   text-transform: uppercase;
 }
@@ -3383,29 +3453,15 @@ body[data-active-screen="landing"] .bottom-bar,
 .drone-stat-fill.fill-green { background: linear-gradient(90deg, var(--green-dim), var(--green)); }
 .drone-stat-fill.fill-purple { background: linear-gradient(90deg, #2d1a5e, var(--purple)); }
 
-/* ── Weapon Payload Section ── */
-.weapon-selector-section .section-label {
-  font-family: var(--font-heading);
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
+.drone-stat-num {
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  min-width: 20px;
+  text-align: right;
 }
 
-.weapon-selector-section .section-label::before {
-  content: '';
-  width: 4px;
-  height: 4px;
-  background: var(--green);
-  border-radius: 50%;
-  box-shadow: 0 0 4px var(--green);
-}
-
+/* ── Weapon Payload Section ── */
 .weapon-cards {
   display: flex;
   gap: 6px;
@@ -3414,7 +3470,7 @@ body[data-active-screen="landing"] .bottom-bar,
 
 .weapon-card {
   flex: 1;
-  min-width: 100px;
+  min-width: 95px;
   position: relative;
   background: var(--bg-panel);
   border: 1px solid rgba(45, 212, 220, 0.1);
@@ -3440,9 +3496,17 @@ body[data-active-screen="landing"] .bottom-bar,
 }
 
 .weapon-card.locked {
-  opacity: 0.35;
+  opacity: 0.4;
   cursor: not-allowed;
-  pointer-events: none;
+  border-color: rgba(255, 0, 60, 0.2);
+}
+
+.weapon-locked-badge {
+  font-family: var(--font-mono);
+  font-size: 0.38rem;
+  color: var(--red);
+  letter-spacing: 0.05em;
+  margin-top: 2px;
 }
 
 .weapon-card-icon {
@@ -3575,4 +3639,5 @@ body[data-active-screen="landing"] .bottom-bar,
     max-width: 100%;
   }
 }
+
 

@@ -95,7 +95,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Color theme parameterization for heat signatures.
 - Output: Isolated drone preview canvas with targeting crosshairs.
 
-### Step 12 — Loadout screen 🔄 ← Current
+### Step 12 — Loadout screen ✅
 - Selection cards for drone chassis variants (Surveillance, Heavy Strike, Electronic Warfare) and payload presets (Vulcan, Flak, Laser, Hellfire).
 - Persist player loadout choices to active game state.
 - Output: Fully interactive loadout configuration screen.
@@ -104,7 +104,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE E — Core Gameplay Loop
 
-### Step 13 — Canvas game loop skeleton
+### Step 13 — Canvas game loop skeleton 🔄 ← Current
 - Fixed-timestep update + interpolated render loop via `requestAnimationFrame` for rock-solid 60+ FPS.
 - Background satellite map layer integration inside gameplay canvas.
 - Output: Smooth running game engine skeleton.
