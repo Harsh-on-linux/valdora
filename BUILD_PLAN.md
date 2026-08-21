@@ -114,7 +114,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Smooth acceleration, braking drag, banking angles on lateral movement, boundary clamping.
 - Output: Responsive, fluid drone handling.
 
-### Step 15 — Tactical HUD Overlay 🔄 ← Current
+### Step 15 — Tactical HUD Overlay ✅
 - Tactical dashboard: Side data panels, Active/Passive Radar toggle, Ordnance meters, Coordinate tracker, Target bounding boxes.
 - Output: Real-time rendered HUD over the canvas viewport with CRT scanline post-processing.
 
@@ -122,7 +122,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE F — Ordnance Arsenal & Collisions
 
-### Step 16 — Projectile pool & Vulcan Cannon
+### Step 16 — Projectile pool & Vulcan Cannon 🔄 ← Current
 - Zero-allocation Object Pool for projectiles.
 - Rapid single/dual Vulcan Cannon with muzzle flashes and despawn boundaries.
 - Output: High-performance bullet firing mechanics.
