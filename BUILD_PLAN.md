@@ -82,7 +82,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Visual lock states with lock icons, star rating badges, and sector preview cards on hover.
 - Output: Responsive star-map level select interface.
 
-### Step 10 — Level select interactivity 🔄 ← Current
+### Step 10 — Level select interactivity ✅
 - Audio-visual denial feedback on locked nodes; unlocked nodes launch level loadout / direct deployment.
 - Output: Full navigation flow into the game loop.
 
@@ -90,7 +90,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE D — Loadout / Drone Selection
 
-### Step 11 — Drone data & procedural rendering function
+### Step 11 — Drone data & procedural rendering function 🔄 ← Current
 - Procedural canvas drone drawing function: top-down tactical wireframes or high-contrast silhouette representations (Predator, Reaper, Ghost).
 - Color theme parameterization for heat signatures.
 - Output: Isolated drone preview canvas with targeting crosshairs.
