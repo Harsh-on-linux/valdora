@@ -109,12 +109,12 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Background satellite map layer integration inside gameplay canvas.
 - Output: Smooth running game engine skeleton.
 
-### Step 14 — Player drone movement 🔄 ← Current
+### Step 14 — Player drone movement ✅
 - WASD / Arrow keys, Mouse follow mode, and virtual touch joystick for mobile.
 - Smooth acceleration, braking drag, banking angles on lateral movement, boundary clamping.
 - Output: Responsive, fluid drone handling.
 
-### Step 15 — Tactical HUD Overlay
+### Step 15 — Tactical HUD Overlay 🔄 ← Current
 - Tactical dashboard: Side data panels, Active/Passive Radar toggle, Ordnance meters, Coordinate tracker, Target bounding boxes.
 - Output: Real-time rendered HUD over the canvas viewport with CRT scanline post-processing.
 

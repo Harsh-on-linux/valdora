@@ -1,6 +1,6 @@
 /* ==========================================================================
    GAMEPLAY & HUD STYLES
-   Space Shooter - In-game HUD, Gauges, Reticle, Radar
+   Space Shooter - In-game HUD, Gauges, Reticle, Radar & Touch Controls
    ========================================================================== */
 
 .hud-layer {
@@ -14,7 +14,9 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: clamp(12px, 3vw, 24px);
+  padding: clamp(10px, 2.5vw, 20px);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .hud-top-bar,
@@ -23,7 +25,7 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hud-info-card {
@@ -45,9 +47,9 @@
     8px 2px, 2px 8px,
     100% 100%;
   background-repeat: no-repeat;
-  border: 1px solid rgba(45, 212, 220, 0.12);
+  border: 1px solid rgba(45, 212, 220, 0.14);
   border-radius: 0;
-  padding: 8px 14px;
+  padding: 6px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -57,38 +59,194 @@
 }
 
 .hud-label {
-  font-family: var(--font-hud-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  font-family: var(--font-hud-mono, 'Share Tech Mono', monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
   color: var(--text-secondary);
+  text-transform: uppercase;
 }
 
 .hud-value {
-  font-family: var(--font-hud-heading);
-  font-size: 1.1rem;
+  font-family: var(--font-hud-heading, 'Rajdhani', sans-serif);
+  font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
 }
 
 .score-card .hud-value {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
 }
 
 .hud-actions-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   pointer-events: auto;
 }
 
-/* Mobile responsive adjustments */
-@media (max-width: 600px) {
+/* ═══════════════════════════════════════════════════════════════════
+   MIDDLE FLIR TELEMETRY HUD OVERLAYS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.hud-mid-telemetry {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  pointer-events: none;
+  margin-top: auto;
+  margin-bottom: 8px;
+}
+
+.hud-wingman-card {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  color: var(--cyan-bright);
+  background: rgba(8, 12, 20, 0.65);
+  border-left: 2px solid var(--cyan);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ON-SCREEN TOUCH CONTROLS (MOBILE & TOUCH DEVICES)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.hud-touch-controls {
+  position: absolute;
+  bottom: 80px;
+  left: 0;
+  width: 100%;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.hud-touch-left-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(5, 7, 10, 0.6);
+  border: 1px dashed rgba(45, 212, 220, 0.25);
+  padding: 8px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  color: var(--cyan);
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+
+.hud-touch-right-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.touch-action-btn {
+  width: 64px;
+  height: 64px;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  background: rgba(8, 12, 20, 0.8);
+  border: 2px solid var(--cyan);
+  color: var(--cyan-bright);
+  font-family: var(--font-heading, sans-serif);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  touch-action: none;
+  box-shadow: 0 0 15px rgba(45, 212, 220, 0.25);
+  transition: transform 0.08s ease, background 0.1s ease, border-color 0.1s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.touch-action-btn:active,
+.touch-action-btn.active {
+  transform: scale(0.92);
+  background: rgba(45, 212, 220, 0.35);
+  border-color: #ffffff;
+  box-shadow: 0 0 24px rgba(45, 212, 220, 0.6);
+}
+
+.touch-action-btn.fire-btn {
+  width: 72px;
+  height: 72px;
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 18px rgba(232, 153, 26, 0.3);
+}
+
+.touch-action-btn.fire-btn:active,
+.touch-action-btn.fire-btn.active {
+  background: rgba(232, 153, 26, 0.35);
+  border-color: #ffffff;
+  box-shadow: 0 0 26px rgba(232, 153, 26, 0.7);
+}
+
+.touch-action-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* Hide touch action buttons on desktop mouse hover devices unless in touch mode */
+@media (hover: hover) and (pointer: fine) {
+  body:not([data-control-scheme="touch"]) .hud-touch-controls {
+    display: none;
+  }
+}
+
+/* Mobile responsive layout */
+@media (max-width: 768px) {
+  .hud-layer {
+    padding: 8px;
+  }
+
   .hud-top-bar,
   .hud-bottom-bar {
-    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .hud-info-card {
+    padding: 4px 8px;
+  }
+
+  .hud-label {
+    font-size: 0.6rem;
   }
 
   .hud-value {
+    font-size: 0.88rem;
+  }
+
+  .score-card .hud-value {
     font-size: 0.95rem;
+  }
+
+  .hud-touch-left-hint {
+    display: none;
+  }
+
+  .touch-action-btn {
+    width: 56px;
+    height: 56px;
+  }
+
+  .touch-action-btn.fire-btn {
+    width: 64px;
+    height: 64px;
   }
 }

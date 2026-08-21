@@ -14,6 +14,8 @@
 import { TacticalMapLayer } from './TacticalMapLayer.js';
 import { getLevelById } from './levels.js';
 import { getDroneById, getWeaponById } from './drones.js';
+import { InputManager } from './InputManager.js';
+import { PlayerDrone } from './PlayerDrone.js';
 
 export const ENGINE_STATE = {
   STOPPED: 'STOPPED',
@@ -64,6 +66,8 @@ export class GameEngine {
 
     // Tactical Layers & Entities
     this.tacticalMap = new TacticalMapLayer();
+    this.input = new InputManager();
+    this.player = new PlayerDrone();
     this.sectorConfig = null;
     this.droneConfig = null;
     this.weaponConfig = null;
@@ -145,11 +149,20 @@ export class GameEngine {
     this.droneConfig = getDroneById(droneId);
     this.weaponConfig = getWeaponById(weaponId);
 
+    // Initialize player drone archetype and position
+    this.player.applyArchetype(droneId);
+    const startX = this.width / 2;
+    const startY = this.height * 0.82;
+    this.player.spawn(startX, startY);
+
     this.score = 0;
-    this.hull = this.droneConfig?.stats?.armor ? this.droneConfig.stats.armor * 10 : 100;
-    this.maxHull = this.hull;
-    this.shield = this.droneConfig?.stats?.shield ? this.droneConfig.stats.shield * 10 : 100;
-    this.maxShield = this.shield;
+    this.hull = this.player.hull;
+    this.maxHull = this.player.maxHull;
+    this.shield = this.player.shield;
+    this.maxShield = this.player.maxShield;
+
+    // Attach input handlers to canvas
+    this.input.attach(this.canvas);
 
     this.accumulator = 0;
     this.simTime = 0;
@@ -166,7 +179,7 @@ export class GameEngine {
       this.animationFrameId = requestAnimationFrame(this._boundLoop);
     }
 
-    console.log(`🎮 GameEngine started: Sector ${sectorId} (${this.sectorConfig.name}), Drone: ${droneId}`);
+    console.log(`🎮 GameEngine started: Sector ${sectorId} (${this.sectorConfig.name}), Drone: ${droneId}, Input: ${this.input.getEffectiveControlScheme()}`);
   }
 
   /**
@@ -198,6 +211,7 @@ export class GameEngine {
    */
   stop() {
     this.state = ENGINE_STATE.STOPPED;
+    this.input.detach();
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -281,6 +295,13 @@ export class GameEngine {
 
     // 2. Update Tactical Map & Radar Layer
     this.tacticalMap.update(dt, 1.0);
+
+    // 3. Update Player Drone Movement & Dynamics
+    this.player.update(dt, this.input, this.width, this.height);
+
+    // 4. Sync player stats with engine stats
+    this.hull = this.player.hull;
+    this.shield = this.player.shield;
   }
 
   /**
@@ -308,8 +329,67 @@ export class GameEngine {
     // 1. Render Tactical Satellite & Topographic Map Layer
     this.tacticalMap.render(ctx, w, h);
 
-    // 2. Render Tactical Viewport Watermark & FLIR Crosshair
+    // 2. Render Player Drone (with sub-frame interpolation and FLIR trails)
+    this.player.render(ctx, alpha, w, h);
+
+    // 3. Render Virtual Touch Joystick Overlay (when active)
+    this._renderTouchJoystick(ctx);
+
+    // 4. Render Tactical Viewport Watermark & FLIR Crosshair
     this._renderTacticalOverlay(ctx, w, h);
+
+    ctx.restore();
+  }
+
+  /**
+   * Render virtual touch joystick HUD element if active.
+   */
+  _renderTouchJoystick(ctx) {
+    const js = this.input.getTouchJoystickState();
+    if (!js.active) return;
+
+    ctx.save();
+
+    // Base Outer Ring
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.08)';
+    ctx.beginPath();
+    ctx.arc(js.baseX, js.baseY, js.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Center Cross ticks
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(js.baseX - 12, js.baseY);
+    ctx.lineTo(js.baseX + 12, js.baseY);
+    ctx.moveTo(js.baseX, js.baseY - 12);
+    ctx.lineTo(js.baseX, js.baseY + 12);
+    ctx.stroke();
+
+    // Direction Vector Line
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(js.baseX, js.baseY);
+    ctx.lineTo(js.currentX, js.currentY);
+    ctx.stroke();
+
+    // Draggable Knob / Thumbstick
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.85)';
+    ctx.shadowColor = '#00f0ff';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(js.currentX, js.currentY, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner knob dot
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(js.currentX, js.currentY, 6, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
   }
@@ -399,6 +479,7 @@ export class GameEngine {
    * Get engine telemetry data snapshot.
    */
   getTelemetry() {
+    const p = this.player;
     return {
       fps: this.fps,
       frameTime: this.frameTime,
@@ -411,7 +492,13 @@ export class GameEngine {
       maxHull: this.maxHull,
       shield: this.shield,
       maxShield: this.maxShield,
-      shake: Number(this.shakeIntensity.toFixed(2))
+      shake: Number(this.shakeIntensity.toFixed(2)),
+      playerX: Math.round(p.x),
+      playerY: Math.round(p.y),
+      speed: Math.round(Math.hypot(p.vx, p.vy)),
+      bankAngle: Number(p.bankAngle.toFixed(2)),
+      thrust: Math.round(p.thrustIntensity * 100),
+      controlScheme: this.input.getEffectiveControlScheme()
     };
   }
 
