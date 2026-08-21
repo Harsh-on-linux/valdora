@@ -32,13 +32,15 @@ export class TacticalHUDOverlay {
     // Ordnance System Simulation
     this.ammo = 100; // 0 - 100%
     this.maxAmmo = 100;
-    this.ammoRegenRate = 35; // % per sec when not firing
+    this.ammoRegenRate = 38; // % per sec when not firing
     this.heat = 0; // 0 - 100%
     this.maxHeat = 100;
-    this.coolingRate = 28; // % per sec
+    this.coolingRate = 32; // % per sec base cooling rate
+    this.coolingDelay = 0.28; // seconds after firing before cooling kicks in
+    this.lastFireTime = -10; // timestamp of last fired shot
     this.isOverheated = false;
     this.overheatThreshold = 95;
-    this.recoveryThreshold = 30;
+    this.recoveryThreshold = 25; // Must cool down to 25% before lockout is cleared
     this.missiles = 6;
     this.maxMissiles = 6;
     this.missileReloadTimer = 0;
@@ -163,18 +165,27 @@ export class TacticalHUDOverlay {
    * @returns {boolean} true if firing permitted, false if overheated/empty
    */
   registerFire(heatIncrement = 8, ammoCost = 3) {
-    if (this.isOverheated || this.ammo < ammoCost) {
+    if (this.isOverheated) {
+      soundManager.playDeny();
+      return false;
+    }
+    if (this.ammo < ammoCost) {
       soundManager.playDeny();
       return false;
     }
 
+    this.lastFireTime = this.animTime;
     this.ammo = Math.max(0, this.ammo - ammoCost);
     this.heat = Math.min(this.maxHeat, this.heat + heatIncrement);
 
     if (this.heat >= this.overheatThreshold) {
       this.isOverheated = true;
+      this.heat = 100;
       soundManager.playWarning();
-      console.warn('⚠️ WEAPON OVERHEATED — Thermal dissipation active.');
+      if (typeof soundManager.playOverheatLockout === 'function') {
+        soundManager.playOverheatLockout();
+      }
+      console.warn('⚠️ WEAPON OVERHEATED — Thermal Lockout Engaged. Dissipation active.');
     }
 
     return true;
@@ -211,15 +222,22 @@ export class TacticalHUDOverlay {
     }
 
     // 2. Weapon Thermal Dissipation & Ammo Regeneration
-    if (this.heat > 0) {
-      this.heat = Math.max(0, this.heat - this.coolingRate * dt);
+    const timeSinceLastFire = this.animTime - this.lastFireTime;
+
+    // Thermal cooling begins once trigger is released or when in emergency lockout
+    if (this.heat > 0 && (timeSinceLastFire >= this.coolingDelay || this.isOverheated)) {
+      const dissipationRate = this.isOverheated ? (this.coolingRate * 1.35) : this.coolingRate;
+      this.heat = Math.max(0, this.heat - dissipationRate * dt);
+
       if (this.isOverheated && this.heat <= this.recoveryThreshold) {
         this.isOverheated = false;
-        console.log('✅ Weapon cooled — Systems nominal.');
+        soundManager.playWeaponSwitch();
+        console.log('✅ Thermal Lockout Cleared — Weapon systems online.');
       }
     }
 
-    if (this.ammo < this.maxAmmo && !this.isOverheated) {
+    // Ammo capacitor regenerates when not firing
+    if (this.ammo < this.maxAmmo && timeSinceLastFire >= 0.20 && !this.isOverheated) {
       this.ammo = Math.min(this.maxAmmo, this.ammo + this.ammoRegenRate * dt);
     }
 

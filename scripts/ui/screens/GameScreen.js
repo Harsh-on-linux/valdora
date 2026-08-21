@@ -421,7 +421,12 @@ export const GameScreen = {
           heatFillEl.className = `hud-meter-fill ${telem.isOverheated ? 'red pulse' : (telem.heat > 70 ? 'amber' : 'green')}`;
         }
         if (overheatWarnEl) {
-          overheatWarnEl.style.display = telem.isOverheated ? 'block' : 'none';
+          if (telem.isOverheated) {
+            overheatWarnEl.style.display = 'block';
+            overheatWarnEl.textContent = `⚠️ OVERHEAT LOCKOUT (${telem.heat}%)`;
+          } else {
+            overheatWarnEl.style.display = 'none';
+          }
         }
 
         // Missile bay pips

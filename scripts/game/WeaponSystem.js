@@ -56,9 +56,9 @@ export class WeaponSystem {
         this.baseFireRate = 12.0; // High sustained kinetic stream
         this.projectileSpeed = 1050;
         this.spread = 0.018;
-        this.damage = 22; // High kinetic impact per slug
-        this.heatPerShot = 0.8; // Extremely cool running (~3x cooler than laser)
-        this.ammoPerShot = 0.6; // High energy efficiency
+        this.damage = 18.5; // Reduced by 15% from 22.0 (twin salvo = 37 dmg)
+        this.heatPerShot = 1.8; // Generates ~21.6 heat/sec (overheats after ~4.5s of continuous fire)
+        this.ammoPerShot = 0.5; // High energy efficiency
         this.recoilImpulse = 0.5;
         break;
 
@@ -67,8 +67,8 @@ export class WeaponSystem {
         this.projectileSpeed = 780;
         this.spread = 0.28;
         this.damage = 28; // 5 pellets = 140 max point-blank damage
-        this.heatPerShot = 6.5;
-        this.ammoPerShot = 4.5;
+        this.heatPerShot = 14.0; // Generates ~47.6 heat/sec (overheats after ~2.0s / 7 salvos)
+        this.ammoPerShot = 4.0;
         this.recoilImpulse = 2.0;
         break;
 
@@ -77,8 +77,8 @@ export class WeaponSystem {
         this.projectileSpeed = 1800;
         this.spread = 0.0;
         this.damage = 16; // Multi-target piercing
-        this.heatPerShot = 4.8; // High thermal buildup (~6x faster overheat than Vulcan)
-        this.ammoPerShot = 2.6; // Energy-intensive
+        this.heatPerShot = 7.2; // Generates ~75.6 heat/sec (overheats after ~1.3s of continuous beam)
+        this.ammoPerShot = 2.4; // Energy-intensive
         this.recoilImpulse = 0.2;
         break;
 
@@ -87,7 +87,7 @@ export class WeaponSystem {
         this.projectileSpeed = 620;
         this.spread = 0.06;
         this.damage = 90; // High alpha burst
-        this.heatPerShot = 12.0;
+        this.heatPerShot = 24.0; // Heavy thermal exhaust
         this.ammoPerShot = 8.0;
         this.recoilImpulse = 2.8;
         break;

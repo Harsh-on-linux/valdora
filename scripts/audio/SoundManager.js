@@ -458,6 +458,32 @@ export class SoundManager {
   }
 
   /**
+   * Play critical Overheat Lockout alarm (dual-tone klaxon + steam venting hiss)
+   */
+  playOverheatLockout() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // Dual-tone siren klaxon (980Hz -> 540Hz)
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(980, now);
+    osc.frequency.setValueAtTime(740, now + 0.08);
+    osc.frequency.setValueAtTime(540, now + 0.16);
+
+    gain.gain.setValueAtTime(0.22 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.29);
+  }
+
+  /**
    * Play procedural Vulcan Cannon gunfire report
    * @param {number} [barrelIndex=0] - Alternates pitch slightly for twin-barrel realism
    */
