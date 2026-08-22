@@ -515,13 +515,13 @@ function drawSAMTurret(ctx, size, render, thermal, animTime, turretAngle) {
 // ─────────────────────────────────────────────────────────────
 
 function drawKamikazeDrone(ctx, size, render, thermal, animTime, isDiving) {
-  const bodyLen = size * render.bodyLength;
-  const bodyW = size * render.bodyWidth * 0.5;
-  const divePulse = isDiving ? (0.5 + Math.sin(animTime * 0.02) * 0.5) : 0;
+  const bodyLen = size * (render.bodyLength || 0.55);
+  const bodyW = size * (render.bodyWidth || 0.35) * 0.5;
+  const divePulse = isDiving ? (0.5 + Math.sin(animTime * 0.025) * 0.5) : 0;
 
   ctx.save();
 
-  // Fill gradient
+  // Fill gradient (intense danger red when diving)
   const fillGrad = ctx.createLinearGradient(0, -bodyLen * 0.5, 0, bodyLen * 0.5);
   fillGrad.addColorStop(0, isDiving ? thermal.core : thermal.mid);
   fillGrad.addColorStop(0.5, thermal.outer);
@@ -529,103 +529,107 @@ function drawKamikazeDrone(ctx, size, render, thermal, animTime, isDiving) {
 
   // Wedge / missile body
   ctx.beginPath();
-  // Sharp nose point
-  ctx.moveTo(0, -bodyLen * 0.55);
-  // Right edge widens quickly
-  ctx.lineTo(bodyW * 0.5, -bodyLen * 0.2);
-  ctx.lineTo(bodyW, bodyLen * 0.05);
-  // Rear fins (small stabilizers)
-  ctx.lineTo(bodyW * 1.3, bodyLen * 0.35);
-  ctx.lineTo(bodyW * 0.9, bodyLen * 0.3);
-  // Aft body
-  ctx.lineTo(bodyW * 0.7, bodyLen * 0.48);
+  // Sharp explosive nose point
+  ctx.moveTo(0, -bodyLen * 0.58);
+  // Forward wedge body
+  ctx.lineTo(bodyW * 0.6, -bodyLen * 0.15);
+  ctx.lineTo(bodyW, bodyLen * 0.12);
+  // Rear stabilizer fins
+  ctx.lineTo(bodyW * 1.45, bodyLen * 0.38);
+  ctx.lineTo(bodyW * 1.0, bodyLen * 0.34);
+  // Aft fuselage
+  ctx.lineTo(bodyW * 0.75, bodyLen * 0.50);
   // Engine notch
-  ctx.lineTo(0, bodyLen * 0.42);
+  ctx.lineTo(0, bodyLen * 0.44);
   // Mirror left
-  ctx.lineTo(-bodyW * 0.7, bodyLen * 0.48);
-  ctx.lineTo(-bodyW * 0.9, bodyLen * 0.3);
-  ctx.lineTo(-bodyW * 1.3, bodyLen * 0.35);
-  ctx.lineTo(-bodyW, bodyLen * 0.05);
-  ctx.lineTo(-bodyW * 0.5, -bodyLen * 0.2);
+  ctx.lineTo(-bodyW * 0.75, bodyLen * 0.50);
+  ctx.lineTo(-bodyW * 1.0, bodyLen * 0.34);
+  ctx.lineTo(-bodyW * 1.45, bodyLen * 0.38);
+  ctx.lineTo(-bodyW, bodyLen * 0.12);
+  ctx.lineTo(-bodyW * 0.6, -bodyLen * 0.15);
   ctx.closePath();
 
   ctx.fillStyle = fillGrad;
   ctx.fill();
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.3;
+  ctx.lineWidth = isDiving ? 2.0 : 1.4;
   ctx.stroke();
 
   // Exposed wiring detail (disposable look)
-  ctx.globalAlpha = 0.15;
+  ctx.globalAlpha = 0.25;
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 0.5;
-  ctx.setLineDash([2, 4]);
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([2, 3]);
   ctx.beginPath();
-  ctx.moveTo(-bodyW * 0.3, -bodyLen * 0.1);
-  ctx.lineTo(-bodyW * 0.3, bodyLen * 0.3);
+  ctx.moveTo(-bodyW * 0.35, -bodyLen * 0.1);
+  ctx.lineTo(-bodyW * 0.35, bodyLen * 0.35);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(bodyW * 0.3, -bodyLen * 0.1);
-  ctx.lineTo(bodyW * 0.3, bodyLen * 0.3);
+  ctx.moveTo(bodyW * 0.35, -bodyLen * 0.1);
+  ctx.lineTo(bodyW * 0.35, bodyLen * 0.35);
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.globalAlpha = 1;
 
-  // Glowing explosive nose cone
-  if (render.hasNoseCone) {
-    const noseGlowR = size * 0.08;
-    const noseY = -bodyLen * 0.42;
-    const nosePulse = isDiving
-      ? (0.7 + Math.sin(animTime * 0.025) * 0.3)
-      : (0.3 + Math.sin(animTime * 0.004) * 0.2);
+  // Glowing explosive warhead nose cone
+  const noseGlowR = size * 0.12;
+  const noseY = -bodyLen * 0.44;
+  const nosePulse = isDiving
+    ? (0.8 + Math.sin(animTime * 0.03) * 0.2)
+    : (0.4 + Math.sin(animTime * 0.005) * 0.25);
 
-    // Glow aura
-    ctx.globalAlpha = nosePulse;
-    const noseGrad = ctx.createRadialGradient(0, noseY, 0, 0, noseY, noseGlowR * 2);
-    noseGrad.addColorStop(0, thermal.core);
-    noseGrad.addColorStop(0.5, thermal.glow);
-    noseGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = noseGrad;
-    ctx.fillRect(-noseGlowR * 2, noseY - noseGlowR * 2, noseGlowR * 4, noseGlowR * 4);
+  // Warhead glow aura
+  ctx.globalAlpha = nosePulse;
+  const noseGrad = ctx.createRadialGradient(0, noseY, 0, 0, noseY, noseGlowR * 2);
+  noseGrad.addColorStop(0, '#ffffff');
+  noseGrad.addColorStop(0.3, thermal.core);
+  noseGrad.addColorStop(0.7, thermal.glow);
+  noseGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = noseGrad;
+  ctx.beginPath();
+  ctx.arc(0, noseY, noseGlowR * 2, 0, Math.PI * 2);
+  ctx.fill();
 
-    // Core dot
-    ctx.globalAlpha = nosePulse + 0.2;
-    ctx.fillStyle = thermal.core;
+  // Nose warhead core dot
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(0, noseY, size * 0.04, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Dive warning telegraph flash (pulsing danger silhouette)
+  if (isDiving && divePulse > 0.4) {
+    ctx.globalAlpha = 0.45 * divePulse;
+    ctx.fillStyle = '#ff003c';
     ctx.beginPath();
-    ctx.arc(0, noseY, size * 0.03, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-
-  // Dive warning flash (red pulse overlay when diving)
-  if (isDiving && divePulse > 0.5) {
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = thermal.core;
-    ctx.beginPath();
-    // Re-draw body shape as flash overlay
-    ctx.moveTo(0, -bodyLen * 0.55);
-    ctx.lineTo(bodyW * 0.5, -bodyLen * 0.2);
-    ctx.lineTo(bodyW, bodyLen * 0.05);
-    ctx.lineTo(bodyW * 0.7, bodyLen * 0.48);
-    ctx.lineTo(0, bodyLen * 0.42);
-    ctx.lineTo(-bodyW * 0.7, bodyLen * 0.48);
-    ctx.lineTo(-bodyW, bodyLen * 0.05);
-    ctx.lineTo(-bodyW * 0.5, -bodyLen * 0.2);
+    ctx.moveTo(0, -bodyLen * 0.58);
+    ctx.lineTo(bodyW * 0.6, -bodyLen * 0.15);
+    ctx.lineTo(bodyW, bodyLen * 0.12);
+    ctx.lineTo(bodyW * 1.45, bodyLen * 0.38);
+    ctx.lineTo(bodyW * 1.0, bodyLen * 0.34);
+    ctx.lineTo(bodyW * 0.75, bodyLen * 0.50);
+    ctx.lineTo(0, bodyLen * 0.44);
+    ctx.lineTo(-bodyW * 0.75, bodyLen * 0.50);
+    ctx.lineTo(-bodyW * 1.0, bodyLen * 0.34);
+    ctx.lineTo(-bodyW * 1.45, bodyLen * 0.38);
+    ctx.lineTo(-bodyW, bodyLen * 0.12);
+    ctx.lineTo(-bodyW * 0.6, -bodyLen * 0.15);
     ctx.closePath();
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 
-  // Engine exhaust (hot trail when diving)
-  const exPulse = isDiving ? 0.9 : (0.4 + Math.sin(animTime * 0.008) * 0.3);
-  const exLen = isDiving ? size * 0.2 : size * 0.08;
+  // Engine exhaust (overheated plasma jet)
+  const exPulse = isDiving ? 1.0 : (0.5 + Math.sin(animTime * 0.008) * 0.3);
+  const exLen = isDiving ? size * 0.35 : size * 0.12;
   ctx.globalAlpha = exPulse;
-  const exGrad = ctx.createLinearGradient(0, bodyLen * 0.4, 0, bodyLen * 0.4 + exLen);
-  exGrad.addColorStop(0, thermal.core);
-  exGrad.addColorStop(0.5, thermal.glow);
+  const exGrad = ctx.createLinearGradient(0, bodyLen * 0.42, 0, bodyLen * 0.42 + exLen);
+  exGrad.addColorStop(0, '#ffffff');
+  exGrad.addColorStop(0.2, thermal.core);
+  exGrad.addColorStop(0.7, thermal.glow);
   exGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = exGrad;
-  ctx.fillRect(-size * 0.03, bodyLen * 0.4, size * 0.06, exLen);
+  ctx.fillRect(-size * 0.04, bodyLen * 0.42, size * 0.08, exLen);
   ctx.globalAlpha = 1;
 
   ctx.restore();

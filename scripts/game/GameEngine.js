@@ -444,14 +444,21 @@ export class GameEngine {
         const rx = w * (0.2 + Math.random() * 0.6);
         const roll = Math.random();
 
-        if (roll < 0.25) {
+        if (roll < 0.20) {
+          // Spawn KZ-X Wraith Kamikaze Drone suicide rammer
+          this.enemies.spawn({
+            type: 'KAMIKAZE_DRONE',
+            x: rx,
+            y: -40
+          });
+        } else if (roll < 0.40) {
           // Spawn GT-12 Sentinel SAM Turret emplacement
           this.enemies.spawn({
             type: 'SAM_TURRET',
             x: rx,
             y: -50
           });
-        } else if (roll < 0.60) {
+        } else if (roll < 0.70) {
           // Spawn VK-7 Interceptors in pair or echelon
           this.enemies.spawnFormation({
             type: 'INTERCEPTOR',

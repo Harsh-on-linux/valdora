@@ -189,7 +189,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Top edge only. Solo or pairs. Max 2 on screen. Available from Wave 3.
 - Output: Stationary aimed turret with burst fire pattern.
 
-### Step 26 — KZ-X Wraith / Kamikaze Drone (Target 4) 🔄 ← Current
+### Step 26 — KZ-X Wraith / Kamikaze Drone (Target 4) ✅
 - **Silhouette**: Pointed wedge/missile-like body with small stabilizer fins. Glowing explosive front nose cone. Exposed wiring/panel detail for disposable, cobbled-together look.
 - **Thermal**: Danger red (`#ff003c` core) — overheating dive signature.
 - **Scale**: 0.5× player size. **HP**: 10 (fragile). **Score**: 200.
@@ -198,7 +198,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Any edge. Always solo. Max 3 on screen. Available from Wave 4.
 - Output: High-speed suicide ram attacker with visual warning telegraph.
 
-### Step 26b — EW-9 Specter / Radar Jammer (Target 5)
+### Step 26b — EW-9 Specter / Radar Jammer (Target 5) 🔄 ← Current
 - **Silhouette**: Spherical/octagonal body bristling with 6 antenna spines and 2 satellite dish arrays. Clearly a utility/support drone — lots of sensor equipment, no visible weapons. Pulsing ECM aura rings radiating outward.
 - **Thermal**: Toxic green (`#39ff14` core) — ECM radiation signature.
 - **Scale**: 0.7× player size. **HP**: 40. **Score**: 500.
