@@ -45,9 +45,10 @@ export {
 } from './enemies.js';
 export { drawEnemy, drawBoss } from './EnemyRenderer.js';
 export { EnemyPool } from './EnemyPool.js';
+export { PickupPool, PICKUP_TYPES } from './PickupPool.js';
 export { CollisionSystem, COLLISION_LAYERS } from './CollisionSystem.js';
 export { GameEngine, ENGINE_STATE } from './GameEngine.js';
-export const GAME_MODULE_VERSION = '1.6.0';
+export const GAME_MODULE_VERSION = '1.7.0';
 
 
 

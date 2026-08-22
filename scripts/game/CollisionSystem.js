@@ -411,6 +411,31 @@ export class CollisionSystem {
       }
     }
 
+    // 3.5. Register Active Tactical Pickups & Supply Drops
+    if (gameEngine.pickups) {
+      for (let i = 0; i < gameEngine.pickups.maxPickups; i++) {
+        const p = gameEngine.pickups.pickups[i];
+        if (!p.active) continue;
+
+        const pickCol = {
+          id: p.id,
+          type: 'circle',
+          layer: COLLISION_LAYERS.PICKUP,
+          mask: COLLISION_LAYERS.PLAYER,
+          entity: p,
+          x: p.x,
+          y: p.y,
+          radius: p.radius,
+          minX: p.x - p.radius,
+          maxX: p.x + p.radius,
+          minY: p.y - p.radius,
+          maxY: p.y + p.radius,
+          active: true
+        };
+        this.insert(pickCol);
+      }
+    }
+
     this.stats.occupiedCells = this.grid.size;
 
     // 4. Resolve Broadphase & Narrowphase Collisions via Spatial Hash Grid
@@ -683,6 +708,36 @@ export class CollisionSystem {
       }
       return;
     }
+
+    // ── CASE 4: Player Drone vs Tactical Pickup / Supply Drop ──
+    if (
+      (colA.layer === COLLISION_LAYERS.PLAYER && colB.layer === COLLISION_LAYERS.PICKUP) ||
+      (colB.layer === COLLISION_LAYERS.PLAYER && colA.layer === COLLISION_LAYERS.PICKUP)
+    ) {
+      const playerCol = colA.layer === COLLISION_LAYERS.PLAYER ? colA : colB;
+      const pickCol = colA.layer === COLLISION_LAYERS.PICKUP ? colA : colB;
+      const player = playerCol.entity;
+      const pickup = pickCol.entity;
+
+      if (!pickup.active || player.hull <= 0) return;
+
+      const hitResult = CollisionSystem.testCircleCircle(
+        playerCol.x, playerCol.y, playerCol.radius,
+        pickCol.x, pickCol.y, pickCol.radius
+      );
+
+      if (hitResult.hit) {
+        this.stats.hitsThisFrame++;
+        this.stats.totalHits++;
+
+        if (gameEngine.pickups) {
+          gameEngine.pickups.applyPickup(pickup, player, gameEngine, soundManager);
+        }
+        pickCol.active = false;
+        this._recordContact(hitResult.hitX, hitResult.hitY, pickup.config?.color || '#00f0ff');
+      }
+      return;
+    }
   }
 
   /**
@@ -694,6 +749,11 @@ export class CollisionSystem {
     // 1. Add mission score
     const scoreVal = target.scoreValue || (target.threatLevel ? target.threatLevel * 150 : 250);
     gameEngine.score += scoreVal;
+
+    // 1.5. Roll tactical supply & intel drops
+    if (gameEngine.pickups) {
+      gameEngine.pickups.rollDrop(target);
+    }
 
     // 2. Trigger tactical explosion FX & sparks
     if (gameEngine.projectiles) {

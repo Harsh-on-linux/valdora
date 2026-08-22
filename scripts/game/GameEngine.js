@@ -20,6 +20,7 @@ import { TacticalHUDOverlay, RADAR_MODES } from './TacticalHUDOverlay.js';
 import { ProjectilePool } from './ProjectilePool.js';
 import { WeaponSystem } from './WeaponSystem.js';
 import { EnemyPool } from './EnemyPool.js';
+import { PickupPool } from './PickupPool.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { soundManager } from '../audio/index.js';
 
@@ -77,6 +78,7 @@ export class GameEngine {
     this.projectiles = new ProjectilePool(300);
     this.weapons = new WeaponSystem('VULCAN');
     this.enemies = new EnemyPool(40);
+    this.pickups = new PickupPool(64);
     this.hudOverlay = new TacticalHUDOverlay();
     this.collisions = new CollisionSystem({ cellSize: 80, debug: false });
     this.sectorConfig = null;
@@ -190,6 +192,11 @@ export class GameEngine {
 
     // Clear projectile and particle pools
     this.projectiles.clear();
+
+    // Clear pickups
+    if (this.pickups) {
+      this.pickups.clear();
+    }
 
     // Clear and initialize hostile target pool
     if (this.enemies) {
@@ -497,6 +504,11 @@ export class GameEngine {
       }
     }
 
+    // 4.8. Update Tactical Pickups, Supply Crates & Magnetic Attraction
+    if (this.pickups) {
+      this.pickups.update(dt, this.width, this.height, this.player);
+    }
+
     // 5. Update Projectiles & Muzzle Flares / Sparks / Guided Munitions
     this.projectiles.update(dt, this.width, this.height, this.hudOverlay ? this.hudOverlay.targets : []);
 
@@ -587,10 +599,15 @@ export class GameEngine {
     // 1. Render Tactical Satellite & Topographic Map Layer
     this.tacticalMap.render(ctx, w, h);
 
-    // 2. Render Projectiles, Tracers, Muzzle Flares & Propellant Sparks
+    // 2. Render Tactical Pickups, Intel & Supply Crates
+    if (this.pickups) {
+      this.pickups.render(ctx, alpha);
+    }
+
+    // 3. Render Projectiles, Tracers, Muzzle Flares & Propellant Sparks
     this.projectiles.render(ctx, alpha);
 
-    // 3. Render Hostile Target Entities (EnemyPool with FLIR shaders & IFF markers)
+    // 4. Render Hostile Target Entities (EnemyPool with FLIR shaders & IFF markers)
     if (this.enemies) {
       this.enemies.render(ctx, alpha, performance.now());
     }

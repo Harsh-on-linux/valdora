@@ -207,7 +207,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Top edge only. Max 1 on screen. Available from Wave 7.
 - Output: ECM support unit with HUD disruption effects.
 
-### Step 27 — Intel & Supply Drops 🔄 ← Current
+### Step 27 — Intel & Supply Drops ✅
 - Armor repairs, ECM charges, ordnance power-ups, intel data packets with magnetic attraction toward player drone.
 - Output: Satisfying loot collection loop.
 
@@ -215,7 +215,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE H — Wave Engine & Levels 1–4
 
-### Step 28 — Wave-script runner
+### Step 28 — Wave-script runner 🔄 ← Current
 - Timeline-based wave orchestration, formation coordinates, and stage completion conditions.
 
 ### Step 29 — Levels 1–4 Implementation
