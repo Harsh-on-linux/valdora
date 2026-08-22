@@ -215,10 +215,10 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE H — Wave Engine & Levels 1–4
 
-### Step 28 — Wave-script runner 🔄 ← Current
+### Step 28 — Wave-script runner ✅
 - Timeline-based wave orchestration, formation coordinates, and stage completion conditions.
 
-### Step 29 — Levels 1–4 Implementation
+### Step 29 — Levels 1–4 Implementation 🔄 ← Current
 - Level 1: Training Sector (Scout drones)
 - Level 2: Asteroid Fringe (Drones + Zigzags)
 - Level 3: Turret Outpost (Fortified positions)

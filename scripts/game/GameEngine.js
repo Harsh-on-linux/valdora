@@ -21,6 +21,7 @@ import { ProjectilePool } from './ProjectilePool.js';
 import { WeaponSystem } from './WeaponSystem.js';
 import { EnemyPool } from './EnemyPool.js';
 import { PickupPool } from './PickupPool.js';
+import { WaveRunner } from './WaveRunner.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { soundManager } from '../audio/index.js';
 
@@ -79,8 +80,17 @@ export class GameEngine {
     this.weapons = new WeaponSystem('VULCAN');
     this.enemies = new EnemyPool(40);
     this.pickups = new PickupPool(64);
+    this.waveRunner = new WaveRunner();
     this.hudOverlay = new TacticalHUDOverlay();
     this.collisions = new CollisionSystem({ cellSize: 80, debug: false });
+
+    this.waveRunner.on('stageComplete', (data) => {
+      this.state = ENGINE_STATE.VICTORY;
+      this._emit('stateChange', this.state);
+      if (soundManager && typeof soundManager.playVictory === 'function') {
+        soundManager.playVictory();
+      }
+    });
     this.sectorConfig = null;
     this.droneConfig = null;
     this.weaponConfig = null;
@@ -198,10 +208,14 @@ export class GameEngine {
       this.pickups.clear();
     }
 
-    // Clear and initialize hostile target pool
+    // Clear and initialize hostile target pool & wave runner
     if (this.enemies) {
       this.enemies.clear();
-      this._spawnInitialCombatWave(sectorId);
+      if (this.waveRunner) {
+        this.waveRunner.loadSector(sectorId, this.sectorConfig);
+      } else {
+        this._spawnInitialCombatWave(sectorId);
+      }
     }
 
     this.score = 0;
@@ -504,6 +518,11 @@ export class GameEngine {
       }
     }
 
+    // 4.6. Update Wave Timeline Runner & Mission Orchestration
+    if (this.waveRunner) {
+      this.waveRunner.update(dt, this, soundManager);
+    }
+
     // 4.8. Update Tactical Pickups, Supply Crates & Magnetic Attraction
     if (this.pickups) {
       this.pickups.update(dt, this.width, this.height, this.player);
@@ -623,7 +642,12 @@ export class GameEngine {
     // 5. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
     this.hudOverlay.render(ctx, this.player, w, h);
 
-    // 5. Render Virtual Touch Joystick Overlay (when active or onboarding cue)
+    // 5.2. Render Tactical Wave Alert Banners & Announcements
+    if (this.waveRunner) {
+      this.waveRunner.render(ctx, w, h);
+    }
+
+    // 5.5. Render Virtual Touch Joystick Overlay (when active or onboarding cue)
     this._renderTouchJoystick(ctx);
 
     // 6. Render Tactical Viewport Watermark & FLIR Crosshair
@@ -995,6 +1019,9 @@ export class GameEngine {
       weaponColor: this.weapons?.weaponConfig?.color || '#2dd4dc',
       weaponSlot: (this.weapons && typeof this.weapons.getActiveSlotIndex === 'function') ? this.weapons.getActiveSlotIndex(allowedWeapons) : 1,
       availableWeapons: allowedWeapons,
+      // Mission Wave Progress
+      currentWave: this.waveRunner ? this.waveRunner.currentWaveIndex : 1,
+      totalWaves: this.waveRunner ? this.waveRunner.totalWaves : 3,
       // Merge rich tactical HUD snapshot
       ...hudSnapshot
     };
