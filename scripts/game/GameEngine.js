@@ -439,11 +439,20 @@ export class GameEngine {
       this.enemies.update(dt, this.width, this.height, this.player, this.projectiles, soundManager, this);
 
       // In ongoing combat, maintain baseline tactical hostile presence
-      if (this.state === ENGINE_STATE.RUNNING && this.enemies.getActiveCount() < 4) {
+      if (this.state === ENGINE_STATE.RUNNING && this.enemies.getActiveCount() < 5) {
         const w = this.width || window.innerWidth;
         const rx = w * (0.2 + Math.random() * 0.6);
-        const spawnType = Math.random() > 0.4 ? 'INTERCEPTOR' : 'RECON_BUGGY';
-        if (spawnType === 'INTERCEPTOR') {
+        const roll = Math.random();
+
+        if (roll < 0.25) {
+          // Spawn GT-12 Sentinel SAM Turret emplacement
+          this.enemies.spawn({
+            type: 'SAM_TURRET',
+            x: rx,
+            y: -50
+          });
+        } else if (roll < 0.60) {
+          // Spawn VK-7 Interceptors in pair or echelon
           this.enemies.spawnFormation({
             type: 'INTERCEPTOR',
             formation: Math.random() > 0.5 ? 'pair' : 'echelon',
@@ -454,6 +463,7 @@ export class GameEngine {
             spacingY: 45
           });
         } else {
+          // Spawn RV-4 Scout Recon Buggy V-formation or staggered line
           this.enemies.spawnFormation({
             type: 'RECON_BUGGY',
             formation: Math.random() > 0.5 ? 'vShape' : 'staggeredLine',
@@ -511,6 +521,13 @@ export class GameEngine {
       startY: -40,
       spacingX: 70,
       spacingY: 40
+    });
+
+    // Spawn GT-12 Sentinel SAM Turret fortified defense platform
+    this.enemies.spawn({
+      type: 'SAM_TURRET',
+      x: w * 0.82,
+      y: -60
     });
 
     // Staggered scout line entering right behind on left flank

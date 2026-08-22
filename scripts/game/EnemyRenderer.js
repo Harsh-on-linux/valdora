@@ -383,12 +383,12 @@ function drawInterceptor(ctx, size, render, thermal, animTime) {
 // ─────────────────────────────────────────────────────────────
 
 function drawSAMTurret(ctx, size, render, thermal, animTime, turretAngle) {
-  const bodyW = size * render.bodyWidth * 0.5;
-  const bodyH = size * render.bodyLength * 0.5;
+  const bodyW = size * (render.bodyWidth || 0.70) * 0.5;
+  const bodyH = size * (render.bodyLength || 0.55) * 0.5;
 
   ctx.save();
 
-  // Fill gradient
+  // Platform fill gradient
   const fillGrad = ctx.createLinearGradient(0, -bodyH, 0, bodyH);
   fillGrad.addColorStop(0, thermal.outer);
   fillGrad.addColorStop(0.5, thermal.mid);
@@ -399,7 +399,7 @@ function drawSAMTurret(ctx, size, render, thermal, animTime, turretAngle) {
   for (let i = 0; i < 6; i++) {
     const angle = (i / 6) * Math.PI * 2 - Math.PI / 6;
     const px = Math.cos(angle) * bodyW;
-    const py = Math.sin(angle) * bodyH * 0.85;
+    const py = Math.sin(angle) * bodyH;
     if (i === 0) ctx.moveTo(px, py);
     else ctx.lineTo(px, py);
   }
@@ -407,16 +407,16 @@ function drawSAMTurret(ctx, size, render, thermal, animTime, turretAngle) {
   ctx.fillStyle = fillGrad;
   ctx.fill();
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.8;
+  ctx.lineWidth = 2.0;
   ctx.stroke();
 
-  // Armor plate lines (horizontal segments)
-  ctx.globalAlpha = 0.2;
+  // Armor plate lines (horizontal heavy segments)
+  ctx.globalAlpha = 0.35;
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 0.6;
+  ctx.lineWidth = 0.9;
   for (let i = -2; i <= 2; i++) {
     const y = i * bodyH * 0.28;
-    const xSpread = bodyW * (0.8 - Math.abs(i) * 0.12);
+    const xSpread = bodyW * (0.85 - Math.abs(i) * 0.12);
     ctx.beginPath();
     ctx.moveTo(-xSpread, y);
     ctx.lineTo(xSpread, y);
@@ -426,89 +426,85 @@ function drawSAMTurret(ctx, size, render, thermal, animTime, turretAngle) {
 
   // Corner reinforcement bolts
   ctx.fillStyle = thermal.core;
-  ctx.globalAlpha = 0.4;
+  ctx.globalAlpha = 0.6;
   for (let i = 0; i < 6; i++) {
     const angle = (i / 6) * Math.PI * 2 - Math.PI / 6;
-    const bx = Math.cos(angle) * bodyW * 0.8;
-    const by = Math.sin(angle) * bodyH * 0.68;
+    const bx = Math.cos(angle) * bodyW * 0.82;
+    const by = Math.sin(angle) * bodyH * 0.82;
     ctx.beginPath();
-    ctx.arc(bx, by, 2, 0, Math.PI * 2);
+    ctx.arc(bx, by, 2.5, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
 
-  // Rotating turret assembly
+  // Dual Antenna Masts on Flanks
+  const antennaPositions = [
+    { x: -bodyW * 0.65, y: -bodyH * 0.4 },
+    { x: bodyW * 0.65, y: -bodyH * 0.4 }
+  ];
+  for (const ap of antennaPositions) {
+    ctx.strokeStyle = thermal.core;
+    ctx.lineWidth = 1.2;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(ap.x, ap.y);
+    ctx.lineTo(ap.x, ap.y - size * 0.18);
+    ctx.stroke();
+
+    // Blinking warning amber comms beacon
+    ctx.fillStyle = thermal.core;
+    ctx.globalAlpha = 0.5 + Math.sin(animTime * 0.008 + ap.x) * 0.4;
+    ctx.beginPath();
+    ctx.arc(ap.x, ap.y - size * 0.18, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Rotating Turret Assembly
   ctx.save();
   ctx.rotate(turretAngle);
 
   // Turret base ring
-  const turretBaseR = size * 0.12;
+  const turretBaseR = size * 0.16;
   ctx.fillStyle = thermal.mid;
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
   ctx.arc(0, 0, turretBaseR, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
-  // Turret barrel (extends forward/upward)
-  const barrelLen = size * 0.25;
-  const barrelW = size * 0.03;
-  ctx.fillStyle = thermal.mid;
-  ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.rect(-barrelW, -turretBaseR - barrelLen, barrelW * 2, barrelLen);
-  ctx.fill();
-  ctx.stroke();
+  // Dual Turret Barrels (extends towards target)
+  const barrelLen = size * 0.32;
+  const barrelW = size * 0.035;
+  const barrelSpacing = size * 0.055;
 
-  // Barrel tip (muzzle)
-  ctx.fillStyle = thermal.core;
-  ctx.globalAlpha = 0.8;
-  ctx.beginPath();
-  ctx.arc(0, -turretBaseR - barrelLen, barrelW * 1.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // Inner turret detail ring
-  ctx.globalAlpha = 0.3;
-  ctx.beginPath();
-  ctx.arc(0, 0, turretBaseR * 0.5, 0, Math.PI * 2);
-  ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 0.8;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
-  ctx.restore(); // undo turret rotation
-
-  // Antenna mast (if present)
-  if (render.hasAntenna) {
+  for (const side of [-1, 1]) {
+    const bx = side * barrelSpacing;
+    ctx.fillStyle = thermal.mid;
     ctx.strokeStyle = thermal.core;
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(bodyW * 0.6, -bodyH * 0.3);
-    ctx.lineTo(bodyW * 0.7, -bodyH * 0.6);
-    ctx.stroke();
-    // Antenna tip dot
-    ctx.fillStyle = thermal.core;
-    ctx.globalAlpha = 0.4 + Math.sin(animTime * 0.006) * 0.3;
-    ctx.beginPath();
-    ctx.arc(bodyW * 0.7, -bodyH * 0.6, 2, 0, Math.PI * 2);
+    ctx.rect(bx - barrelW * 0.5, -turretBaseR - barrelLen, barrelW, barrelLen);
     ctx.fill();
+    ctx.stroke();
+
+    // Barrel Muzzle Brake
+    ctx.fillStyle = thermal.core;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(bx - barrelW * 0.8, -turretBaseR - barrelLen, barrelW * 1.6, size * 0.04);
     ctx.globalAlpha = 1;
   }
 
-  // Single engine glow (bottom)
-  const exPulse = 0.4 + Math.sin(animTime * 0.006) * 0.3;
-  ctx.globalAlpha = exPulse;
-  const exGrad = ctx.createLinearGradient(0, bodyH * 0.7, 0, bodyH * 0.7 + size * 0.08);
-  exGrad.addColorStop(0, thermal.core);
-  exGrad.addColorStop(0.6, thermal.glow);
-  exGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = exGrad;
-  ctx.fillRect(-size * 0.04, bodyH * 0.7, size * 0.08, size * 0.08);
+  // Turret Core Sensor Dome
+  ctx.fillStyle = thermal.core;
+  ctx.globalAlpha = 0.8;
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.05, 0, Math.PI * 2);
+  ctx.fill();
   ctx.globalAlpha = 1;
+
+  ctx.restore(); // Undo turret rotation
 
   ctx.restore();
 }

@@ -180,7 +180,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Top, left, or right edges. Pairs, diamonds, or echelon formations of 2–4. Max 6 on screen. Available from Wave 2.
 - Output: Evasive sinusoidal fighter with angled dual-fire.
 
-### Step 25 — GT-12 Sentinel / SAM Turret (Target 3) 🔄 ← Current
+### Step 25 — GT-12 Sentinel / SAM Turret (Target 3) ✅
 - **Silhouette**: Wide hexagonal base platform with rotating turret barrel assembly. Industrial defense emplacement — armor plates, corner reinforcement bolts, antenna mast. Clearly a weapons platform, not a ship.
 - **Thermal**: Warning amber (`#ffb703` core) — high armor glow.
 - **Scale**: 0.85× player size. **HP**: 60 (tanky). **Score**: 400.
@@ -189,7 +189,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Top edge only. Solo or pairs. Max 2 on screen. Available from Wave 3.
 - Output: Stationary aimed turret with burst fire pattern.
 
-### Step 26 — KZ-X Wraith / Kamikaze Drone (Target 4)
+### Step 26 — KZ-X Wraith / Kamikaze Drone (Target 4) 🔄 ← Current
 - **Silhouette**: Pointed wedge/missile-like body with small stabilizer fins. Glowing explosive front nose cone. Exposed wiring/panel detail for disposable, cobbled-together look.
 - **Thermal**: Danger red (`#ff003c` core) — overheating dive signature.
 - **Scale**: 0.5× player size. **HP**: 10 (fragile). **Score**: 200.
