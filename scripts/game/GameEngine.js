@@ -439,12 +439,19 @@ export class GameEngine {
       this.enemies.update(dt, this.width, this.height, this.player, this.projectiles, soundManager, this);
 
       // In ongoing combat, maintain baseline tactical hostile presence
-      if (this.state === ENGINE_STATE.RUNNING && this.enemies.getActiveCount() < 3) {
+      if (this.state === ENGINE_STATE.RUNNING && this.enemies.getActiveCount() < 4) {
         const w = this.width || window.innerWidth;
-        const rx = w * (0.15 + Math.random() * 0.7);
-        const types = ['RECON_BUGGY', 'INTERCEPTOR', 'SAM_TURRET', 'KAMIKAZE_DRONE'];
-        const selectedType = types[Math.floor(Math.random() * types.length)];
-        this.enemies.spawn({ type: selectedType, x: rx, y: -50 });
+        const rx = w * (0.2 + Math.random() * 0.6);
+        const formType = Math.random() > 0.5 ? 'vShape' : 'staggeredLine';
+        this.enemies.spawnFormation({
+          type: 'RECON_BUGGY',
+          formation: formType,
+          count: Math.floor(Math.random() * 2) + 3,
+          startX: rx,
+          startY: -50,
+          spacingX: 52,
+          spacingY: 42
+        });
       }
     }
 
@@ -472,15 +479,31 @@ export class GameEngine {
     const w = this.width || window.innerWidth;
     if (!this.enemies) return;
 
-    // Spawn frontline reconnaissance buggy wave
-    for (let i = 0; i < 3; i++) {
-      const x = w * (0.25 + i * 0.25);
-      const y = -40 - i * 60;
-      this.enemies.spawn({ type: 'RECON_BUGGY', x, y });
-    }
-    // Spawn secondary interceptor / defense platform
+    // Spawn frontline RV-4 Scout reconnaissance buggy V-formation (5 Scouts) in visible sector
+    this.enemies.spawnFormation({
+      type: 'RECON_BUGGY',
+      formation: 'vShape',
+      count: 5,
+      startX: w * 0.5,
+      startY: 90,
+      spacingX: 60,
+      spacingY: 46
+    });
+
+    // Staggered scout line entering right behind
+    this.enemies.spawnFormation({
+      type: 'RECON_BUGGY',
+      formation: 'staggeredLine',
+      count: 3,
+      startX: w * 0.3,
+      startY: -60,
+      spacingX: 50,
+      spacingY: 50
+    });
+
+    // Spawn secondary interceptor if sector >= 2
     if (sectorId >= 2) {
-      this.enemies.spawn({ type: 'INTERCEPTOR', x: w * 0.45, y: -220 });
+      this.enemies.spawn({ type: 'INTERCEPTOR', x: w * 0.75, y: -140 });
     }
   }
 

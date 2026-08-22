@@ -124,7 +124,8 @@ export class EnemyPool {
         e.speed = baseSpeed;
         e.rotation = 0;
 
-        const baseRadius = 24 * (config.render?.scale || 0.6);
+        const baseScale = config.render?.scale || 0.6;
+        const baseRadius = Math.round(36 * baseScale);
         e.radius = baseRadius;
         e.size = baseRadius * 2;
 
@@ -162,6 +163,107 @@ export class EnemyPool {
     }
     console.warn('[EnemyPool] Pool capacity exhausted (40).');
     return null;
+  }
+
+  /**
+   * Spawn a tactical formation of enemies.
+   * @param {Object} options
+   * @param {string} [options.type='RECON_BUGGY'] - Enemy archetype ID
+   * @param {string} [options.formation='vShape'] - 'vShape' | 'staggeredLine' | 'cluster' | 'pair' | 'echelon' | 'diamond'
+   * @param {number} [options.count=3] - Number of entities
+   * @param {number} [options.startX] - Center X
+   * @param {number} [options.startY=-50] - Apex / Top Y
+   * @param {number} [options.spacingX=48] - Horizontal grid spacing
+   * @param {number} [options.spacingY=40] - Vertical grid spacing
+   * @returns {Array<Object>} List of spawned entities
+   */
+  spawnFormation(options) {
+    const type = options.type || 'RECON_BUGGY';
+    const formation = options.formation || 'vShape';
+    const count = options.count || 3;
+    const cx = options.startX !== undefined ? options.startX : 400;
+    const cy = options.startY !== undefined ? options.startY : -50;
+    const sx = options.spacingX || 48;
+    const sy = options.spacingY || 40;
+
+    const spawned = [];
+
+    switch (formation) {
+      case 'vShape': {
+        // Apex at (cx, cy), wingmen trailing back left and right
+        const apex = this.spawn({ type, x: cx, y: cy });
+        if (apex) spawned.push(apex);
+
+        const wingPairs = Math.floor((count - 1) / 2);
+        for (let i = 1; i <= wingPairs; i++) {
+          const left = this.spawn({ type, x: cx - i * sx, y: cy - i * sy });
+          const right = this.spawn({ type, x: cx + i * sx, y: cy - i * sy });
+          if (left) spawned.push(left);
+          if (right) spawned.push(right);
+        }
+        break;
+      }
+
+      case 'staggeredLine': {
+        // Descending column with alternating left/right drift
+        for (let i = 0; i < count; i++) {
+          const xOffset = (i % 2 === 0 ? 1 : -1) * (sx * 0.45);
+          const e = this.spawn({ type, x: cx + xOffset, y: cy - i * sy });
+          if (e) spawned.push(e);
+        }
+        break;
+      }
+
+      case 'cluster': {
+        // Compact box/honeycomb cluster
+        const cols = Math.min(3, count);
+        const rows = Math.ceil(count / cols);
+        let spawnedCount = 0;
+        for (let r = 0; r < rows && spawnedCount < count; r++) {
+          for (let c = 0; c < cols && spawnedCount < count; c++) {
+            const x = cx + (c - (cols - 1) / 2) * sx;
+            const y = cy - r * sy;
+            const e = this.spawn({ type, x, y });
+            if (e) spawned.push(e);
+            spawnedCount++;
+          }
+        }
+        break;
+      }
+
+      case 'echelon': {
+        // Diagonal staggered line
+        for (let i = 0; i < count; i++) {
+          const e = this.spawn({ type, x: cx + (i - (count - 1) / 2) * sx, y: cy - i * sy });
+          if (e) spawned.push(e);
+        }
+        break;
+      }
+
+      case 'diamond': {
+        // 4-ship diamond
+        const apex = this.spawn({ type, x: cx, y: cy });
+        const left = this.spawn({ type, x: cx - sx, y: cy - sy });
+        const right = this.spawn({ type, x: cx + sx, y: cy - sy });
+        const tail = this.spawn({ type, x: cx, y: cy - sy * 2 });
+        if (apex) spawned.push(apex);
+        if (left) spawned.push(left);
+        if (right) spawned.push(right);
+        if (tail) spawned.push(tail);
+        break;
+      }
+
+      case 'pair':
+      default: {
+        const left = this.spawn({ type, x: cx - sx * 0.5, y: cy });
+        const right = this.spawn({ type, x: cx + sx * 0.5, y: cy });
+        if (left) spawned.push(left);
+        if (right) spawned.push(right);
+        break;
+      }
+    }
+
+    return spawned;
   }
 
   /**

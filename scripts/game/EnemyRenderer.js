@@ -62,7 +62,7 @@ export function drawEnemy(ctx, enemyId, x, y, size, options = {}) {
 
   const thermal = enemy.thermal;
   const render = enemy.render;
-  const scaledSize = size * render.scale;
+  const scaledSize = size;
 
   ctx.save();
   ctx.translate(x, y);
@@ -101,7 +101,7 @@ export function drawEnemy(ctx, enemyId, x, y, size, options = {}) {
 
   // Draw hostile IFF marker (not rotated with enemy)
   if (showIFF) {
-    drawHostileIFFMarker(ctx, x, y - scaledSize * 0.6, thermal, animTime);
+    drawHostileIFFMarker(ctx, x, y - scaledSize * 0.65, thermal, animTime);
   }
 }
 
@@ -190,7 +190,7 @@ function drawEnemyHeatGlow(ctx, cx, cy, size, thermal, animTime) {
 // ─────────────────────────────────────────────────────────────
 
 function drawReconBuggy(ctx, size, render, thermal, animTime) {
-  const bodyR = size * 0.35;
+  const bodyR = size * 0.44;
   const pulse = 1 + Math.sin(animTime * 0.005) * 0.03;
 
   ctx.save();
@@ -214,29 +214,29 @@ function drawReconBuggy(ctx, size, render, thermal, animTime) {
   ctx.fillStyle = fillGrad;
   ctx.fill();
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.4;
+  ctx.lineWidth = 1.8;
   ctx.stroke();
 
   // Inner ring detail
-  ctx.globalAlpha = 0.3;
+  ctx.globalAlpha = 0.4;
   ctx.beginPath();
-  ctx.arc(0, 0, bodyR * 0.5, 0, Math.PI * 2);
+  ctx.arc(0, 0, bodyR * 0.55, 0, Math.PI * 2);
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 0.8;
+  ctx.lineWidth = 1.0;
   ctx.stroke();
   ctx.globalAlpha = 1;
 
   // Center sensor dot
   ctx.fillStyle = thermal.core;
-  ctx.globalAlpha = 0.7;
+  ctx.globalAlpha = 0.85;
   ctx.beginPath();
-  ctx.arc(0, 0, size * 0.04, 0, Math.PI * 2);
+  ctx.arc(0, 0, size * 0.07, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
 
   // 4 Thrust pods (at cardinal directions)
-  const podDist = bodyR * 1.1;
-  const podSize = size * 0.08;
+  const podDist = bodyR * 1.15;
+  const podSize = size * 0.12;
   const thrustPulse = 0.5 + Math.sin(animTime * 0.01) * 0.5;
 
   for (let i = 0; i < 4; i++) {
@@ -247,25 +247,25 @@ function drawReconBuggy(ctx, size, render, thermal, animTime) {
     // Pod housing
     ctx.fillStyle = thermal.outer;
     ctx.strokeStyle = thermal.mid;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.arc(px, py, podSize, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
     // Thrust glow
-    ctx.globalAlpha = thrustPulse * 0.6;
+    ctx.globalAlpha = thrustPulse * 0.8;
     ctx.fillStyle = thermal.core;
     ctx.beginPath();
-    ctx.arc(px, py, podSize * 0.5, 0, Math.PI * 2);
+    ctx.arc(px, py, podSize * 0.55, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 
   // Panel lines (industrial detail)
-  ctx.globalAlpha = 0.2;
+  ctx.globalAlpha = 0.3;
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 0.5;
+  ctx.lineWidth = 0.8;
   ctx.beginPath();
   ctx.moveTo(-bodyR * 0.6, -bodyR * 0.1);
   ctx.lineTo(bodyR * 0.6, -bodyR * 0.1);
@@ -1406,24 +1406,29 @@ function drawBossHeatGlow(ctx, cx, cy, size, thermal, animTime) {
 }
 
 /**
- * Draws hostile IFF (Identification Friend/Foe) marker — small red triangle
+ * Draws hostile IFF (Identification Friend/Foe) marker — bright red triangle
  */
 function drawHostileIFFMarker(ctx, x, y, thermal, animTime) {
   const blinkPhase = Math.sin(animTime * 0.006);
-  if (blinkPhase < -0.3) return; // blink off
+  if (blinkPhase < -0.6) return; // brief blink off
 
   ctx.save();
 
-  const triSize = 5;
-  ctx.fillStyle = thermal.core;
-  ctx.globalAlpha = 0.7 + blinkPhase * 0.2;
+  const triSize = 7;
+  ctx.fillStyle = thermal.core || '#ff2a4b';
+  ctx.globalAlpha = 0.85 + blinkPhase * 0.15;
 
   ctx.beginPath();
   ctx.moveTo(x, y - triSize);
-  ctx.lineTo(x + triSize * 0.7, y + triSize * 0.4);
-  ctx.lineTo(x - triSize * 0.7, y + triSize * 0.4);
+  ctx.lineTo(x + triSize * 0.85, y + triSize * 0.5);
+  ctx.lineTo(x - triSize * 0.85, y + triSize * 0.5);
   ctx.closePath();
   ctx.fill();
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 0.8;
+  ctx.globalAlpha = 0.5;
+  ctx.stroke();
 
   ctx.globalAlpha = 1;
   ctx.restore();

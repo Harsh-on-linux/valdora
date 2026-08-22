@@ -162,7 +162,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Hostile IFF markers (blinking red triangle) drawn above each enemy. Damage state degradation as HP decreases (sparking, missing panels, smoke).
 - Output: Core target lifecycle architecture with enemy config and procedural rendering scaffold.
 
-### Step 23 — RV-4 Scout / Recon Buggy (Target 1) 🔄 ← Current
+### Step 23 — RV-4 Scout / Recon Buggy (Target 1) ✅
 - **Silhouette**: Compact hexagonal disc body with 4 thrust pods at cardinal directions. Flat, surveillance micro-drone — no wings, no cockpit.
 - **Thermal**: Dim red-orange (`#e85a3a` core) — low heat signature.
 - **Scale**: 0.6× player size. **HP**: 15 (dies in 2–3 Vulcan hits). **Score**: 100.
@@ -171,7 +171,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Top edge only. Max 12 on screen. Available from Wave 1.
 - Output: Fully rendered and behaviorally active Recon Buggy enemy.
 
-### Step 24 — VK-7 Interceptor / Interceptor Jet (Target 2)
+### Step 24 — VK-7 Interceptor / Interceptor Jet (Target 2) 🔄 ← Current
 - **Silhouette**: Narrow swept-back arrowhead body with sharp angular wings. Aggressive mass-produced hostile fighter — sleek but utilitarian, dual engine exhausts.
 - **Thermal**: Hot orange (`#ff8c1a` core) — high-speed thermal bloom.
 - **Scale**: 0.75× player size. **HP**: 30. **Score**: 250.
