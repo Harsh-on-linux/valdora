@@ -19,6 +19,7 @@ import { PlayerDrone } from './PlayerDrone.js';
 import { TacticalHUDOverlay, RADAR_MODES } from './TacticalHUDOverlay.js';
 import { ProjectilePool } from './ProjectilePool.js';
 import { WeaponSystem } from './WeaponSystem.js';
+import { EnemyPool } from './EnemyPool.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { soundManager } from '../audio/index.js';
 
@@ -75,6 +76,7 @@ export class GameEngine {
     this.player = new PlayerDrone();
     this.projectiles = new ProjectilePool(300);
     this.weapons = new WeaponSystem('VULCAN');
+    this.enemies = new EnemyPool(40);
     this.hudOverlay = new TacticalHUDOverlay();
     this.collisions = new CollisionSystem({ cellSize: 80, debug: false });
     this.sectorConfig = null;
@@ -188,6 +190,12 @@ export class GameEngine {
 
     // Clear projectile and particle pools
     this.projectiles.clear();
+
+    // Clear and initialize hostile target pool
+    if (this.enemies) {
+      this.enemies.clear();
+      this._spawnInitialCombatWave(sectorId);
+    }
 
     this.score = 0;
     this.hull = this.player.hull;
@@ -426,6 +434,20 @@ export class GameEngine {
       this.weapons.fire(this.player, this.projectiles, this.hudOverlay, soundManager, this);
     }
 
+    // 4.5. Update Hostile Target Pool & Base Target AI Lifecycle
+    if (this.enemies) {
+      this.enemies.update(dt, this.width, this.height, this.player, this.projectiles, soundManager, this);
+
+      // In ongoing combat, maintain baseline tactical hostile presence
+      if (this.state === ENGINE_STATE.RUNNING && this.enemies.getActiveCount() < 3) {
+        const w = this.width || window.innerWidth;
+        const rx = w * (0.15 + Math.random() * 0.7);
+        const types = ['RECON_BUGGY', 'INTERCEPTOR', 'SAM_TURRET', 'KAMIKAZE_DRONE'];
+        const selectedType = types[Math.floor(Math.random() * types.length)];
+        this.enemies.spawn({ type: selectedType, x: rx, y: -50 });
+      }
+    }
+
     // 5. Update Projectiles & Muzzle Flares / Sparks / Guided Munitions
     this.projectiles.update(dt, this.width, this.height, this.hudOverlay ? this.hudOverlay.targets : []);
 
@@ -440,6 +462,26 @@ export class GameEngine {
     // 8. Sync player stats with engine stats
     this.hull = this.player.hull;
     this.shield = this.player.shield;
+  }
+
+  /**
+   * Spawn initial tactical targets squad for live combat.
+   * @param {number} sectorId
+   */
+  _spawnInitialCombatWave(sectorId = 1) {
+    const w = this.width || window.innerWidth;
+    if (!this.enemies) return;
+
+    // Spawn frontline reconnaissance buggy wave
+    for (let i = 0; i < 3; i++) {
+      const x = w * (0.25 + i * 0.25);
+      const y = -40 - i * 60;
+      this.enemies.spawn({ type: 'RECON_BUGGY', x, y });
+    }
+    // Spawn secondary interceptor / defense platform
+    if (sectorId >= 2) {
+      this.enemies.spawn({ type: 'INTERCEPTOR', x: w * 0.45, y: -220 });
+    }
   }
 
   /**
@@ -470,15 +512,20 @@ export class GameEngine {
     // 2. Render Projectiles, Tracers, Muzzle Flares & Propellant Sparks
     this.projectiles.render(ctx, alpha);
 
-    // 3. Render Player Drone (with sub-frame interpolation and FLIR trails)
+    // 3. Render Hostile Target Entities (EnemyPool with FLIR shaders & IFF markers)
+    if (this.enemies) {
+      this.enemies.render(ctx, alpha, performance.now());
+    }
+
+    // 4. Render Player Drone (with sub-frame interpolation and FLIR trails)
     this.player.render(ctx, alpha, w, h);
 
-    // 3.5. Render Active Weapon Targeting Guidance & Hold-To-Charge Reticles
+    // 4.5. Render Active Weapon Targeting Guidance & Hold-To-Charge Reticles
     if (this.weapons && typeof this.weapons.render === 'function') {
       this.weapons.render(ctx, this.player, w, h);
     }
 
-    // 4. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
+    // 5. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
     this.hudOverlay.render(ctx, this.player, w, h);
 
     // 5. Render Virtual Touch Joystick Overlay (when active or onboarding cue)
@@ -489,7 +536,7 @@ export class GameEngine {
 
     // 7. Render Collision Hitboxes & Spatial Grid (Debug Overlay when toggled)
     if (this.collisions) {
-      this.collisions.renderDebug(ctx, w, h, this.player, this.projectiles, this.hudOverlay ? this.hudOverlay.targets : null);
+      this.collisions.renderDebug(ctx, w, h, this.player, this.projectiles, this.hudOverlay ? this.hudOverlay.targets : null, this.enemies);
     }
 
     ctx.restore();

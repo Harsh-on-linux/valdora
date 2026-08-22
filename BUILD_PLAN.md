@@ -154,7 +154,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE G — Target Roster & Intel Drops
 
-### Step 22 — Target base class, entity pool & enemy config 🔄 ← Current
+### Step 22 — Target base class, entity pool & enemy config ✅
 - Create `enemies.js` config module defining all 5 enemy archetypes + 2 boss entities with stats, thermal palettes, render params, weapon configs, movement behaviors, and spawn rules.
 - Create `EnemyRenderer.js` procedural canvas drawing system for all hostile entities (mirrors `DroneRenderer.js` pipeline but with hostile aesthetics).
 - Base target class: hitpoints, movement vectors, bounding volumes, FLIR heat-flash shaders, intel drop tables, zero-allocation object pool.
@@ -162,7 +162,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Hostile IFF markers (blinking red triangle) drawn above each enemy. Damage state degradation as HP decreases (sparking, missing panels, smoke).
 - Output: Core target lifecycle architecture with enemy config and procedural rendering scaffold.
 
-### Step 23 — RV-4 Scout / Recon Buggy (Target 1)
+### Step 23 — RV-4 Scout / Recon Buggy (Target 1) 🔄 ← Current
 - **Silhouette**: Compact hexagonal disc body with 4 thrust pods at cardinal directions. Flat, surveillance micro-drone — no wings, no cockpit.
 - **Thermal**: Dim red-orange (`#e85a3a` core) — low heat signature.
 - **Scale**: 0.6× player size. **HP**: 15 (dies in 2–3 Vulcan hits). **Score**: 100.

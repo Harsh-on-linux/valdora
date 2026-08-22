@@ -316,10 +316,37 @@ export class CollisionSystem {
     }
 
     // 2. Register Active Target / Enemy Colliders
-    // (Supports both TacticalHUDOverlay targets and discrete engine enemies)
+    // (Supports both EnemyPool hostiles and TacticalHUDOverlay targets)
     const targetColliders = [];
-    const targets = hudOverlay ? hudOverlay.targets : [];
 
+    // A. Discrete EnemyPool hostiles
+    if (gameEngine.enemies) {
+      for (let i = 0; i < gameEngine.enemies.maxEnemies; i++) {
+        const e = gameEngine.enemies.enemies[i];
+        if (!e.active || e.hull <= 0) continue;
+
+        const col = {
+          id: e.id || `enemy-${i}`,
+          type: 'circle',
+          layer: COLLISION_LAYERS.ENEMY,
+          mask: COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE,
+          entity: e,
+          x: e.x,
+          y: e.y,
+          radius: e.radius,
+          minX: e.x - e.radius,
+          maxX: e.x + e.radius,
+          minY: e.y - e.radius,
+          maxY: e.y + e.radius,
+          active: true
+        };
+        targetColliders.push(col);
+        this.insert(col);
+      }
+    }
+
+    // B. TacticalHUDOverlay targets
+    const targets = hudOverlay ? hudOverlay.targets : [];
     for (let i = 0; i < targets.length; i++) {
       const tgt = targets[i];
       if (!tgt || tgt.hull <= 0) continue;
@@ -670,7 +697,7 @@ export class CollisionSystem {
 
     // 2. Trigger tactical explosion FX & sparks
     if (gameEngine.projectiles) {
-      const explColor = target.threatLevel >= 4 ? '#ff003c' : '#ff8c1a';
+      const explColor = target.config?.thermal?.core || (target.threatLevel >= 4 ? '#ff003c' : '#ff8c1a');
       gameEngine.projectiles.spawnHitSparks(col.x, col.y, explColor, 24);
       gameEngine.projectiles.spawnHitSparks(col.x, col.y, '#ffffff', 10);
     }
@@ -681,17 +708,22 @@ export class CollisionSystem {
     }
     gameEngine.addCameraShake(7);
 
-    // 4. Respawn or reposition target after brief delay for continuous combat testing
-    setTimeout(() => {
-      if (gameEngine.state === 'RUNNING' && target) {
-        target.hull = target.maxHull || 100;
-        target.relX = 0.15 + Math.random() * 0.7;
-        target.relY = 0.10 + Math.random() * 0.35;
-        target.vx = (Math.random() * 2 - 1) * 30;
-        target.vy = (Math.random() * 2 - 1) * 25;
-        target.distance = Math.round(300 + Math.random() * 500);
-      }
-    }, 1800);
+    // 4. Deactivate EnemyPool entity or reposition HUD target
+    if (target.active !== undefined) {
+      target.active = false;
+    } else {
+      // Respawn or reposition background HUD target after brief delay
+      setTimeout(() => {
+        if (gameEngine.state === 'RUNNING' && target) {
+          target.hull = target.maxHull || 100;
+          target.relX = 0.15 + Math.random() * 0.7;
+          target.relY = 0.10 + Math.random() * 0.35;
+          target.vx = (Math.random() * 2 - 1) * 30;
+          target.vy = (Math.random() * 2 - 1) * 25;
+          target.distance = Math.round(300 + Math.random() * 500);
+        }
+      }, 1800);
+    }
   }
 
   /**
@@ -817,7 +849,40 @@ export class CollisionSystem {
     }
 
     // 3. Draw Enemy Target Hitboxes
-    if (targets) {
+    if (enemies && enemies.enemies) {
+      for (let i = 0; i < enemies.maxEnemies; i++) {
+        const e = enemies.enemies[i];
+        if (!e || !e.active || e.hull <= 0) continue;
+
+        ctx.save();
+        ctx.strokeStyle = '#ff003c';
+        ctx.lineWidth = 1.5;
+
+        // Target circle
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Bounding AABB box
+        ctx.strokeStyle = 'rgba(255, 140, 26, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(e.x - e.radius, e.y - e.radius, e.radius * 2, e.radius * 2);
+
+        // Velocity vector line
+        ctx.strokeStyle = 'rgba(255, 183, 3, 0.85)';
+        ctx.beginPath();
+        ctx.moveTo(e.x, e.y);
+        ctx.lineTo(e.x + e.vx * 0.4, e.y + e.vy * 0.4);
+        ctx.stroke();
+
+        // Label
+        ctx.font = '8px "Share Tech Mono", monospace';
+        ctx.fillStyle = '#ff003c';
+        ctx.fillText(`${e.name} // HP:${Math.round(e.hull)}`, e.x + e.radius + 4, e.y + 3);
+
+        ctx.restore();
+      }
+    } else if (targets) {
       for (let i = 0; i < targets.length; i++) {
         const tgt = targets[i];
         if (!tgt || tgt.hull <= 0) continue;
