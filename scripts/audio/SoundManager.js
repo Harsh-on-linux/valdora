@@ -671,28 +671,144 @@ export class SoundManager {
     if (!this._ensureRunning()) return;
     const now = this.ctx.currentTime;
 
-    // 1. Rocket ignition thud & motor roar
+    // 1. Pneumatic tube eject clack & high-pressure ignition pop
+    const popOsc = this.ctx.createOscillator();
+    const popGain = this.ctx.createGain();
+    popOsc.type = 'triangle';
+    popOsc.frequency.setValueAtTime(680, now);
+    popOsc.frequency.exponentialRampToValueAtTime(140, now + 0.035);
+
+    popGain.gain.setValueAtTime(0.18 * this.sfxVolume, now);
+    popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    popOsc.connect(popGain);
+    popGain.connect(this.sfxGain);
+    popOsc.start(now);
+    popOsc.stop(now + 0.045);
+
+    // 2. Rocket motor ignition thud & sustained propellant roar
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(320, now);
-    osc.frequency.exponentialRampToValueAtTime(90, now + 0.18);
+    osc.frequency.setValueAtTime(360, now + 0.01);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.22);
 
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1400, now);
-    filter.frequency.exponentialRampToValueAtTime(400, now + 0.18);
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(950, now);
+    filter.frequency.exponentialRampToValueAtTime(350, now + 0.22);
+    filter.Q.setValueAtTime(2.2, now);
 
-    gain.gain.setValueAtTime(0.24 * this.sfxVolume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.26 * this.sfxVolume, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(this.sfxGain);
 
     osc.start(now);
-    osc.stop(now + 0.21);
+    osc.stop(now + 0.25);
+
+    // 3. High-velocity thrust whoosh
+    const whooshOsc = this.ctx.createOscillator();
+    const whooshGain = this.ctx.createGain();
+    const whooshFilter = this.ctx.createBiquadFilter();
+
+    whooshOsc.type = 'sawtooth';
+    whooshOsc.frequency.setValueAtTime(1200, now + 0.02);
+    whooshOsc.frequency.exponentialRampToValueAtTime(280, now + 0.18);
+
+    whooshFilter.type = 'lowpass';
+    whooshFilter.frequency.setValueAtTime(2400, now);
+    whooshFilter.frequency.exponentialRampToValueAtTime(600, now + 0.18);
+
+    whooshGain.gain.setValueAtTime(0.14 * this.sfxVolume, now);
+    whooshGain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+
+    whooshOsc.connect(whooshFilter);
+    whooshFilter.connect(whooshGain);
+    whooshGain.connect(this.sfxGain);
+
+    whooshOsc.start(now + 0.01);
+    whooshOsc.stop(now + 0.20);
+  }
+
+  /**
+   * Play Hellfire high-explosive AoE warhead detonation report
+   * @param {number} [intensity=1.0]
+   */
+  playHellfireDetonation(intensity = 1.0) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+    const dur = 0.42 * Math.max(0.6, intensity);
+
+    // 1. Supersonic shockwave crack (high-energy explosive displacement)
+    const crackOsc = this.ctx.createOscillator();
+    const crackGain = this.ctx.createGain();
+    const crackFilter = this.ctx.createBiquadFilter();
+
+    crackOsc.type = 'sawtooth';
+    crackOsc.frequency.setValueAtTime(1400, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(90, now + 0.06);
+
+    crackFilter.type = 'bandpass';
+    crackFilter.frequency.setValueAtTime(1800, now);
+    crackFilter.frequency.exponentialRampToValueAtTime(300, now + 0.07);
+    crackFilter.Q.setValueAtTime(3.0, now);
+
+    crackGain.gain.setValueAtTime(0.32 * this.sfxVolume * Math.min(1.4, intensity), now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+
+    crackOsc.connect(crackFilter);
+    crackFilter.connect(crackGain);
+    crackGain.connect(this.sfxGain);
+
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.08);
+
+    // 2. Heavy concussive sub-bass body rumble (180Hz -> 24Hz)
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+
+    subOsc.type = 'sawtooth';
+    subOsc.frequency.setValueAtTime(180, now);
+    subOsc.frequency.exponentialRampToValueAtTime(24, now + dur);
+
+    subGain.gain.setValueAtTime(0.35 * this.sfxVolume * Math.min(1.5, intensity), now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+
+    subOsc.start(now);
+    subOsc.stop(now + dur + 0.02);
+
+    // 3. Sizzling fragmentation shrapnel & debris crackle
+    const fragOsc = this.ctx.createOscillator();
+    const fragGain = this.ctx.createGain();
+    const fragFilter = this.ctx.createBiquadFilter();
+
+    fragOsc.type = 'square';
+    fragOsc.frequency.setValueAtTime(520, now + 0.03);
+    fragOsc.frequency.exponentialRampToValueAtTime(80, now + dur * 0.7);
+
+    fragFilter.type = 'bandpass';
+    fragFilter.frequency.setValueAtTime(1200, now);
+    fragFilter.frequency.exponentialRampToValueAtTime(250, now + dur * 0.7);
+    fragFilter.Q.setValueAtTime(4.0, now);
+
+    fragGain.gain.setValueAtTime(0.001, now);
+    fragGain.gain.linearRampToValueAtTime(0.16 * this.sfxVolume, now + 0.04);
+    fragGain.gain.exponentialRampToValueAtTime(0.001, now + dur * 0.75);
+
+    fragOsc.connect(fragFilter);
+    fragFilter.connect(fragGain);
+    fragGain.connect(this.sfxGain);
+
+    fragOsc.start(now + 0.02);
+    fragOsc.stop(now + dur * 0.8);
   }
 
   /**

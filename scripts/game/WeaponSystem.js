@@ -83,13 +83,13 @@ export class WeaponSystem {
         break;
 
       case 'HELLFIRE':
-        this.baseFireRate = 1.5;
-        this.projectileSpeed = 620;
-        this.spread = 0.06;
-        this.damage = 90; // High alpha burst
-        this.heatPerShot = 24.0; // Heavy thermal exhaust
-        this.ammoPerShot = 8.0;
-        this.recoilImpulse = 2.8;
+        this.baseFireRate = 2.0; // Rapid micro-swarm guided salvo
+        this.projectileSpeed = 380; // Initial booster ignition speed (accelerates to 840 px/s)
+        this.spread = 0.22; // Diverging lateral flare on launch
+        this.damage = 95; // High alpha explosive warhead
+        this.heatPerShot = 15.0; // Generates ~30 heat/sec
+        this.ammoPerShot = 5.0;
+        this.recoilImpulse = 2.4;
         break;
     }
 
@@ -388,50 +388,86 @@ export class WeaponSystem {
     // WEAPON 4: HELLFIRE SWARM (Heavy Armor-Piercing Micro-Missiles)
     // ══════════════════════════════════════════════════════════════
     if (this.activeWeaponId === 'HELLFIRE') {
-      const muzzleIdx = this.barrelIndex % muzzles.length;
-      const muzzle = muzzles[muzzleIdx];
-      this.barrelIndex = (this.barrelIndex + 1) % muzzles.length;
-
       const missileColor = '#ff003c';
-      const missileGlow = 'rgba(255, 0, 60, 0.8)';
+      const missileGlow = 'rgba(255, 0, 60, 0.85)';
       const missileCore = '#ffeedd';
+      const targets = hudOverlay ? hudOverlay.targets : [];
 
-      const spreadAngle = (Math.random() - 0.5) * this.spread;
-      const baseAngle = -Math.PI / 2 + spreadAngle;
-      const vx = Math.cos(baseAngle) * this.projectileSpeed + player.vx * 0.15;
-      const vy = Math.sin(baseAngle) * this.projectileSpeed;
+      // Find locked target or nearest active hostile
+      let primaryTarget = null;
+      if (hudOverlay && hudOverlay.lockedTargetId) {
+        primaryTarget = targets.find(t => t && t.id === hudOverlay.lockedTargetId && t.hull > 0) || null;
+      }
+      if (!primaryTarget && targets.length > 0) {
+        const livingTargets = targets.filter(t => t && t.hull > 0);
+        if (livingTargets.length > 0) {
+          primaryTarget = livingTargets[0];
+        }
+      }
 
-      projectilePool.spawn({
-        owner: 'player',
-        type: PROJECTILE_TYPES.HELLFIRE,
-        x: muzzle.x,
-        y: muzzle.y,
-        prevX: muzzle.x,
-        prevY: muzzle.y,
-        vx: vx,
-        vy: vy,
-        speed: this.projectileSpeed,
-        damage: this.damage,
-        radius: 6.0,
-        length: 26,
-        width: 5.5,
-        color: missileColor,
-        glowColor: missileGlow,
-        coreColor: missileCore,
-        lifetime: 2.5,
-        penetration: 1,
-        hitsRemaining: 1
-      });
+      // Fire paired micro-missiles from both wing hardpoints simultaneously
+      for (let m = 0; m < muzzles.length; m++) {
+        const muzzle = muzzles[m];
+        // Diverging lateral flare angle: left hardpoint flares left, right hardpoint flares right
+        const flareSign = m === 0 ? -1 : 1;
+        const flareAngle = flareSign * (0.16 + Math.random() * 0.06);
+        const baseAngle = -Math.PI / 2 + flareAngle;
 
-      // Rocket backblast flash
-      projectilePool.spawnMuzzleFlash(
-        muzzle.x,
-        muzzle.y,
-        '#ff9e1b',
-        20,
-        -Math.PI / 2
-      );
-      projectilePool.spawnHitSparks(muzzle.x, muzzle.y, '#ff9e1b', 8);
+        const vx = Math.cos(baseAngle) * this.projectileSpeed + player.vx * 0.15;
+        const vy = Math.sin(baseAngle) * this.projectileSpeed;
+
+        // Alternate targets if multiple targets exist
+        let assignedTarget = primaryTarget;
+        if (targets.length > 1 && m > 0) {
+          const altTarget = targets.find(t => t && t.hull > 0 && t !== primaryTarget);
+          if (altTarget) assignedTarget = altTarget;
+        }
+
+        projectilePool.spawn({
+          owner: 'player',
+          type: PROJECTILE_TYPES.HELLFIRE,
+          x: muzzle.x,
+          y: muzzle.y,
+          prevX: muzzle.x,
+          prevY: muzzle.y,
+          vx: vx,
+          vy: vy,
+          speed: this.projectileSpeed,
+          damage: this.damage,
+          radius: 5.5,
+          length: 28,
+          width: 5.5,
+          color: missileColor,
+          glowColor: missileGlow,
+          coreColor: missileCore,
+          lifetime: 3.0,
+          penetration: 1,
+          hitsRemaining: 1,
+          target: assignedTarget,
+          targetId: assignedTarget ? assignedTarget.id : null,
+          homingTurnRate: 6.0,
+          acceleration: 1150,
+          maxSpeed: 840,
+          blastRadius: 85,
+          stage: 0,
+          rotation: baseAngle
+        });
+
+        // Rocket backblast flash & propellant flare at launcher
+        projectilePool.spawnMuzzleFlash(
+          muzzle.x,
+          muzzle.y,
+          '#ff9e1b',
+          22,
+          -Math.PI / 2
+        );
+        projectilePool.spawnHitSparks(muzzle.x, muzzle.y, '#ff9e1b', 8);
+
+        // Initial launcher exhaust smoke puff
+        if (typeof projectilePool.spawnSmoke === 'function') {
+          projectilePool.spawnSmoke(muzzle.x, muzzle.y + 4, (Math.random() - 0.5) * 20, Math.random() * 30 + 10, '#ff003c', '#ff9e1b', 3, 14, 0.35);
+        }
+      }
 
       if (soundManager && typeof soundManager.playHellfireFire === 'function') {
         soundManager.playHellfireFire();

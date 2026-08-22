@@ -22,9 +22,10 @@ export class ProjectilePool {
   /**
    * @param {number} [maxProjectiles=300]
    * @param {number} [maxFlashes=80]
-   * @param {number} [maxSparks=120]
+   * @param {number} [maxSparks=160]
+   * @param {number} [maxSmokes=180]
    */
-  constructor(maxProjectiles = 300, maxFlashes = 80, maxSparks = 120) {
+  constructor(maxProjectiles = 300, maxFlashes = 80, maxSparks = 160, maxSmokes = 180) {
     this.maxProjectiles = maxProjectiles;
     this.projectiles = new Array(maxProjectiles);
 
@@ -33,6 +34,9 @@ export class ProjectilePool {
 
     this.maxSparks = maxSparks;
     this.sparks = new Array(maxSparks);
+
+    this.maxSmokes = maxSmokes;
+    this.smokes = new Array(maxSmokes);
 
     this._initPools();
   }
@@ -65,7 +69,19 @@ export class ProjectilePool {
         lifetime: 2.0,
         age: 0,
         penetration: 1,
-        hitsRemaining: 1
+        hitsRemaining: 1,
+        // Hellfire / Guided Munitions Autonomous Tracking Properties
+        target: null,
+        targetId: null,
+        targetX: 0,
+        targetY: 0,
+        homingTurnRate: 5.8, // Radians per sec
+        acceleration: 1100, // px/s^2
+        maxSpeed: 840,
+        blastRadius: 85, // AoE splash explosion radius in px
+        smokeTimer: 0,
+        stage: 0, // 0 = initial booster flare, 1 = active homing
+        rotation: -Math.PI / 2
       };
     }
 
@@ -102,6 +118,27 @@ export class ProjectilePool {
         maxLife: 0.2
       };
     }
+
+    // 4. FLIR Thermal Smoke & Missile Contrail Pool (Zero-GC)
+    for (let i = 0; i < this.maxSmokes; i++) {
+      this.smokes[i] = {
+        active: false,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        size: 3,
+        initialSize: 3,
+        maxSize: 18,
+        color: '#ff3b30',
+        coreColor: '#ff9e1b',
+        alpha: 1.0,
+        life: 0,
+        maxLife: 0.45,
+        rotation: 0,
+        spinRate: 0
+      };
+    }
   }
 
   /**
@@ -134,6 +171,19 @@ export class ProjectilePool {
         p.age = 0;
         p.penetration = config.penetration || 1;
         p.hitsRemaining = p.penetration;
+
+        // Guided munition configuration
+        p.target = config.target || null;
+        p.targetId = config.targetId || (config.target ? config.target.id : null);
+        p.targetX = config.targetX || 0;
+        p.targetY = config.targetY || 0;
+        p.homingTurnRate = config.homingTurnRate || 5.8;
+        p.acceleration = config.acceleration || 1100;
+        p.maxSpeed = config.maxSpeed || 840;
+        p.blastRadius = config.blastRadius || 85;
+        p.smokeTimer = 0;
+        p.stage = config.stage || 0;
+        p.rotation = config.rotation !== undefined ? config.rotation : (Math.atan2(p.vy, p.vx) || -Math.PI / 2);
         return p;
       }
     }
@@ -222,6 +272,43 @@ export class ProjectilePool {
   }
 
   /**
+   * Spawn a FLIR thermal smoke puff particle for missile contrails and explosions.
+   * @param {number} x
+   * @param {number} y
+   * @param {number} [vx=0]
+   * @param {number} [vy=0]
+   * @param {string} [color='#ff3b30']
+   * @param {string} [coreColor='#ff9e1b']
+   * @param {number} [initialSize=3]
+   * @param {number} [maxSize=18]
+   * @param {number} [maxLife=0.45]
+   */
+  spawnSmoke(x, y, vx = 0, vy = 0, color = '#ff3b30', coreColor = '#ff9e1b', initialSize = 3, maxSize = 18, maxLife = 0.45) {
+    for (let i = 0; i < this.maxSmokes; i++) {
+      const sm = this.smokes[i];
+      if (!sm.active) {
+        sm.active = true;
+        sm.x = x + (Math.random() * 3 - 1.5);
+        sm.y = y + (Math.random() * 3 - 1.5);
+        sm.vx = vx;
+        sm.vy = vy;
+        sm.initialSize = initialSize;
+        sm.maxSize = maxSize;
+        sm.size = initialSize;
+        sm.color = color;
+        sm.coreColor = coreColor;
+        sm.alpha = 0.95;
+        sm.life = 0;
+        sm.maxLife = maxLife + Math.random() * 0.1;
+        sm.rotation = Math.random() * Math.PI * 2;
+        sm.spinRate = (Math.random() - 0.5) * 4.0;
+        return sm;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Spawn a radial explosive flak detonation ring and shrapnel cluster.
    * @param {number} x
    * @param {number} y
@@ -251,6 +338,57 @@ export class ProjectilePool {
   }
 
   /**
+   * Spawn high-yield Hellfire Area-of-Effect (AoE) warhead detonation FX.
+   * Spawns multi-ring thermal shockwave, explosive shrapnel cluster, and billowing smoke plume.
+   * @param {number} x - Blast epicenter X
+   * @param {number} y - Blast epicenter Y
+   * @param {number} [radius=85] - Blast visual radius
+   * @param {string} [color='#ff003c'] - Theme thermal color
+   */
+  spawnHellfireDetonation(x, y, radius = 85, color = '#ff003c') {
+    // 1. Central high-intensity fireball flash flare
+    this.spawnMuzzleFlash(x, y, '#ffeedd', radius * 0.45, -Math.PI / 2);
+    this.spawnMuzzleFlash(x, y, color, radius * 0.7, -Math.PI / 2);
+
+    // 2. Multi-directional high-energy shrapnel sparks (24 particles)
+    const sparkCount = 26;
+    let spawnedSparks = 0;
+    for (let i = 0; i < this.maxSparks && spawnedSparks < sparkCount; i++) {
+      const sp = this.sparks[i];
+      if (!sp.active) {
+        sp.active = true;
+        sp.x = x;
+        sp.y = y;
+        const angle = (spawnedSparks / sparkCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.25;
+        const speed = Math.random() * 280 + 120;
+        sp.vx = Math.cos(angle) * speed;
+        sp.vy = Math.sin(angle) * speed;
+        sp.size = Math.random() * 3.8 + 2.0;
+        sp.color = spawnedSparks % 3 === 0 ? '#ffeedd' : (spawnedSparks % 2 === 0 ? '#ff9e1b' : color);
+        sp.alpha = 1.0;
+        sp.life = 0;
+        sp.maxLife = Math.random() * 0.38 + 0.18;
+        spawnedSparks++;
+      }
+    }
+
+    // 3. Billowing thermal smoke cloud ring (12 expanding puffs)
+    const smokeCount = 14;
+    for (let s = 0; s < smokeCount; s++) {
+      const angle = (s / smokeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const dist = Math.random() * (radius * 0.35);
+      const smokeX = x + Math.cos(angle) * dist;
+      const smokeY = y + Math.sin(angle) * dist;
+      const puffSpeed = Math.random() * 70 + 30;
+      const pvx = Math.cos(angle) * puffSpeed;
+      const pvy = Math.sin(angle) * puffSpeed;
+      const puffColor = s % 2 === 0 ? '#ff003c' : '#ff9e1b';
+
+      this.spawnSmoke(smokeX, smokeY, pvx, pvy, puffColor, '#ffffff', 4, radius * 0.38, 0.55);
+    }
+  }
+
+  /**
    * Deactivate a specific projectile.
    * @param {Object} p
    */
@@ -265,8 +403,9 @@ export class ProjectilePool {
    * @param {number} dt - Fixed delta time
    * @param {number} width - Viewport width
    * @param {number} height - Viewport height
+   * @param {Array<Object>} [targets=null] - Available enemy targets for autonomous guided ordnance
    */
-  update(dt, width, height) {
+  update(dt, width, height, targets = null) {
     const pad = 64; // Boundary padding before despawning
 
     // 1. Update Projectiles
@@ -277,6 +416,86 @@ export class ProjectilePool {
       // Save previous position for sub-frame interpolation & tracer streaks
       p.prevX = p.x;
       p.prevY = p.y;
+
+      // ── HELLFIRE GUIDED MISSILE AUTONOMOUS TRACKING & PROPULSION ──
+      if (p.type === PROJECTILE_TYPES.HELLFIRE) {
+        // Target re-acquisition if current target is absent or destroyed
+        if (targets && targets.length > 0) {
+          if (!p.target || p.target.hull <= 0) {
+            let bestTarget = null;
+            let bestDistSq = Infinity;
+
+            for (let t = 0; t < targets.length; t++) {
+              const tgt = targets[t];
+              if (!tgt || tgt.hull <= 0) continue;
+
+              const tgtWorldX = tgt.relX !== undefined ? tgt.relX * width : (tgt.x || 0);
+              const tgtWorldY = tgt.relY !== undefined ? tgt.relY * height : (tgt.y || 0);
+              const dx = tgtWorldX - p.x;
+              const dy = tgtWorldY - p.y;
+              const distSq = dx * dx + dy * dy;
+
+              // Prioritize forward targets in general flight path
+              if (dy < 120 && distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestTarget = tgt;
+              }
+            }
+
+            if (bestTarget) {
+              p.target = bestTarget;
+              p.targetId = bestTarget.id;
+            }
+          }
+        }
+
+        // Active homing guidance steering toward target
+        if (p.target && p.target.hull > 0) {
+          const tgtWorldX = p.target.relX !== undefined ? p.target.relX * width : (p.target.x || 0);
+          const tgtWorldY = p.target.relY !== undefined ? p.target.relY * height : (p.target.y || 0);
+
+          const dx = tgtWorldX - p.x;
+          const dy = tgtWorldY - p.y;
+          const desiredAngle = Math.atan2(dy, dx);
+          const curAngle = Math.atan2(p.vy, p.vx);
+
+          let angleDiff = desiredAngle - curAngle;
+          while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+          while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+          const maxTurn = (p.homingTurnRate || 5.8) * dt;
+          const turn = Math.max(-maxTurn, Math.min(maxTurn, angleDiff));
+          const newAngle = curAngle + turn;
+
+          // Rocket booster acceleration
+          p.speed = Math.min(p.maxSpeed || 840, p.speed + (p.acceleration || 1100) * dt);
+          p.vx = Math.cos(newAngle) * p.speed;
+          p.vy = Math.sin(newAngle) * p.speed;
+          p.rotation = newAngle;
+        } else {
+          // Ballistic flight forward with slight gyro stabilization
+          p.rotation = Math.atan2(p.vy, p.vx);
+        }
+
+        // Emit continuous FLIR thermal smoke puffs and fiery exhaust particles
+        p.smokeTimer = (p.smokeTimer || 0) + dt;
+        if (p.smokeTimer >= 0.024) {
+          p.smokeTimer = 0;
+          const cosR = Math.cos(p.rotation);
+          const sinR = Math.sin(p.rotation);
+          const nozzleX = p.x - cosR * 14;
+          const nozzleY = p.y - sinR * 14;
+
+          const puffVx = -p.vx * 0.15 + (Math.random() - 0.5) * 24;
+          const puffVy = -p.vy * 0.15 + (Math.random() - 0.5) * 24;
+
+          this.spawnSmoke(nozzleX, nozzleY, puffVx, puffVy, '#ff003c', '#ff9e1b', 3.2, 16.0, 0.42);
+
+          if (Math.random() < 0.35) {
+            this.spawnHitSparks(nozzleX, nozzleY, '#ffeedd', 1);
+          }
+        }
+      }
 
       // Advance position
       p.x += p.vx * dt;
@@ -315,6 +534,9 @@ export class ProjectilePool {
         if (p.type === PROJECTILE_TYPES.FLAK && p.age >= p.lifetime) {
           // Timed fuse detonation micro-burst
           this.spawnHitSparks(p.x, p.y, p.color, 4);
+        } else if (p.type === PROJECTILE_TYPES.HELLFIRE && p.age >= p.lifetime) {
+          // Missile terminal detonation on fuse expiration
+          this.spawnHellfireDetonation(p.x, p.y, p.blastRadius || 85, p.color || '#ff003c');
         }
         p.active = false;
       }
@@ -348,6 +570,27 @@ export class ProjectilePool {
         sp.alpha = Math.max(0, 1 - (sp.life / sp.maxLife));
       }
     }
+
+    // 4. Update FLIR Thermal Smoke Particles
+    for (let i = 0; i < this.maxSmokes; i++) {
+      const sm = this.smokes[i];
+      if (!sm.active) continue;
+
+      sm.life += dt;
+      sm.x += sm.vx * dt;
+      sm.y += sm.vy * dt;
+      sm.vx *= 0.93; // Air friction
+      sm.vy *= 0.93;
+      sm.rotation += sm.spinRate * dt;
+
+      const prog = sm.life / sm.maxLife; // 0 to 1
+      sm.size = sm.initialSize + (sm.maxSize - sm.initialSize) * Math.sin(prog * Math.PI * 0.5);
+      sm.alpha = Math.max(0, (1.0 - prog * prog) * 0.85);
+
+      if (sm.life >= sm.maxLife) {
+        sm.active = false;
+      }
+    }
   }
 
   /**
@@ -359,7 +602,38 @@ export class ProjectilePool {
     ctx.save();
 
     // ══════════════════════════════════════════════════════════════
-    // 1. Render Projectiles (High-Luminosity Tactical Tracers)
+    // 1. Render FLIR Thermal Smoke Particles (Behind Projectiles)
+    // ══════════════════════════════════════════════════════════════
+    for (let i = 0; i < this.maxSmokes; i++) {
+      const sm = this.smokes[i];
+      if (!sm.active) continue;
+
+      ctx.save();
+      ctx.globalAlpha = sm.alpha;
+      ctx.translate(sm.x, sm.y);
+      ctx.rotate(sm.rotation);
+
+      // Outer thermal bloom
+      ctx.shadowColor = sm.color;
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = sm.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, sm.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core hot center (fades out faster than outer smoke)
+      if (sm.life / sm.maxLife < 0.6) {
+        ctx.fillStyle = sm.coreColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, sm.size * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // 2. Render Projectiles (High-Luminosity Tactical Tracers & Missiles)
     // ══════════════════════════════════════════════════════════════
     for (let i = 0; i < this.maxProjectiles; i++) {
       const p = this.projectiles[i];
@@ -377,6 +651,113 @@ export class ProjectilePool {
       const isFlak = p.type === PROJECTILE_TYPES.FLAK;
       const isLaser = p.type === PROJECTILE_TYPES.LASER;
       const isMissile = p.type === PROJECTILE_TYPES.HELLFIRE;
+
+      // ── HELLFIRE GUIDED MISSILE PROCEDURAL DRAWING ──
+      if (isMissile) {
+        const missileAngle = p.rotation !== undefined ? p.rotation : Math.atan2(dirY, dirX);
+
+        ctx.save();
+        ctx.translate(curX, curY);
+        ctx.rotate(missileAngle + Math.PI / 2); // Orient forward
+
+        const len = p.length || 28;
+        const wid = p.width || 6;
+        const halfW = wid / 2;
+
+        // A. Fiery Rocket Exhaust Jet Plume (Pulsating thrust behind nozzle)
+        const flamePulse = 1.0 + Math.sin(p.age * 36) * 0.18;
+        const flameLen = 14 * flamePulse;
+
+        ctx.shadowColor = '#ff003c';
+        ctx.shadowBlur = 12;
+
+        // Outer exhaust flame
+        ctx.fillStyle = '#ff003c';
+        ctx.beginPath();
+        ctx.moveTo(-halfW * 0.7, len * 0.45);
+        ctx.lineTo(halfW * 0.7, len * 0.45);
+        ctx.lineTo(0, len * 0.45 + flameLen);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner white-hot thrust cone
+        ctx.fillStyle = '#ffeedd';
+        ctx.beginPath();
+        ctx.moveTo(-halfW * 0.4, len * 0.45);
+        ctx.lineTo(halfW * 0.4, len * 0.45);
+        ctx.lineTo(0, len * 0.45 + flameLen * 0.55);
+        ctx.closePath();
+        ctx.fill();
+
+        // B. Missile Fuselage Body
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = p.color;
+
+        // Aerodynamic cylindrical casing
+        ctx.fillStyle = '#d4d4d8'; // Tactical matte light grey
+        ctx.strokeStyle = '#18181b';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-halfW, len * 0.42);
+        ctx.lineTo(halfW, len * 0.42);
+        ctx.lineTo(halfW, -len * 0.25);
+        ctx.lineTo(0, -len * 0.52); // Pointed warhead cone
+        ctx.lineTo(-halfW, -len * 0.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // C. Tactical Red Warning Stripe & Sensor Band
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-halfW + 0.5, -len * 0.15, wid - 1, len * 0.18);
+
+        // D. Pointed Conical Warhead Nose Tip
+        ctx.fillStyle = '#ffeedd';
+        ctx.beginPath();
+        ctx.arc(0, -len * 0.50, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // E. Stabilizer Fins (4-Fin Cruciform delta stabilizers)
+        ctx.fillStyle = '#71717a';
+        ctx.strokeStyle = '#27272a';
+
+        // Aft Left Fin
+        ctx.beginPath();
+        ctx.moveTo(-halfW, len * 0.15);
+        ctx.lineTo(-halfW - 5.5, len * 0.44);
+        ctx.lineTo(-halfW, len * 0.40);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Aft Right Fin
+        ctx.beginPath();
+        ctx.moveTo(halfW, len * 0.15);
+        ctx.lineTo(halfW + 5.5, len * 0.44);
+        ctx.lineTo(halfW, len * 0.40);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Mid-body canard strakes
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.moveTo(-halfW, -len * 0.08);
+        ctx.lineTo(-halfW - 3.2, len * 0.02);
+        ctx.lineTo(-halfW, len * 0.02);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(halfW, -len * 0.08);
+        ctx.lineTo(halfW + 3.2, len * 0.02);
+        ctx.lineTo(halfW, len * 0.02);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+        continue;
+      }
 
       // Tail length scales with velocity and tracer length config
       let tailLen = Math.min(p.length, vMag * (isFlak ? 0.022 : (isLaser ? 0.045 : 0.035)) + 6);
@@ -446,21 +827,6 @@ export class ProjectilePool {
         ctx.lineTo(curX - p.radius * 0.4, curY);
         ctx.closePath();
         ctx.fill();
-      } else if (isMissile) {
-        // Rocket warhead & aerodynamic nosecone
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.moveTo(curX, curY - p.radius * 1.4);
-        ctx.lineTo(curX + p.radius * 0.8, curY + p.radius * 0.8);
-        ctx.lineTo(curX - p.radius * 0.8, curY + p.radius * 0.8);
-        ctx.closePath();
-        ctx.fill();
-
-        // Exhaust core
-        ctx.fillStyle = '#ffeedd';
-        ctx.beginPath();
-        ctx.arc(curX, curY + p.radius * 0.5, p.radius * 0.4, 0, Math.PI * 2);
-        ctx.fill();
       } else {
         // Standard kinetic dot head
         ctx.fillStyle = p.coreColor;
@@ -473,7 +839,7 @@ export class ProjectilePool {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // 2. Render Muzzle Flash Flares (Diamond Starburst)
+    // 3. Render Muzzle Flash Flares (Diamond Starburst)
     // ══════════════════════════════════════════════════════════════
     for (let i = 0; i < this.maxFlashes; i++) {
       const f = this.flashes[i];
@@ -522,7 +888,7 @@ export class ProjectilePool {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // 3. Render Propellant & Hit Sparks
+    // 4. Render Propellant & Hit Sparks
     // ══════════════════════════════════════════════════════════════
     for (let i = 0; i < this.maxSparks; i++) {
       const sp = this.sparks[i];
@@ -587,5 +953,6 @@ export class ProjectilePool {
     for (let i = 0; i < this.maxProjectiles; i++) this.projectiles[i].active = false;
     for (let i = 0; i < this.maxFlashes; i++) this.flashes[i].active = false;
     for (let i = 0; i < this.maxSparks; i++) this.sparks[i].active = false;
+    for (let i = 0; i < this.maxSmokes; i++) this.smokes[i].active = false;
   }
 }

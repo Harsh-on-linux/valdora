@@ -454,33 +454,75 @@ export class CollisionSystem {
 
         // 1. Apply ballistic damage
         const damage = proj.damage || 15;
+        const isHellfire = proj.type === 'HELLFIRE';
+        const blastRadius = proj.blastRadius || 85;
+
         target.hull = Math.max(0, target.hull - damage);
-        target.flashTimer = 0.12;
+        target.flashTimer = 0.14;
 
-        // 2. Spawn propellant / explosive / ionization impact sparks at contact point
-        if (gameEngine.projectiles) {
-          const sparkColor = proj.color || '#2dd4dc';
-          if (proj.type === 'FLAK') {
-            gameEngine.projectiles.spawnFlakDetonation(hitResult.hitX, hitResult.hitY, sparkColor, 12);
-          } else if (proj.type === 'LASER') {
-            gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#e879f9', 10);
-            gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#ffffff', 4);
-          } else {
-            gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, sparkColor, 8);
+        // 2. Area-of-Effect (AoE) Blast Resolution for Hellfire Guided Missiles
+        if (isHellfire) {
+          const epicX = hitResult.hitX;
+          const epicY = hitResult.hitY;
+
+          // Query all surrounding targets in combat sector
+          const allTargets = (gameEngine.hudOverlay && gameEngine.hudOverlay.targets) ? gameEngine.hudOverlay.targets : [];
+          for (let t = 0; t < allTargets.length; t++) {
+            const otherTgt = allTargets[t];
+            if (!otherTgt || otherTgt === target || otherTgt.hull <= 0) continue;
+
+            const ox = otherTgt.relX !== undefined ? otherTgt.relX * gameEngine.width : (otherTgt.x || 0);
+            const oy = otherTgt.relY !== undefined ? otherTgt.relY * gameEngine.height : (otherTgt.y || 0);
+            const dist = Math.hypot(ox - epicX, oy - epicY);
+
+            if (dist <= blastRadius) {
+              const splashDamage = Math.max(1, Math.round(damage * (1.0 - dist / blastRadius) * 0.75));
+              otherTgt.hull = Math.max(0, otherTgt.hull - splashDamage);
+              otherTgt.flashTimer = 0.14;
+
+              if (otherTgt.hull <= 0) {
+                this._handleTargetDestroyed(otherTgt, { x: ox, y: oy, active: true }, gameEngine, soundManager);
+              }
+            }
           }
-        }
 
-        // 3. Play impact audio
-        if (soundManager) {
-          if (proj.type === 'FLAK' && typeof soundManager.playFlakDetonation === 'function') {
-            soundManager.playFlakDetonation(0.8);
-          } else if (typeof soundManager.playHitImpact === 'function') {
-            soundManager.playHitImpact();
+          // Spawn high-explosive AoE detonation FX & shrapnel/smoke plume
+          if (gameEngine.projectiles) {
+            gameEngine.projectiles.spawnHellfireDetonation(epicX, epicY, blastRadius, proj.color || '#ff003c');
+          }
+
+          // Concussive camera shockwave
+          gameEngine.addCameraShake(12);
+
+          // Audio
+          if (soundManager && typeof soundManager.playHellfireDetonation === 'function') {
+            soundManager.playHellfireDetonation(1.2);
+          }
+        } else {
+          // Standard kinetic / flak / laser FX
+          if (gameEngine.projectiles) {
+            const sparkColor = proj.color || '#2dd4dc';
+            if (proj.type === 'FLAK') {
+              gameEngine.projectiles.spawnFlakDetonation(hitResult.hitX, hitResult.hitY, sparkColor, 12);
+            } else if (proj.type === 'LASER') {
+              gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#e879f9', 10);
+              gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#ffffff', 4);
+            } else {
+              gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, sparkColor, 8);
+            }
+          }
+
+          if (soundManager) {
+            if (proj.type === 'FLAK' && typeof soundManager.playFlakDetonation === 'function') {
+              soundManager.playFlakDetonation(0.8);
+            } else if (typeof soundManager.playHitImpact === 'function') {
+              soundManager.playHitImpact();
+            }
           }
         }
 
         // 4. Record contact for debug visualization
-        const debugCol = proj.type === 'FLAK' ? '#ff9e1b' : (proj.type === 'LASER' ? '#c084fc' : '#00f0ff');
+        const debugCol = isHellfire ? '#ff003c' : (proj.type === 'FLAK' ? '#ff9e1b' : (proj.type === 'LASER' ? '#c084fc' : '#00f0ff'));
         this._recordContact(hitResult.hitX, hitResult.hitY, debugCol);
 
         // 5. Decrement projectile penetration
@@ -490,7 +532,7 @@ export class CollisionSystem {
           pCol.active = false;
         }
 
-        // 6. Handle target destruction
+        // 6. Handle primary target destruction
         if (target.hull <= 0) {
           this._handleTargetDestroyed(target, tCol, gameEngine, soundManager);
         }

@@ -413,8 +413,8 @@ export class GameEngine {
       this.weapons.fire(this.player, this.projectiles, this.hudOverlay, soundManager, this);
     }
 
-    // 5. Update Projectiles & Muzzle Flares / Sparks
-    this.projectiles.update(dt, this.width, this.height);
+    // 5. Update Projectiles & Muzzle Flares / Sparks / Guided Munitions
+    this.projectiles.update(dt, this.width, this.height, this.hudOverlay ? this.hudOverlay.targets : []);
 
     // 6. Update Tactical HUD Overlay Simulation & Targets (with HUD auto-hide alpha)
     this.hudOverlay.update(dt, this.player, this.width, this.height, this.hudHidden);

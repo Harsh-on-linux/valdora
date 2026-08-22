@@ -142,11 +142,11 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Heat buildup mechanics with overheat lockout and cooling dissipation.
 - Output: Thermal-limited piercing beam weapon.
 
-### Step 20 — Hellfire Swarm Missiles 🔄 ← Current
+### Step 20 — Hellfire Swarm Missiles ✅
 - Self-propelling tracking missiles with smoke trails, auto-acquiring target lock, and area-of-effect blast on impact.
 - Output: Autonomous guided ordinance.
 
-### Step 21 — Orbital Strike
+### Step 21 — Orbital Strike 🔄 ← Current
 - Hold-to-charge mechanics with accumulating targeting laser and massive vertical strike release.
 - Output: High-impact heavy attack option.
 
