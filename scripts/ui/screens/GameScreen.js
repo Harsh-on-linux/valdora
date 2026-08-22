@@ -492,6 +492,34 @@ export const GameScreen = {
       activeEngine.on('hudVisibilityChange', onHudVisibility);
       hudVisibilityUnsub = () => activeEngine.off('hudVisibilityChange', onHudVisibility);
 
+      // Automatic Victory & Game Over debrief screen transitions
+      const onStateChange = (engineState) => {
+        if (engineState === 'VICTORY') {
+          setTimeout(() => {
+            if (router && window.__screenManager?.currentScreenName === 'game') {
+              router.show('results', {
+                sector: sectorId,
+                victory: true,
+                score: activeEngine ? activeEngine.score : 0,
+                kills: activeEngine?.enemies ? activeEngine.enemies.totalKills : 0
+              });
+            }
+          }, 2400);
+        } else if (engineState === 'GAMEOVER') {
+          setTimeout(() => {
+            if (router && window.__screenManager?.currentScreenName === 'game') {
+              router.show('results', {
+                sector: sectorId,
+                victory: false,
+                score: activeEngine ? activeEngine.score : 0,
+                kills: activeEngine?.enemies ? activeEngine.enemies.totalKills : 0
+              });
+            }
+          }, 1800);
+        }
+      };
+      activeEngine.on('stateChange', onStateChange);
+
       // Initial state sync (hidden by default)
       if (hudLayer && activeEngine) {
         hudLayer.classList.toggle('hud-moving-hidden', !!activeEngine.hudHidden);
@@ -599,8 +627,16 @@ export const GameScreen = {
     if (resultsBtn) {
       resultsBtn.addEventListener('click', () => {
         soundManager.playStart();
+        const sc = (activeEngine && activeEngine.score > 0) ? activeEngine.score : 145800;
+        const kl = (activeEngine?.enemies && activeEngine.enemies.totalKills > 0) ? activeEngine.enemies.totalKills : 42;
         if (activeEngine) activeEngine.stop();
-        if (router) router.show('results', { sector: sectorId });
+        if (router) router.show('results', {
+          sector: sectorId,
+          victory: true,
+          score: sc,
+          kills: kl,
+          accuracy: 92
+        });
       });
       resultsBtn.addEventListener('mouseenter', () => soundManager.playHover());
     }

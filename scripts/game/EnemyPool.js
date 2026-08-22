@@ -26,6 +26,7 @@ export class EnemyPool {
   constructor(maxEnemies = 40) {
     this.maxEnemies = maxEnemies;
     this.enemies = new Array(maxEnemies);
+    this.totalKills = 0;
     this._initPool();
   }
 
@@ -286,6 +287,7 @@ export class EnemyPool {
 
     if (enemy.hull <= 0) {
       enemy.hull = 0;
+      this.totalKills++;
       return { destroyed: true, actualDamage };
     }
 
@@ -654,6 +656,7 @@ export class EnemyPool {
    * Deactivate all active enemies.
    */
   clear() {
+    this.totalKills = 0;
     for (let i = 0; i < this.maxEnemies; i++) {
       this.enemies[i].active = false;
     }
