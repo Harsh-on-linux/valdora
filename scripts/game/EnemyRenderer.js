@@ -285,8 +285,8 @@ function drawReconBuggy(ctx, size, render, thermal, animTime) {
 // ─────────────────────────────────────────────────────────────
 
 function drawInterceptor(ctx, size, render, thermal, animTime) {
-  const bodyLen = size * render.bodyLength;
-  const wingW = size * render.wingSpan * 0.5;
+  const bodyLen = size * 0.84;
+  const wingW = size * 0.72 * 0.5;
   const pulse = 1 + Math.sin(animTime * 0.005) * 0.03;
 
   ctx.save();
@@ -302,39 +302,39 @@ function drawInterceptor(ctx, size, render, thermal, animTime) {
   // Sharp nose point
   ctx.moveTo(0, -bodyLen * 0.5 * pulse);
   // Right fuselage — narrow, angular
-  ctx.lineTo(size * 0.04, -bodyLen * 0.3);
-  ctx.lineTo(size * 0.05, -bodyLen * 0.1);
+  ctx.lineTo(size * 0.07, -bodyLen * 0.25);
+  ctx.lineTo(size * 0.09, -bodyLen * 0.05);
   // Right wing — sharply swept back
-  ctx.lineTo(wingW * 0.9, bodyLen * 0.2);
+  ctx.lineTo(wingW * 0.95, bodyLen * 0.22);
   // Wing tip (sharp cut)
-  ctx.lineTo(wingW, bodyLen * 0.28);
+  ctx.lineTo(wingW, bodyLen * 0.32);
   // Trailing edge
-  ctx.lineTo(wingW * 0.35, bodyLen * 0.22);
+  ctx.lineTo(wingW * 0.35, bodyLen * 0.25);
   // Aft body
-  ctx.lineTo(size * 0.04, bodyLen * 0.35);
+  ctx.lineTo(size * 0.08, bodyLen * 0.38);
   // Engine notch
-  ctx.lineTo(size * 0.03, bodyLen * 0.48 * pulse);
+  ctx.lineTo(size * 0.06, bodyLen * 0.48 * pulse);
   ctx.lineTo(0, bodyLen * 0.44 * pulse);
   // Mirror left
-  ctx.lineTo(-size * 0.03, bodyLen * 0.48 * pulse);
-  ctx.lineTo(-size * 0.04, bodyLen * 0.35);
-  ctx.lineTo(-wingW * 0.35, bodyLen * 0.22);
-  ctx.lineTo(-wingW, bodyLen * 0.28);
-  ctx.lineTo(-wingW * 0.9, bodyLen * 0.2);
-  ctx.lineTo(-size * 0.05, -bodyLen * 0.1);
-  ctx.lineTo(-size * 0.04, -bodyLen * 0.3);
+  ctx.lineTo(-size * 0.06, bodyLen * 0.48 * pulse);
+  ctx.lineTo(-size * 0.08, bodyLen * 0.38);
+  ctx.lineTo(-wingW * 0.35, bodyLen * 0.25);
+  ctx.lineTo(-wingW, bodyLen * 0.32);
+  ctx.lineTo(-wingW * 0.95, bodyLen * 0.22);
+  ctx.lineTo(-size * 0.09, -bodyLen * 0.05);
+  ctx.lineTo(-size * 0.07, -bodyLen * 0.25);
   ctx.closePath();
 
   ctx.fillStyle = fillGrad;
   ctx.fill();
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.4;
+  ctx.lineWidth = 1.8;
   ctx.stroke();
 
   // Center spine line
-  ctx.globalAlpha = 0.25;
+  ctx.globalAlpha = 0.4;
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 0.7;
+  ctx.lineWidth = 1.0;
   ctx.beginPath();
   ctx.moveTo(0, -bodyLen * 0.45);
   ctx.lineTo(0, bodyLen * 0.4);
@@ -342,35 +342,35 @@ function drawInterceptor(ctx, size, render, thermal, animTime) {
   ctx.globalAlpha = 1;
 
   // Wing panel lines (mass-produced look)
-  ctx.globalAlpha = 0.18;
+  ctx.globalAlpha = 0.3;
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 0.5;
+  ctx.lineWidth = 0.8;
   // Right wing line
   ctx.beginPath();
-  ctx.moveTo(size * 0.04, bodyLen * 0.0);
-  ctx.lineTo(wingW * 0.7, bodyLen * 0.22);
+  ctx.moveTo(size * 0.08, bodyLen * 0.0);
+  ctx.lineTo(wingW * 0.75, bodyLen * 0.24);
   ctx.stroke();
   // Left wing line
   ctx.beginPath();
-  ctx.moveTo(-size * 0.04, bodyLen * 0.0);
-  ctx.lineTo(-wingW * 0.7, bodyLen * 0.22);
+  ctx.moveTo(-size * 0.08, bodyLen * 0.0);
+  ctx.lineTo(-wingW * 0.75, bodyLen * 0.24);
   ctx.stroke();
   ctx.globalAlpha = 1;
 
   // Dual engine exhausts
-  const engineSpacing = size * 0.025;
-  const exPulse = 0.5 + Math.sin(animTime * 0.008) * 0.5;
+  const engineSpacing = size * 0.045;
+  const exPulse = 0.6 + Math.sin(animTime * 0.008) * 0.4;
   for (const side of [-1, 1]) {
     const ex = side * engineSpacing;
     const ey = bodyLen * 0.46 * pulse;
 
     ctx.globalAlpha = exPulse;
-    const exGrad = ctx.createLinearGradient(ex, ey, ex, ey + size * 0.1);
+    const exGrad = ctx.createLinearGradient(ex, ey, ex, ey + size * 0.18);
     exGrad.addColorStop(0, thermal.core);
     exGrad.addColorStop(0.6, thermal.glow);
     exGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = exGrad;
-    ctx.fillRect(ex - size * 0.018, ey, size * 0.036, size * 0.1);
+    ctx.fillRect(ex - size * 0.035, ey, size * 0.07, size * 0.18);
     ctx.globalAlpha = 1;
   }
 

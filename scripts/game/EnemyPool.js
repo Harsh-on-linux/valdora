@@ -346,9 +346,12 @@ export class EnemyPool {
           // Horizontal sinusoidal wave (amplitude & frequency)
           const amp = mov.amplitude || 120;
           const freq = mov.frequency || 1.8;
-          e.x = e.spawnX + Math.sin(e.timeAlive * freq * Math.PI) * amp;
+          const phase = e.timeAlive * freq * Math.PI * 2 + e.driftPhase;
+          e.x = e.spawnX + Math.sin(phase) * amp;
           e.vy = e.baseSpeedY;
-          e.vx = Math.cos(e.timeAlive * freq * Math.PI) * amp * freq;
+          e.vx = Math.cos(phase) * amp * freq * Math.PI * 2;
+          // Smooth banking rotation based on lateral weave
+          e.rotation = Math.sin(phase) * 0.28;
           break;
         }
 

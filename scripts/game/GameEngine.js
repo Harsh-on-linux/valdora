@@ -442,16 +442,28 @@ export class GameEngine {
       if (this.state === ENGINE_STATE.RUNNING && this.enemies.getActiveCount() < 4) {
         const w = this.width || window.innerWidth;
         const rx = w * (0.2 + Math.random() * 0.6);
-        const formType = Math.random() > 0.5 ? 'vShape' : 'staggeredLine';
-        this.enemies.spawnFormation({
-          type: 'RECON_BUGGY',
-          formation: formType,
-          count: Math.floor(Math.random() * 2) + 3,
-          startX: rx,
-          startY: -50,
-          spacingX: 52,
-          spacingY: 42
-        });
+        const spawnType = Math.random() > 0.4 ? 'INTERCEPTOR' : 'RECON_BUGGY';
+        if (spawnType === 'INTERCEPTOR') {
+          this.enemies.spawnFormation({
+            type: 'INTERCEPTOR',
+            formation: Math.random() > 0.5 ? 'pair' : 'echelon',
+            count: Math.floor(Math.random() * 2) + 2,
+            startX: rx,
+            startY: -50,
+            spacingX: 64,
+            spacingY: 45
+          });
+        } else {
+          this.enemies.spawnFormation({
+            type: 'RECON_BUGGY',
+            formation: Math.random() > 0.5 ? 'vShape' : 'staggeredLine',
+            count: Math.floor(Math.random() * 2) + 3,
+            startX: rx,
+            startY: -50,
+            spacingX: 52,
+            spacingY: 42
+          });
+        }
       }
     }
 
@@ -490,21 +502,27 @@ export class GameEngine {
       spacingY: 46
     });
 
-    // Staggered scout line entering right behind
+    // Spawn VK-7 Interceptors in pair formation entering with sinusoidal weave
+    this.enemies.spawnFormation({
+      type: 'INTERCEPTOR',
+      formation: 'pair',
+      count: 2,
+      startX: w * 0.7,
+      startY: -40,
+      spacingX: 70,
+      spacingY: 40
+    });
+
+    // Staggered scout line entering right behind on left flank
     this.enemies.spawnFormation({
       type: 'RECON_BUGGY',
       formation: 'staggeredLine',
       count: 3,
-      startX: w * 0.3,
-      startY: -60,
+      startX: w * 0.25,
+      startY: -100,
       spacingX: 50,
       spacingY: 50
     });
-
-    // Spawn secondary interceptor if sector >= 2
-    if (sectorId >= 2) {
-      this.enemies.spawn({ type: 'INTERCEPTOR', x: w * 0.75, y: -140 });
-    }
   }
 
   /**

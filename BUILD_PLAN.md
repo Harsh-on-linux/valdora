@@ -171,7 +171,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Top edge only. Max 12 on screen. Available from Wave 1.
 - Output: Fully rendered and behaviorally active Recon Buggy enemy.
 
-### Step 24 — VK-7 Interceptor / Interceptor Jet (Target 2) 🔄 ← Current
+### Step 24 — VK-7 Interceptor / Interceptor Jet (Target 2) ✅
 - **Silhouette**: Narrow swept-back arrowhead body with sharp angular wings. Aggressive mass-produced hostile fighter — sleek but utilitarian, dual engine exhausts.
 - **Thermal**: Hot orange (`#ff8c1a` core) — high-speed thermal bloom.
 - **Scale**: 0.75× player size. **HP**: 30. **Score**: 250.
@@ -180,7 +180,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Top, left, or right edges. Pairs, diamonds, or echelon formations of 2–4. Max 6 on screen. Available from Wave 2.
 - Output: Evasive sinusoidal fighter with angled dual-fire.
 
-### Step 25 — GT-12 Sentinel / SAM Turret (Target 3)
+### Step 25 — GT-12 Sentinel / SAM Turret (Target 3) 🔄 ← Current
 - **Silhouette**: Wide hexagonal base platform with rotating turret barrel assembly. Industrial defense emplacement — armor plates, corner reinforcement bolts, antenna mast. Clearly a weapons platform, not a ship.
 - **Thermal**: Warning amber (`#ffb703` core) — high armor glow.
 - **Scale**: 0.85× player size. **HP**: 60 (tanky). **Score**: 400.
