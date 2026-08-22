@@ -312,22 +312,26 @@ export class InputManager {
       window.dispatchEvent(new CustomEvent('weapon:cycle', { detail: { direction: 1 } }));
     }
 
-    // Direct Weapon Slot Selection (1 - 4)
-    if (e.code === 'Digit1') {
+    // Direct Weapon Slot Selection (1 - 5)
+    if (e.code === 'Digit1' || e.code === 'Numpad1') {
       this.actions.weaponSlot = 1;
       window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 1 } }));
     }
-    if (e.code === 'Digit2') {
+    if (e.code === 'Digit2' || e.code === 'Numpad2') {
       this.actions.weaponSlot = 2;
       window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 2 } }));
     }
-    if (e.code === 'Digit3') {
+    if (e.code === 'Digit3' || e.code === 'Numpad3') {
       this.actions.weaponSlot = 3;
       window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 3 } }));
     }
-    if (e.code === 'Digit4') {
+    if (e.code === 'Digit4' || e.code === 'Numpad4') {
       this.actions.weaponSlot = 4;
       window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 4 } }));
+    }
+    if (e.code === 'Digit5' || e.code === 'Numpad5') {
+      this.actions.weaponSlot = 5;
+      window.dispatchEvent(new CustomEvent('weapon:selectSlot', { detail: { slot: 5 } }));
     }
   }
 

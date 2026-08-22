@@ -16,6 +16,16 @@ export class SoundManager {
     this.musicVolume = 0.7;
     this.isInitialized = false;
 
+    // Rate-limiting timers for high-frequency gunfire to protect mobile WebAudio
+    this._lastFireTimes = {
+      vulcan: 0,
+      laser: 0,
+      flak: 0,
+      hellfire: 0,
+      orbital: 0,
+      orbitalCharge: 0
+    };
+
     // Load saved settings if available
     try {
       if (typeof localStorage !== 'undefined') {
@@ -46,6 +56,28 @@ export class SoundManager {
         }
       });
     }
+  }
+
+  /**
+   * Helper to disconnect Web Audio graph nodes when oscillator completes
+   * @param {AudioScheduledSourceNode} sourceNode
+   * @param  {...AudioNode} nodesToDisconnect
+   */
+  _cleanupOnEnd(sourceNode, ...nodesToDisconnect) {
+    if (!sourceNode) return;
+    sourceNode.onended = () => {
+      try {
+        sourceNode.disconnect();
+      } catch (e) {}
+      for (let i = 0; i < nodesToDisconnect.length; i++) {
+        const node = nodesToDisconnect[i];
+        if (node) {
+          try {
+            node.disconnect();
+          } catch (e) {}
+        }
+      }
+    };
   }
 
   /**
@@ -490,6 +522,11 @@ export class SoundManager {
   playVulcanFire(barrelIndex = 0) {
     if (!this._ensureRunning()) return;
     const now = this.ctx.currentTime;
+
+    // Rate-limit audio synthesis if firing at >24Hz to prevent audio thread starvation
+    if (now - this._lastFireTimes.vulcan < 0.038) return;
+    this._lastFireTimes.vulcan = now;
+
     const pitchMod = barrelIndex % 2 === 0 ? 1.0 : 0.93;
 
     // 1. Kinetic Pop & Bass Body (Punchy descending oscillator)
@@ -506,6 +543,7 @@ export class SoundManager {
     osc.connect(gain);
     gain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(osc, gain);
     osc.start(now);
     osc.stop(now + 0.04);
 
@@ -529,6 +567,7 @@ export class SoundManager {
     filter.connect(crackGain);
     crackGain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(crackOsc, crackGain, filter);
     crackOsc.start(now);
     crackOsc.stop(now + 0.022);
   }
@@ -540,6 +579,9 @@ export class SoundManager {
   playFlakFire() {
     if (!this._ensureRunning()) return;
     const now = this.ctx.currentTime;
+
+    if (now - this._lastFireTimes.flak < 0.06) return;
+    this._lastFireTimes.flak = now;
 
     // 1. Heavy Concussive Bass Blast (sub-bass drop 220Hz -> 30Hz)
     const subOsc = this.ctx.createOscillator();
@@ -555,6 +597,7 @@ export class SoundManager {
     subOsc.connect(subGain);
     subGain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(subOsc, subGain);
     subOsc.start(now);
     subOsc.stop(now + 0.085);
 
@@ -578,6 +621,7 @@ export class SoundManager {
     filter.connect(crackGain);
     crackGain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(crackOsc, crackGain, filter);
     crackOsc.start(now);
     crackOsc.stop(now + 0.055);
   }
@@ -608,6 +652,10 @@ export class SoundManager {
 
     osc1.connect(gain);
     osc2.connect(gain);
+
+    this._cleanupOnEnd(osc1, gain);
+    this._cleanupOnEnd(osc2);
+
     osc1.start(now);
     osc2.start(now);
     osc1.stop(now + 0.05);
@@ -621,6 +669,9 @@ export class SoundManager {
   playLaserFire(barrelIdx = 0) {
     if (!this._ensureRunning()) return;
     const now = this.ctx.currentTime;
+
+    if (now - this._lastFireTimes.laser < 0.045) return;
+    this._lastFireTimes.laser = now;
 
     // 1. High-frequency ionizing plasma beam chirp (1400Hz -> 650Hz)
     const baseFreq = barrelIdx % 2 === 0 ? 1480 : 1380;
@@ -643,6 +694,7 @@ export class SoundManager {
     filter.connect(gain);
     gain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(osc, gain, filter);
     osc.start(now);
     osc.stop(now + 0.055);
 
@@ -660,6 +712,7 @@ export class SoundManager {
     toneOsc.connect(toneGain);
     toneGain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(toneOsc, toneGain);
     toneOsc.start(now);
     toneOsc.stop(now + 0.05);
   }
@@ -670,6 +723,9 @@ export class SoundManager {
   playHellfireFire() {
     if (!this._ensureRunning()) return;
     const now = this.ctx.currentTime;
+
+    if (now - this._lastFireTimes.hellfire < 0.1) return;
+    this._lastFireTimes.hellfire = now;
 
     // 1. Pneumatic tube eject clack & high-pressure ignition pop
     const popOsc = this.ctx.createOscillator();
@@ -683,6 +739,8 @@ export class SoundManager {
 
     popOsc.connect(popGain);
     popGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(popOsc, popGain);
     popOsc.start(now);
     popOsc.stop(now + 0.045);
 
@@ -708,6 +766,7 @@ export class SoundManager {
     filter.connect(gain);
     gain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(osc, gain, filter);
     osc.start(now);
     osc.stop(now + 0.25);
 
@@ -731,6 +790,7 @@ export class SoundManager {
     whooshFilter.connect(whooshGain);
     whooshGain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(whooshOsc, whooshGain, whooshFilter);
     whooshOsc.start(now + 0.01);
     whooshOsc.stop(now + 0.20);
   }
@@ -765,6 +825,7 @@ export class SoundManager {
     crackFilter.connect(crackGain);
     crackGain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(crackOsc, crackGain, crackFilter);
     crackOsc.start(now);
     crackOsc.stop(now + 0.08);
 
@@ -782,6 +843,7 @@ export class SoundManager {
     subOsc.connect(subGain);
     subGain.connect(this.sfxGain);
 
+    this._cleanupOnEnd(subOsc, subGain);
     subOsc.start(now);
     subOsc.stop(now + dur + 0.02);
 
@@ -806,6 +868,8 @@ export class SoundManager {
     fragOsc.connect(fragFilter);
     fragFilter.connect(fragGain);
     fragGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(fragOsc, fragGain, fragFilter);
 
     fragOsc.start(now + 0.02);
     fragOsc.stop(now + dur * 0.8);
@@ -886,6 +950,136 @@ export class SoundManager {
 
     osc.start(now);
     osc.stop(now + dur + 0.02);
+  }
+
+  /**
+   * Play escalating satellite uplink charging resonance sweep (0.0 to 1.0 progress)
+   * @param {number} chargeRatio - Value from 0.0 to 1.0
+   */
+  playOrbitalCharge(chargeRatio = 0.5) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // Rate limit continuous chirps to every 80ms
+    if (now - this._lastFireTimes.orbitalCharge < 0.075) return;
+    this._lastFireTimes.orbitalCharge = now;
+
+    const ratio = Math.max(0.05, Math.min(1.0, chargeRatio));
+    const startFreq = 420 + ratio * 1400;
+    const endFreq = startFreq + 280;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(startFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.065);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(startFreq * 1.2, now);
+    filter.Q.setValueAtTime(6.0, now);
+
+    const amp = (0.08 + ratio * 0.14) * this.sfxVolume;
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(amp, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(osc, gain, filter);
+    osc.start(now);
+    osc.stop(now + 0.07);
+  }
+
+  /**
+   * Play thunderous Thor Orbital Kinetic Strike impact & ionizing particle beam explosion
+   */
+  playOrbitalStrike() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    if (now - this._lastFireTimes.orbital < 0.25) return;
+    this._lastFireTimes.orbital = now;
+
+    // 1. Deep Sub-Bass Ground Shockwave (180Hz -> 28Hz)
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(180, now);
+    subOsc.frequency.exponentialRampToValueAtTime(28, now + 0.65);
+
+    subGain.gain.setValueAtTime(0.48 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.70);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(subOsc, subGain);
+    subOsc.start(now);
+    subOsc.stop(now + 0.72);
+
+    // 2. High-Voltage Ionizing Atmospheric Plasma Crackle (sawtooth blast)
+    const crackOsc1 = this.ctx.createOscillator();
+    const crackOsc2 = this.ctx.createOscillator();
+    const crackGain = this.ctx.createGain();
+    const crackFilter = this.ctx.createBiquadFilter();
+
+    crackOsc1.type = 'sawtooth';
+    crackOsc1.frequency.setValueAtTime(950, now);
+    crackOsc1.frequency.exponentialRampToValueAtTime(110, now + 0.35);
+
+    crackOsc2.type = 'triangle';
+    crackOsc2.frequency.setValueAtTime(1450, now);
+    crackOsc2.frequency.exponentialRampToValueAtTime(220, now + 0.28);
+
+    crackFilter.type = 'lowpass';
+    crackFilter.frequency.setValueAtTime(4200, now);
+    crackFilter.frequency.exponentialRampToValueAtTime(600, now + 0.40);
+
+    crackGain.gain.setValueAtTime(0.32 * this.sfxVolume, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+    crackOsc1.connect(crackFilter);
+    crackOsc2.connect(crackFilter);
+    crackFilter.connect(crackGain);
+    crackGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(crackOsc1, crackGain, crackFilter);
+    this._cleanupOnEnd(crackOsc2);
+
+    crackOsc1.start(now);
+    crackOsc2.start(now);
+    crackOsc1.stop(now + 0.46);
+    crackOsc2.stop(now + 0.46);
+
+    // 3. Sustained Satellite Particle Downlink Rumble
+    const roarOsc = this.ctx.createOscillator();
+    const roarGain = this.ctx.createGain();
+    const roarFilter = this.ctx.createBiquadFilter();
+
+    roarOsc.type = 'sawtooth';
+    roarOsc.frequency.setValueAtTime(85, now);
+    roarOsc.frequency.linearRampToValueAtTime(45, now + 0.55);
+
+    roarFilter.type = 'bandpass';
+    roarFilter.frequency.setValueAtTime(320, now);
+    roarFilter.Q.setValueAtTime(2.5, now);
+
+    roarGain.gain.setValueAtTime(0.001, now);
+    roarGain.gain.linearRampToValueAtTime(0.24 * this.sfxVolume, now + 0.05);
+    roarGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+    roarOsc.connect(roarFilter);
+    roarFilter.connect(roarGain);
+    roarGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(roarOsc, roarGain, roarFilter);
+    roarOsc.start(now);
+    roarOsc.stop(now + 0.58);
   }
 
   /**

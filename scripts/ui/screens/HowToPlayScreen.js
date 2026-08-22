@@ -125,17 +125,18 @@ export const HowToPlayScreen = {
 
         <div class="key-tester-banner" id="key-feedback-banner">
           <span class="status-dot"></span>
-          <span id="key-feedback-text">SYSTEM STANDBY — PRESS ANY FLIGHT KEY (WASD, SPACE, 1-4, Q/E)</span>
+          <span id="key-feedback-text">SYSTEM STANDBY — PRESS ANY FLIGHT KEY (WASD, SPACE, 1-5, Q/E)</span>
         </div>
 
         <!-- Interactive Visual Keyboard Diagram -->
         <div class="keyboard-diagram">
-          <!-- Top Number Row: Weapons 1-4 -->
+          <!-- Top Number Row: Weapons 1-5 -->
           <div class="kb-row">
             <div class="kb-key" data-key="Digit1" title="Equip Vulcan / Weapon 1"><span class="key-lbl">1</span><span class="key-act">VULCAN</span></div>
             <div class="kb-key" data-key="Digit2" title="Equip Flak / Weapon 2"><span class="key-lbl">2</span><span class="key-act">FLAK</span></div>
             <div class="kb-key" data-key="Digit3" title="Equip Laser / Weapon 3"><span class="key-lbl">3</span><span class="key-act">LASER</span></div>
             <div class="kb-key" data-key="Digit4" title="Equip Hellfire / Weapon 4"><span class="key-lbl">4</span><span class="key-act">HELLFIRE</span></div>
+            <div class="kb-key" data-key="Digit5" title="Equip Orbital / Weapon 5"><span class="key-lbl">5</span><span class="key-act">ORBITAL</span></div>
           </div>
 
           <!-- Maneuver Keys: Q, W, E -->
@@ -429,6 +430,7 @@ export const HowToPlayScreen = {
         Digit2: 'EQUIP WEAPON 2 — FLAK SCATTER CANNON',
         Digit3: 'EQUIP WEAPON 3 — LASER DESIGNATOR BEAM',
         Digit4: 'EQUIP WEAPON 4 — HELLFIRE SWARM MISSILES',
+        Digit5: 'EQUIP WEAPON 5 — THOR ORBITAL KINETIC STRIKE',
         KeyQ: 'CYCLE TO PREVIOUS WEAPON',
         KeyE: 'CYCLE TO NEXT WEAPON',
         KeyP: 'PAUSE COCKPIT HUD',

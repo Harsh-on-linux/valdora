@@ -44,7 +44,7 @@ export const DRONE_TYPES = {
       hasCanards: false
     },
     // Compatible weapon loadouts
-    weapons: ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'],
+    weapons: ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE', 'ORBITAL'],
     defaultWeapon: 'VULCAN'
   },
 
@@ -114,7 +114,7 @@ export const DRONE_TYPES = {
       hasTailFins: false,
       hasCanards: true
     },
-    weapons: ['VULCAN', 'LASER', 'HELLFIRE'],
+    weapons: ['VULCAN', 'LASER', 'HELLFIRE', 'ORBITAL'],
     defaultWeapon: 'LASER'
   }
 };

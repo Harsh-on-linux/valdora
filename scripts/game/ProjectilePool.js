@@ -13,6 +13,7 @@ export const PROJECTILE_TYPES = {
   FLAK: 'FLAK',
   LASER: 'LASER',
   HELLFIRE: 'HELLFIRE',
+  ORBITAL: 'ORBITAL',
   ENEMY_BULLET: 'ENEMY_BULLET',
   ENEMY_BURST: 'ENEMY_BURST',
   ENEMY_RADIAL: 'ENEMY_RADIAL'
@@ -417,6 +418,21 @@ export class ProjectilePool {
       p.prevX = p.x;
       p.prevY = p.y;
 
+      // ── THOR ORBITAL KINETIC STRIKE UPDATE ──
+      if (p.type === PROJECTILE_TYPES.ORBITAL) {
+        p.age += dt;
+        // Continuous ionized atmospheric discharge sparks along the beam column
+        if (Math.random() < 0.60) {
+          const sparkY = Math.random() * height;
+          const sparkX = p.x + (Math.random() - 0.5) * (p.width * 0.7);
+          this.spawnHitSparks(sparkX, sparkY, Math.random() < 0.5 ? '#ffffff' : '#c084fc', 2);
+        }
+        if (p.age >= p.lifetime) {
+          p.active = false;
+        }
+        continue;
+      }
+
       // ── HELLFIRE GUIDED MISSILE AUTONOMOUS TRACKING & PROPULSION ──
       if (p.type === PROJECTILE_TYPES.HELLFIRE) {
         // Target re-acquisition if current target is absent or destroyed
@@ -595,12 +611,11 @@ export class ProjectilePool {
 
   /**
    * Render interpolated kinetic tracers and FX to Canvas2D.
+   * Uses high-performance multi-stroke additive rendering (zero shadowBlur for 60+ FPS on mobile).
    * @param {CanvasRenderingContext2D} ctx
    * @param {number} alpha - Fractional sub-frame interpolation [0..1]
    */
   render(ctx, alpha) {
-    ctx.save();
-
     // ══════════════════════════════════════════════════════════════
     // 1. Render FLIR Thermal Smoke Particles (Behind Projectiles)
     // ══════════════════════════════════════════════════════════════
@@ -611,11 +626,9 @@ export class ProjectilePool {
       ctx.save();
       ctx.globalAlpha = sm.alpha;
       ctx.translate(sm.x, sm.y);
-      ctx.rotate(sm.rotation);
+      if (sm.rotation) ctx.rotate(sm.rotation);
 
-      // Outer thermal bloom
-      ctx.shadowColor = sm.color;
-      ctx.shadowBlur = 8;
+      // Outer thermal bloom (layered alpha circle instead of expensive shadowBlur)
       ctx.fillStyle = sm.color;
       ctx.beginPath();
       ctx.arc(0, 0, sm.size, 0, Math.PI * 2);
@@ -635,6 +648,10 @@ export class ProjectilePool {
     // ══════════════════════════════════════════════════════════════
     // 2. Render Projectiles (High-Luminosity Tactical Tracers & Missiles)
     // ══════════════════════════════════════════════════════════════
+    ctx.save();
+    // Additive blending creates intense, blinding neon bloom with zero raster blur overhead
+    ctx.globalCompositeOperation = 'lighter';
+
     for (let i = 0; i < this.maxProjectiles; i++) {
       const p = this.projectiles[i];
       if (!p.active) continue;
@@ -651,6 +668,65 @@ export class ProjectilePool {
       const isFlak = p.type === PROJECTILE_TYPES.FLAK;
       const isLaser = p.type === PROJECTILE_TYPES.LASER;
       const isMissile = p.type === PROJECTILE_TYPES.HELLFIRE;
+      const isOrbital = p.type === PROJECTILE_TYPES.ORBITAL;
+
+      // ── THOR ORBITAL KINETIC STRIKE BEAM PROCEDURAL DRAWING ──
+      if (isOrbital) {
+        const beamX = p.x;
+        const beamW = p.width || 68;
+        const beamLen = p.length || 1400;
+        const progress = Math.min(1.0, p.age / p.lifetime); // 0 to 1
+        const beamAlpha = Math.max(0, 1.0 - progress * progress);
+
+        ctx.save();
+        ctx.globalAlpha = beamAlpha;
+
+        // 1. Layer 1: Ultrawide atmospheric distortion / ultraviolet corona
+        ctx.fillStyle = 'rgba(167, 139, 250, 0.22)';
+        ctx.fillRect(beamX - beamW * 1.3, 0, beamW * 2.6, beamLen);
+
+        // 2. Layer 2: High-energy ionizing plasma pillar
+        ctx.fillStyle = 'rgba(192, 132, 252, 0.45)';
+        ctx.fillRect(beamX - beamW * 0.7, 0, beamW * 1.4, beamLen);
+
+        // 3. Layer 3: Solid thermal plasma column
+        ctx.fillStyle = p.color || '#a78bfa';
+        ctx.fillRect(beamX - beamW * 0.4, 0, beamW * 0.8, beamLen);
+
+        // 4. Layer 4: Blinding pure white kinetic core lance
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(beamX - beamW * 0.16, 0, beamW * 0.32, beamLen);
+
+        // 5. Transverse laser interference nodes along the beam
+        const pulseCount = 6;
+        for (let k = 0; k < pulseCount; k++) {
+          const pulseY = ((p.age * 900 + k * 180) % beamLen);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(beamX - beamW * 0.75, pulseY);
+          ctx.lineTo(beamX + beamW * 0.75, pulseY);
+          ctx.stroke();
+        }
+
+        // 6. Ground impact concentric shockwave rings
+        const groundY = p.y > 0 ? p.y : beamLen * 0.75;
+        const shockRadius = progress * (p.blastRadius || 140);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(beamX, groundY, shockRadius, shockRadius * 0.35, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(167, 139, 250, 0.5)';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.ellipse(beamX, groundY, shockRadius * 0.65, shockRadius * 0.22, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+        continue;
+      }
 
       // ── HELLFIRE GUIDED MISSILE PROCEDURAL DRAWING ──
       if (isMissile) {
@@ -667,9 +743,6 @@ export class ProjectilePool {
         // A. Fiery Rocket Exhaust Jet Plume (Pulsating thrust behind nozzle)
         const flamePulse = 1.0 + Math.sin(p.age * 36) * 0.18;
         const flameLen = 14 * flamePulse;
-
-        ctx.shadowColor = '#ff003c';
-        ctx.shadowBlur = 12;
 
         // Outer exhaust flame
         ctx.fillStyle = '#ff003c';
@@ -690,10 +763,6 @@ export class ProjectilePool {
         ctx.fill();
 
         // B. Missile Fuselage Body
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = p.color;
-
-        // Aerodynamic cylindrical casing
         ctx.fillStyle = '#d4d4d8'; // Tactical matte light grey
         ctx.strokeStyle = '#18181b';
         ctx.lineWidth = 1;
@@ -765,12 +834,9 @@ export class ProjectilePool {
       const tailX = curX - dirX * tailLen;
       const tailY = curY - dirY * tailLen;
 
-      // A. Outer Glow / FLIR Bloom Trail
-      ctx.save();
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = isFlak ? 14 : (isLaser ? 16 : 10);
-      ctx.strokeStyle = p.glowColor;
-      ctx.lineWidth = p.width + (isFlak ? 4.5 : (isLaser ? 4.0 : 3.0));
+      // A. Outer Glow / FLIR Bloom Trail (Layered high-alpha additive stroke)
+      ctx.strokeStyle = p.glowColor || p.color;
+      ctx.lineWidth = p.width + (isFlak ? 4.0 : (isLaser ? 4.5 : 3.0));
       ctx.lineCap = isLaser ? 'butt' : 'round';
       ctx.beginPath();
       ctx.moveTo(tailX, tailY);
@@ -778,7 +844,6 @@ export class ProjectilePool {
       ctx.stroke();
 
       // B. High-Contrast Core Beam
-      ctx.shadowBlur = isLaser ? 8 : 5;
       ctx.strokeStyle = isLaser ? '#e879f9' : p.color;
       ctx.lineWidth = p.width;
       ctx.beginPath();
@@ -834,8 +899,6 @@ export class ProjectilePool {
         ctx.arc(curX, curY, p.radius * 0.65, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      ctx.restore();
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -853,9 +916,7 @@ export class ProjectilePool {
       ctx.translate(f.x, f.y);
       ctx.rotate(f.angle + Math.PI / 2);
 
-      // Outer radial glow
-      ctx.shadowColor = f.color;
-      ctx.shadowBlur = 14;
+      // Outer radial flare
       ctx.globalAlpha = alphaVal * 0.9;
       ctx.fillStyle = f.color;
 
@@ -896,8 +957,6 @@ export class ProjectilePool {
 
       ctx.save();
       ctx.globalAlpha = sp.alpha;
-      ctx.shadowColor = sp.color;
-      ctx.shadowBlur = 6;
       ctx.fillStyle = sp.color;
 
       ctx.beginPath();

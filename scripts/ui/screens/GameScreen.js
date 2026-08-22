@@ -148,7 +148,7 @@ export const GameScreen = {
                 </div>
               </div>
 
-              <!-- Weapon Slots Selector (1 to 4) -->
+              <!-- Weapon Slots Selector (1 to 5) -->
               <div class="hud-weapon-slots" id="hud-weapon-slots">
                 <button class="weapon-slot-chip active" data-slot="1" data-weapon="VULCAN" title="Slot 1: Vulcan Cannon (Hotkey: 1)">
                   <span class="slot-num">1</span>
@@ -169,6 +169,11 @@ export const GameScreen = {
                   <span class="slot-num">4</span>
                   <span class="slot-icon">▲</span>
                   <span class="slot-name">MISSILE</span>
+                </button>
+                <button class="weapon-slot-chip" data-slot="5" data-weapon="ORBITAL" title="Slot 5: Thor Orbital Strike (Hotkey: 5)">
+                  <span class="slot-num">5</span>
+                  <span class="slot-icon">⬡</span>
+                  <span class="slot-name">ORBITAL</span>
                 </button>
               </div>
 
@@ -234,25 +239,20 @@ export const GameScreen = {
           </div>
         </div>
 
-        <!-- ═══════════ ON-SCREEN TOUCH CONTROLS (MOBILE) ═══════════ -->
+        <!-- ═══════════ ON-SCREEN TOUCH ACTION CLUSTER (MOBILE RIGHT SIDE) ═══════════ -->
         <div class="hud-touch-controls">
-          <div class="hud-touch-left-hint">
-            <span>✜ TOUCH LEFT TO PILOT</span>
-            <span style="font-size: 0.6rem; color: var(--text-secondary);">DYNAMIC JOYSTICK</span>
-          </div>
-
           <div class="hud-touch-right-actions">
-            <button class="touch-action-btn weapon-btn" id="btn-touch-weapon" title="Cycle Weapon Payload (Q/E)">
-              <span class="touch-action-icon" id="hud-touch-weapon-icon">✦</span>
-              <span id="hud-touch-weapon-label">WEAPON</span>
-            </button>
             <button class="touch-action-btn radar-btn" id="btn-touch-radar" title="Toggle Radar (Active/Passive)">
               <span class="touch-action-icon">📡</span>
               <span>RADAR</span>
             </button>
-            <button class="touch-action-btn" id="btn-touch-boost" title="Engage Thruster Boost">
+            <button class="touch-action-btn boost-btn" id="btn-touch-boost" title="Engage Thruster Boost">
               <span class="touch-action-icon">⚡</span>
               <span>BOOST</span>
+            </button>
+            <button class="touch-action-btn weapon-btn" id="btn-touch-weapon" title="Cycle Weapon Payload (Q/E)">
+              <span class="touch-action-icon" id="hud-touch-weapon-icon">✦</span>
+              <span id="hud-touch-weapon-label">WEAPON</span>
             </button>
             <button class="touch-action-btn fire-btn" id="btn-touch-fire" title="Primary Fire">
               <span class="touch-action-icon">⦿</span>

@@ -13,7 +13,7 @@
 import { WEAPON_TYPES, getWeaponById } from './drones.js';
 import { PROJECTILE_TYPES } from './ProjectilePool.js';
 
-export const WEAPON_ORDER = ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'];
+export const WEAPON_ORDER = ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE', 'ORBITAL'];
 
 export class WeaponSystem {
   /**
@@ -26,6 +26,12 @@ export class WeaponSystem {
     // Cooldown & timing
     this.fireTimer = 0;
     this.barrelIndex = 0;
+
+    // Hold-to-charge mechanics (Orbital Strike & superweapons)
+    this.chargeTime = 0;
+    this.maxChargeTime = 0.95; // ~0.95s hold to lock satellite uplink
+    this.isCharging = false;
+    this.chargeRatio = 0.0;
 
     // Weapon parameters (scaled by drone stats)
     this.baseFireRate = 9.5; // Rounds per second (Hz)
@@ -48,6 +54,11 @@ export class WeaponSystem {
     const config = getWeaponById(weaponId) || WEAPON_TYPES.VULCAN;
     this.activeWeaponId = config.id;
     this.weaponConfig = config;
+
+    // Reset hold-to-charge states
+    this.chargeTime = 0;
+    this.isCharging = false;
+    this.chargeRatio = 0.0;
 
     // Apply baseline weapon archetype parameters
     switch (this.weaponConfig.id) {
@@ -91,6 +102,16 @@ export class WeaponSystem {
         this.ammoPerShot = 5.0;
         this.recoilImpulse = 2.4;
         break;
+
+      case 'ORBITAL':
+        this.baseFireRate = 0.75; // Heavy tactical satellite bombardment
+        this.projectileSpeed = 3200;
+        this.spread = 0.0;
+        this.damage = 450; // Superweapon class devastation
+        this.heatPerShot = 36.0; // High thermal footprint
+        this.ammoPerShot = 22.0; // Major satellite capacitor drain
+        this.recoilImpulse = 9.0;
+        break;
     }
 
     this.fireTimer = 0;
@@ -114,7 +135,7 @@ export class WeaponSystem {
   }
 
   /**
-   * Select weapon by 1-based slot index (1=VULCAN, 2=FLAK, 3=LASER, 4=HELLFIRE).
+   * Select weapon by 1-based slot index (1=VULCAN, 2=FLAK, 3=LASER, 4=HELLFIRE, 5=ORBITAL).
    * @param {number} slotNumber
    * @param {Array<string>} [allowedWeapons=null]
    * @returns {string} New active weapon ID
@@ -149,12 +170,73 @@ export class WeaponSystem {
   }
 
   /**
-   * Fixed-timestep update for weapon cooldowns.
+   * Fixed-timestep update for weapon cooldowns and hold-to-charge mechanics.
    * @param {number} dt
+   * @param {import('./PlayerDrone.js').PlayerDrone} [player]
+   * @param {import('./ProjectilePool.js').ProjectilePool} [projectilePool]
+   * @param {import('./TacticalHUDOverlay.js').TacticalHUDOverlay} [hudOverlay]
+   * @param {import('../audio/SoundManager.js').SoundManager} [soundManager]
+   * @param {import('./GameEngine.js').GameEngine} [gameEngine]
+   * @param {boolean} [isFirePressed=false]
    */
-  update(dt) {
+  update(dt, player = null, projectilePool = null, hudOverlay = null, soundManager = null, gameEngine = null, isFirePressed = false) {
     if (this.fireTimer > 0) {
       this.fireTimer = Math.max(0, this.fireTimer - dt);
+    }
+
+    // ── THOR ORBITAL STRIKE HOLD-TO-CHARGE MECHANICS ──
+    if (this.activeWeaponId === 'ORBITAL') {
+      if (isFirePressed) {
+        // Prevent charging if in overheat lockout or insufficient capacitor
+        if (this.fireTimer > 0 || (hudOverlay && (hudOverlay.isOverheated || hudOverlay.ammo < this.ammoPerShot))) {
+          if (this.isCharging) {
+            this.isCharging = false;
+            this.chargeTime = 0;
+            this.chargeRatio = 0;
+            if (soundManager && typeof soundManager.playDeny === 'function') {
+              soundManager.playDeny();
+            }
+          }
+          return;
+        }
+
+        this.isCharging = true;
+        this.chargeTime += dt;
+        this.chargeRatio = Math.min(1.0, this.chargeTime / this.maxChargeTime);
+
+        // Continuous escalating audio chirp
+        if (soundManager && typeof soundManager.playOrbitalCharge === 'function') {
+          soundManager.playOrbitalCharge(this.chargeRatio);
+        }
+
+        // Micro charging ion sparks at drone hardpoints
+        if (projectilePool && player && Math.random() < 0.45) {
+          projectilePool.spawnHitSparks(player.x + (Math.random() - 0.5) * 24, player.y - player.radius * 0.7, '#c084fc', 1);
+        }
+
+        // Full charge reached: release devastation!
+        if (this.chargeTime >= this.maxChargeTime) {
+          this.fireOrbitalStrike(player, projectilePool, hudOverlay, soundManager, gameEngine);
+          this.isCharging = false;
+          this.chargeTime = 0;
+          this.chargeRatio = 0;
+        }
+      } else {
+        // Trigger released
+        if (this.isCharging) {
+          if (this.chargeRatio >= 0.72) {
+            // Discharged after reaching sufficient charge threshold
+            this.fireOrbitalStrike(player, projectilePool, hudOverlay, soundManager, gameEngine);
+          }
+          this.isCharging = false;
+          this.chargeTime = 0;
+          this.chargeRatio = 0;
+        }
+      }
+    } else {
+      this.isCharging = false;
+      this.chargeTime = 0;
+      this.chargeRatio = 0;
     }
   }
 
@@ -481,8 +563,188 @@ export class WeaponSystem {
       return true;
     }
 
+    // ══════════════════════════════════════════════════════════════
+    // WEAPON 5: THOR ORBITAL KINETIC STRIKE BEAM (Hold-To-Charge Superweapon)
+    // ══════════════════════════════════════════════════════════════
+    if (this.activeWeaponId === 'ORBITAL') {
+      if (this.fireTimer > 0) return false;
+      if (hudOverlay && (hudOverlay.isOverheated || hudOverlay.ammo < this.ammoPerShot)) {
+        if (soundManager && typeof soundManager.playDeny === 'function') soundManager.playDeny();
+        return false;
+      }
+      this.isCharging = true;
+      return true;
+    }
+
     // Default fallback (single shot)
     this.fireTimer = 1.0 / effectiveFireRate;
     return false;
+  }
+
+  /**
+   * Discharge the full-charge Thor Orbital Kinetic Strike from satellite constellation.
+   * @param {import('./PlayerDrone.js').PlayerDrone} player
+   * @param {import('./ProjectilePool.js').ProjectilePool} projectilePool
+   * @param {import('./TacticalHUDOverlay.js').TacticalHUDOverlay} hudOverlay
+   * @param {import('../audio/SoundManager.js').SoundManager} soundManager
+   * @param {import('./GameEngine.js').GameEngine} gameEngine
+   * @returns {boolean}
+   */
+  fireOrbitalStrike(player, projectilePool, hudOverlay, soundManager, gameEngine) {
+    if (!projectilePool) return false;
+
+    // Register heat & capacitor consumption
+    if (hudOverlay) {
+      const allowed = hudOverlay.registerFire(this.heatPerShot, this.ammoPerShot);
+      if (!allowed) {
+        if (soundManager && typeof soundManager.playDeny === 'function') soundManager.playDeny();
+        this.fireTimer = 0.3;
+        return false;
+      }
+    }
+
+    const screenW = gameEngine ? gameEngine.width : 500;
+    const screenH = gameEngine ? gameEngine.height : 1200;
+
+    // Target coordinate: align with player or locked target
+    let targetX = player ? player.x : screenW * 0.5;
+    if (hudOverlay && hudOverlay.lockedTargetId && hudOverlay.targets) {
+      const lTgt = hudOverlay.targets.find(t => t && t.id === hudOverlay.lockedTargetId && t.hull > 0);
+      if (lTgt) {
+        targetX = lTgt.relX !== undefined ? (lTgt.relX * screenW) : (lTgt.x || targetX);
+      }
+    }
+
+    const effectiveFireRate = this.baseFireRate * this.fireRateMultiplier;
+
+    // 1. Spawn devastating vertical orbital kinetic strike beam
+    projectilePool.spawn({
+      owner: 'player',
+      type: PROJECTILE_TYPES.ORBITAL,
+      x: targetX,
+      y: 0,
+      prevX: targetX,
+      prevY: 0,
+      vx: 0,
+      vy: 0,
+      speed: this.projectileSpeed,
+      damage: this.damage,
+      radius: 36,
+      width: 74,
+      length: screenH,
+      color: '#a78bfa',
+      glowColor: 'rgba(167, 139, 250, 0.95)',
+      coreColor: '#ffffff',
+      lifetime: 0.55,
+      penetration: 999,
+      hitsRemaining: 999,
+      blastRadius: 140
+    });
+
+    // 2. High-orbit satellite injection entry flash & ground impact burst
+    const groundY = player ? player.y : screenH * 0.75;
+    projectilePool.spawnMuzzleFlash(targetX, 0, '#ffffff', 50, Math.PI / 2);
+    projectilePool.spawnMuzzleFlash(targetX, groundY, '#a78bfa', 44, -Math.PI / 2);
+    projectilePool.spawnHitSparks(targetX, groundY, '#ffffff', 14);
+    projectilePool.spawnHitSparks(targetX, groundY, '#c084fc', 18);
+
+    // 3. Play thunderous orbital strike sound
+    if (soundManager && typeof soundManager.playOrbitalStrike === 'function') {
+      soundManager.playOrbitalStrike();
+    }
+
+    // 4. Heavy concussive camera shake
+    if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
+      gameEngine.addCameraShake(this.recoilImpulse);
+    }
+
+    this.fireTimer = 1.0 / effectiveFireRate;
+    return true;
+  }
+
+  /**
+   * Render active hold-to-charge targeting reticle and telemetry overlay.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {import('./PlayerDrone.js').PlayerDrone} player
+   * @param {number} width
+   * @param {number} height
+   */
+  render(ctx, player, width, height) {
+    if (this.activeWeaponId !== 'ORBITAL' || !this.isCharging || !player) return;
+
+    const ratio = this.chargeRatio || 0;
+    const targetX = player.x;
+    const targetY = Math.max(70, player.y - 200);
+
+    ctx.save();
+
+    // 1. Collimated Guide Targeting Laser (Pulsing dashed cyan/violet beam to top of screen)
+    ctx.strokeStyle = `rgba(167, 139, 250, ${0.35 + ratio * 0.6})`;
+    ctx.lineWidth = 1.5 + ratio * 2.5;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y - (player.radius || 24));
+    ctx.lineTo(player.x, 0);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 2. Tactical Diamond Targeting Reticle
+    const isLocked = ratio >= 0.95;
+    const boxSize = 28 - ratio * 10; // Box tightens as orbital lock approaches
+
+    ctx.strokeStyle = isLocked ? '#ffffff' : '#a78bfa';
+    ctx.lineWidth = 1.8;
+    ctx.strokeRect(targetX - boxSize, targetY - boxSize, boxSize * 2, boxSize * 2);
+
+    // Center Crosshair Dot
+    ctx.fillStyle = isLocked ? '#ffffff' : '#00f0ff';
+    ctx.beginPath();
+    ctx.arc(targetX, targetY, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Rotating Satellite Downlink Locking Brackets
+    ctx.save();
+    ctx.translate(targetX, targetY);
+    ctx.rotate(Date.now() * 0.005);
+    ctx.strokeStyle = isLocked ? '#00f0ff' : 'rgba(192, 132, 252, 0.75)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(0, 0, boxSize + 9, 0, Math.PI * 0.5);
+    ctx.arc(0, 0, boxSize + 9, Math.PI, Math.PI * 1.5);
+    ctx.stroke();
+    ctx.restore();
+
+    // 4. Circular Charge Progress Gauge
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(targetX, targetY, boxSize + 16, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = isLocked ? '#00f0ff' : '#a78bfa';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(targetX, targetY, boxSize + 16, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
+    ctx.stroke();
+
+    // 5. Holographic Satellite Telemetry Callout Badge
+    ctx.font = '10px "Share Tech Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const pct = Math.round(ratio * 100);
+    const badgeText = isLocked ? '⚡ THOR KINETIC STRIKE LOCKED' : `⬡ SATELLITE UPLINK: ${pct}%`;
+    const textW = ctx.measureText(badgeText).width;
+
+    ctx.fillStyle = 'rgba(5, 7, 10, 0.85)';
+    ctx.strokeStyle = isLocked ? 'rgba(0, 240, 255, 0.8)' : 'rgba(167, 139, 250, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.fillRect(targetX - textW / 2 - 8, targetY - boxSize - 20, textW + 16, 16);
+    ctx.strokeRect(targetX - textW / 2 - 8, targetY - boxSize - 20, textW + 16, 16);
+
+    ctx.fillStyle = isLocked ? '#00f0ff' : '#c084fc';
+    ctx.fillText(badgeText, targetX, targetY - boxSize - 12);
+
+    ctx.restore();
   }
 }

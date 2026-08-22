@@ -355,14 +355,15 @@ export class CollisionSystem {
         if (!p.active) continue;
 
         const isPlayer = p.owner === 'player';
-        const minX = Math.min(p.x, p.prevX) - p.radius;
-        const maxX = Math.max(p.x, p.prevX) + p.radius;
-        const minY = Math.min(p.y, p.prevY) - p.radius;
-        const maxY = Math.max(p.y, p.prevY) + p.radius;
+        const isOrbital = p.type === 'ORBITAL';
+        const minX = isOrbital ? (p.x - (p.width || 68) * 0.5) : (Math.min(p.x, p.prevX) - p.radius);
+        const maxX = isOrbital ? (p.x + (p.width || 68) * 0.5) : (Math.max(p.x, p.prevX) + p.radius);
+        const minY = isOrbital ? 0 : (Math.min(p.y, p.prevY) - p.radius);
+        const maxY = isOrbital ? (gameEngine ? gameEngine.height : 1200) : (Math.max(p.y, p.prevY) + p.radius);
 
         const pCol = {
           id: `proj-${i}`,
-          type: 'segment',
+          type: isOrbital ? 'box' : 'segment',
           layer: isPlayer ? COLLISION_LAYERS.PLAYER_PROJECTILE : COLLISION_LAYERS.ENEMY_PROJECTILE,
           mask: isPlayer ? (COLLISION_LAYERS.ENEMY | COLLISION_LAYERS.HAZARD) : (COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.HAZARD),
           entity: p,
@@ -439,14 +440,25 @@ export class CollisionSystem {
 
       if (!proj.active || target.hull <= 0) return;
 
-      // CCD Continuous Segment vs Circle Test
-      const hitResult = CollisionSystem.testSegmentCircle(
-        proj.prevX, proj.prevY,
-        proj.x, proj.y,
-        tCol.x, tCol.y,
-        tCol.radius,
-        proj.radius
-      );
+      const isOrbital = proj.type === 'ORBITAL';
+      const isHellfire = proj.type === 'HELLFIRE';
+      const isFlak = proj.type === 'FLAK';
+      const isLaser = proj.type === 'LASER';
+
+      // CCD Continuous Segment vs Circle Test (or vertical beam column test for ORBITAL)
+      const hitResult = isOrbital
+        ? {
+            hit: Math.abs(tCol.x - proj.x) <= ((proj.width || 68) * 0.5 + tCol.radius),
+            hitX: tCol.x,
+            hitY: tCol.y
+          }
+        : CollisionSystem.testSegmentCircle(
+            proj.prevX, proj.prevY,
+            proj.x, proj.y,
+            tCol.x, tCol.y,
+            tCol.radius,
+            proj.radius
+          );
 
       if (hitResult.hit) {
         this.stats.hitsThisFrame++;
@@ -454,14 +466,22 @@ export class CollisionSystem {
 
         // 1. Apply ballistic damage
         const damage = proj.damage || 15;
-        const isHellfire = proj.type === 'HELLFIRE';
         const blastRadius = proj.blastRadius || 85;
 
         target.hull = Math.max(0, target.hull - damage);
         target.flashTimer = 0.14;
 
-        // 2. Area-of-Effect (AoE) Blast Resolution for Hellfire Guided Missiles
-        if (isHellfire) {
+        // 2. Area-of-Effect (AoE) Blast Resolution for Hellfire Guided Missiles & Orbital Strike
+        if (isOrbital) {
+          if (gameEngine.projectiles) {
+            gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#ffffff', 8);
+            gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#c084fc', 10);
+            gameEngine.projectiles.spawnMuzzleFlash(hitResult.hitX, hitResult.hitY, '#a78bfa', 32, -Math.PI / 2);
+          }
+          if (typeof gameEngine.addCameraShake === 'function') {
+            gameEngine.addCameraShake(3.5);
+          }
+        } else if (isHellfire) {
           const epicX = hitResult.hitX;
           const epicY = hitResult.hitY;
 
@@ -502,9 +522,9 @@ export class CollisionSystem {
           // Standard kinetic / flak / laser FX
           if (gameEngine.projectiles) {
             const sparkColor = proj.color || '#2dd4dc';
-            if (proj.type === 'FLAK') {
+            if (isFlak) {
               gameEngine.projectiles.spawnFlakDetonation(hitResult.hitX, hitResult.hitY, sparkColor, 12);
-            } else if (proj.type === 'LASER') {
+            } else if (isLaser) {
               gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#e879f9', 10);
               gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#ffffff', 4);
             } else {
@@ -513,7 +533,7 @@ export class CollisionSystem {
           }
 
           if (soundManager) {
-            if (proj.type === 'FLAK' && typeof soundManager.playFlakDetonation === 'function') {
+            if (isFlak && typeof soundManager.playFlakDetonation === 'function') {
               soundManager.playFlakDetonation(0.8);
             } else if (typeof soundManager.playHitImpact === 'function') {
               soundManager.playHitImpact();
@@ -522,14 +542,16 @@ export class CollisionSystem {
         }
 
         // 4. Record contact for debug visualization
-        const debugCol = isHellfire ? '#ff003c' : (proj.type === 'FLAK' ? '#ff9e1b' : (proj.type === 'LASER' ? '#c084fc' : '#00f0ff'));
+        const debugCol = isOrbital ? '#a78bfa' : (isHellfire ? '#ff003c' : (isFlak ? '#ff9e1b' : (isLaser ? '#c084fc' : '#00f0ff')));
         this._recordContact(hitResult.hitX, hitResult.hitY, debugCol);
 
-        // 5. Decrement projectile penetration
-        proj.hitsRemaining--;
-        if (proj.hitsRemaining <= 0) {
-          proj.active = false;
-          pCol.active = false;
+        // 5. Decrement projectile penetration (Orbital pierces continuously)
+        if (!isOrbital) {
+          proj.hitsRemaining--;
+          if (proj.hitsRemaining <= 0) {
+            proj.active = false;
+            pCol.active = false;
+          }
         }
 
         // 6. Handle primary target destruction
@@ -770,8 +792,6 @@ export class CollisionSystem {
       ctx.save();
       ctx.strokeStyle = '#00f0ff';
       ctx.lineWidth = 1.5;
-      ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 8;
 
       // Center circle
       ctx.beginPath();
@@ -787,7 +807,6 @@ export class CollisionSystem {
       // Outer bounding box
       ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
       ctx.lineWidth = 1;
-      ctx.shadowBlur = 0;
       ctx.strokeRect(pHitbox.x - pHitbox.radius, pHitbox.y - pHitbox.radius, pHitbox.radius * 2, pHitbox.radius * 2);
 
       // Label
@@ -810,8 +829,6 @@ export class CollisionSystem {
         ctx.save();
         ctx.strokeStyle = '#ff003c';
         ctx.lineWidth = 1.5;
-        ctx.shadowColor = '#ff003c';
-        ctx.shadowBlur = 8;
 
         // Target circle
         ctx.beginPath();
@@ -821,7 +838,6 @@ export class CollisionSystem {
         // Bounding AABB box
         ctx.strokeStyle = 'rgba(255, 140, 26, 0.5)';
         ctx.lineWidth = 1;
-        ctx.shadowBlur = 0;
         ctx.strokeRect(tx - r, ty - r, r * 2, r * 2);
 
         // Velocity vector line
@@ -872,8 +888,6 @@ export class CollisionSystem {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.strokeStyle = c.color;
-      ctx.shadowColor = c.color;
-      ctx.shadowBlur = 10;
       ctx.lineWidth = 2;
 
       // Starburst crosshair

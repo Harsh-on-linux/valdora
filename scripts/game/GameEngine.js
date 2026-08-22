@@ -94,6 +94,9 @@ export class GameEngine {
     this.panelsEnabled = false;
     this.hudHidden = true;
 
+    // Mobile / Touch Virtual Joystick Onboarding Visual Cue Timer (1.4s)
+    this.joystickHintTimer = 1.4;
+
     // Listener callbacks
     this.listeners = {
       stateChange: [],
@@ -207,6 +210,7 @@ export class GameEngine {
     this.stationaryTimer = 0;
     this.panelsEnabled = false;
     this.hudHidden = true;
+    this.joystickHintTimer = 1.4; // 1.4s onboarding visual cue for mobile touch flight
     this._emit('hudVisibilityChange', {
       hudHidden: true,
       panelsEnabled: false,
@@ -251,6 +255,7 @@ export class GameEngine {
       this.state = ENGINE_STATE.RUNNING;
       this.lastTime = performance.now();
       this.accumulator = 0;
+      this.joystickHintTimer = 1.0; // Refresh hint briefly on resume
       this._emit('stateChange', this.state);
       console.log('▶️ GameEngine — Simulation resumed.');
     }
@@ -407,9 +412,17 @@ export class GameEngine {
       });
     }
 
-    // 4. Update Weapon Cooldowns & Handle Live Firing
-    this.weapons.update(dt);
-    if (this.input.isActionActive('fire')) {
+    // 3.5. Update Touch Joystick Onboarding Cue Timer
+    if (this.input && this.input.touchJoystick && this.input.touchJoystick.active) {
+      this.joystickHintTimer = 0;
+    } else if (this.joystickHintTimer > 0) {
+      this.joystickHintTimer = Math.max(0, this.joystickHintTimer - dt);
+    }
+
+    // 4. Update Weapon Cooldowns, Hold-To-Charge & Handle Live Firing
+    const isFiring = this.input.isActionActive('fire');
+    this.weapons.update(dt, this.player, this.projectiles, this.hudOverlay, soundManager, this, isFiring);
+    if (isFiring) {
       this.weapons.fire(this.player, this.projectiles, this.hudOverlay, soundManager, this);
     }
 
@@ -460,10 +473,15 @@ export class GameEngine {
     // 3. Render Player Drone (with sub-frame interpolation and FLIR trails)
     this.player.render(ctx, alpha, w, h);
 
+    // 3.5. Render Active Weapon Targeting Guidance & Hold-To-Charge Reticles
+    if (this.weapons && typeof this.weapons.render === 'function') {
+      this.weapons.render(ctx, this.player, w, h);
+    }
+
     // 4. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
     this.hudOverlay.render(ctx, this.player, w, h);
 
-    // 5. Render Virtual Touch Joystick Overlay (when active)
+    // 5. Render Virtual Touch Joystick Overlay (when active or onboarding cue)
     this._renderTouchJoystick(ctx);
 
     // 6. Render Tactical Viewport Watermark & FLIR Crosshair
@@ -478,56 +496,142 @@ export class GameEngine {
   }
 
   /**
-   * Render virtual touch joystick HUD element if active.
+   * Render virtual touch joystick HUD element if active or visual onboarding cue.
    */
   _renderTouchJoystick(ctx) {
-    const js = this.input.getTouchJoystickState();
-    if (!js.active) return;
+    const js = this.input ? this.input.getTouchJoystickState() : null;
 
-    ctx.save();
+    // A. Active Player Touch Joystick (real-time vector tracking)
+    if (js && js.active) {
+      ctx.save();
 
-    // Base Outer Ring
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
-    ctx.lineWidth = 2;
-    ctx.fillStyle = 'rgba(0, 240, 255, 0.08)';
-    ctx.beginPath();
-    ctx.arc(js.baseX, js.baseY, js.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+      // Base Outer Ring
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.08)';
+      ctx.beginPath();
+      ctx.arc(js.baseX, js.baseY, js.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
 
-    // Center Cross ticks
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(js.baseX - 12, js.baseY);
-    ctx.lineTo(js.baseX + 12, js.baseY);
-    ctx.moveTo(js.baseX, js.baseY - 12);
-    ctx.lineTo(js.baseX, js.baseY + 12);
-    ctx.stroke();
+      // Center Cross ticks
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(js.baseX - 12, js.baseY);
+      ctx.lineTo(js.baseX + 12, js.baseY);
+      ctx.moveTo(js.baseX, js.baseY - 12);
+      ctx.lineTo(js.baseX, js.baseY + 12);
+      ctx.stroke();
 
-    // Direction Vector Line
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(js.baseX, js.baseY);
-    ctx.lineTo(js.currentX, js.currentY);
-    ctx.stroke();
+      // Direction Vector Line
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(js.baseX, js.baseY);
+      ctx.lineTo(js.currentX, js.currentY);
+      ctx.stroke();
 
-    // Draggable Knob / Thumbstick
-    ctx.fillStyle = 'rgba(0, 240, 255, 0.85)';
-    ctx.shadowColor = '#00f0ff';
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.arc(js.currentX, js.currentY, 20, 0, Math.PI * 2);
-    ctx.fill();
+      // Draggable Knob Outer Ring & Fill
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.7)';
+      ctx.beginPath();
+      ctx.arc(js.currentX, js.currentY, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
 
-    // Inner knob dot
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(js.currentX, js.currentY, 6, 0, Math.PI * 2);
-    ctx.fill();
+      // Inner knob core dot
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(js.currentX, js.currentY, 6, 0, Math.PI * 2);
+      ctx.fill();
 
-    ctx.restore();
+      ctx.restore();
+      return;
+    }
+
+    // B. Mobile / Touch Onboarding Joystick Guide (1-sec intro cue on left side)
+    const effectiveScheme = this.input ? this.input.getEffectiveControlScheme() : 'keyboard';
+    const isMobileOrTouch = this.input?.isTouchDevice || effectiveScheme === 'touch' || this.width <= 768;
+
+    if (this.joystickHintTimer > 0 && isMobileOrTouch) {
+      const hintAlpha = Math.min(1.0, this.joystickHintTimer / 0.4);
+      const hx = Math.max(75, Math.min(110, this.width * 0.18));
+      const hy = this.height - Math.max(110, Math.min(145, this.height * 0.18));
+      const radius = 54;
+
+      const timeElapsed = 1.4 - this.joystickHintTimer;
+      const pulse = 1.0 + Math.sin(timeElapsed * 7) * 0.06;
+      const angle = timeElapsed * 2.2;
+
+      ctx.save();
+      ctx.globalAlpha = hintAlpha;
+
+      // 1. Concentric Guide Circles & Radar Ring
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.06)';
+      ctx.beginPath();
+      ctx.arc(hx, hy, radius * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Rotating dashed ring
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(angle);
+      ctx.setLineDash([4, 6]);
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius - 6, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // 2. Directional Chevrons (▲ ▼ ◄ ►)
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.75)';
+      ctx.font = '10px "Share Tech Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('▲', hx, hy - radius + 14);
+      ctx.fillText('▼', hx, hy + radius - 14);
+      ctx.fillText('◄', hx - radius + 14, hy);
+      ctx.fillText('►', hx + radius - 14, hy);
+
+      // 3. Animated Floating Center Knob
+      const knobBobX = Math.cos(timeElapsed * 4) * 8;
+      const knobBobY = Math.sin(timeElapsed * 4) * 8;
+
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.7)';
+      ctx.beginPath();
+      ctx.arc(hx + knobBobX, hy + knobBobY, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(hx + knobBobX, hy + knobBobY, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4. Tactical Guidance Callout Badge
+      const badgeY = hy - radius - 22;
+      ctx.fillStyle = 'rgba(5, 7, 10, 0.85)';
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.5)';
+      ctx.lineWidth = 1;
+      const text = '✜ TOUCH LEFT TO PILOT';
+      ctx.font = '9px "Share Tech Mono", monospace';
+      const textWidth = ctx.measureText(text).width;
+      ctx.fillRect(hx - textWidth / 2 - 8, badgeY - 8, textWidth + 16, 16);
+      ctx.strokeRect(hx - textWidth / 2 - 8, badgeY - 8, textWidth + 16, 16);
+
+      ctx.fillStyle = '#00f0ff';
+      ctx.fillText(text, hx, badgeY);
+
+      ctx.restore();
+    }
   }
 
   /**
@@ -664,7 +768,7 @@ export class GameEngine {
    * @returns {string} Active weapon ID
    */
   cycleWeapon(direction = 1) {
-    const allowed = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'];
+    const allowed = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE', 'ORBITAL'];
     if (!this.weapons || typeof this.weapons.cycleWeapon !== 'function') {
       this.weapons = new WeaponSystem(this.weaponConfig?.id || 'VULCAN');
     }
@@ -677,12 +781,12 @@ export class GameEngine {
   }
 
   /**
-   * Select a specific weapon slot (1 to 4).
+   * Select a specific weapon slot (1 to 5).
    * @param {number} slot
    * @returns {string} Active weapon ID
    */
   selectWeaponSlot(slot) {
-    const allowed = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'];
+    const allowed = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE', 'ORBITAL'];
     if (!this.weapons || typeof this.weapons.selectWeaponSlot !== 'function') {
       this.weapons = new WeaponSystem(this.weaponConfig?.id || 'VULCAN');
     }
@@ -712,7 +816,7 @@ export class GameEngine {
   getTelemetry() {
     const p = this.player;
     const hudSnapshot = this.hudOverlay ? this.hudOverlay.getTelemetrySnapshot() : {};
-    const allowedWeapons = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE'];
+    const allowedWeapons = this.droneConfig?.weapons || ['VULCAN', 'FLAK', 'LASER', 'HELLFIRE', 'ORBITAL'];
 
     return {
       fps: this.fps,

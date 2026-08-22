@@ -146,7 +146,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Self-propelling tracking missiles with smoke trails, auto-acquiring target lock, and area-of-effect blast on impact.
 - Output: Autonomous guided ordinance.
 
-### Step 21 — Orbital Strike 🔄 ← Current
+### Step 21 — Orbital Strike ✅
 - Hold-to-charge mechanics with accumulating targeting laser and massive vertical strike release.
 - Output: High-impact heavy attack option.
 
@@ -154,7 +154,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE G — Target Roster & Intel Drops
 
-### Step 22 — Target base class, entity pool & enemy config
+### Step 22 — Target base class, entity pool & enemy config 🔄 ← Current
 - Create `enemies.js` config module defining all 5 enemy archetypes + 2 boss entities with stats, thermal palettes, render params, weapon configs, movement behaviors, and spawn rules.
 - Create `EnemyRenderer.js` procedural canvas drawing system for all hostile entities (mirrors `DroneRenderer.js` pipeline but with hostile aesthetics).
 - Base target class: hitpoints, movement vectors, bounding volumes, FLIR heat-flash shaders, intel drop tables, zero-allocation object pool.
