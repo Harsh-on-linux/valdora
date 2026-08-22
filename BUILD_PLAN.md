@@ -218,13 +218,13 @@ Each step is small, builds directly on the previous one, and ends in something t
 ### Step 28 — Wave-script runner ✅
 - Timeline-based wave orchestration, formation coordinates, and stage completion conditions.
 
-### Step 29 — Levels 1–4 Implementation 🔄 ← Current
+### Step 29 — Levels 1–4 Implementation ✅
 - Level 1: Training Sector (Scout drones)
 - Level 2: Asteroid Fringe (Drones + Zigzags)
 - Level 3: Turret Outpost (Fortified positions)
 - Level 4: Heavy Incursion (Mixed swarms + Kamikazes)
 
-### Step 30 — Mission Results & Victory Flow
+### Step 30 — Mission Results & Victory Flow 🔄 ← Current
 - Score calculation, accuracy bonus, 3-star rating thresholding, unlocks, and retry/next navigation.
 
 ---

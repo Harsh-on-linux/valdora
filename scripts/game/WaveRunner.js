@@ -330,7 +330,7 @@ export class WaveRunner {
       const events = [];
 
       if (sectorId === 1) {
-        // Sector 1: Training Sector (RV-4 Scouts in clean formations)
+        // Level 1: ORBITAL REACH (Training Sector — Scout Recon Vanguard)
         if (w === 1) {
           events.push({ time: 0.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'vShape', count: 3, relX: 0.5 });
         } else if (w === 2) {
@@ -338,35 +338,42 @@ export class WaveRunner {
           events.push({ time: 2.0, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'pair', count: 2, relX: 0.75 });
         } else {
           events.push({ time: 0.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'vShape', count: 5, relX: 0.5 });
-          events.push({ time: 4.0, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'staggeredLine', count: 3, relX: 0.3 });
+          events.push({ time: 3.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'staggeredLine', count: 3, relX: 0.28 });
         }
       } else if (sectorId === 2) {
-        // Sector 2: Asteroid Fringe (Scouts + VK-7 Interceptors)
+        // Level 2: ASTEROID FRINGE (Scouts + VK-7 Interceptors with sinusoidal weave)
         if (w === 1) {
           events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.5 });
         } else if (w === 2) {
           events.push({ time: 0.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'vShape', count: 4, relX: 0.3 });
           events.push({ time: 2.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'echelon', count: 3, relX: 0.7 });
-        } else {
+        } else if (w === 3) {
           events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.25 });
           events.push({ time: 1.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.75 });
-          events.push({ time: 4.0, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'diamond', count: 4, relX: 0.5 });
+          events.push({ time: 3.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'diamond', count: 4, relX: 0.5 });
+        } else {
+          events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 5, relX: 0.5 });
+          events.push({ time: 3.0, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'staggeredLine', count: 3, relX: 0.35 });
         }
       } else if (sectorId === 3) {
-        // Sector 3: Turret Outpost (Scouts + SAM Turrets + Interceptors)
+        // Level 3: TURRET OUTPOST (Fortified SAM Turrets + Interceptors)
         if (w === 1) {
-          events.push({ time: 0.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.75 });
+          events.push({ time: 0.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.78 });
           events.push({ time: 1.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'vShape', count: 3, relX: 0.3 });
         } else if (w === 2) {
-          events.push({ time: 0.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.25 });
-          events.push({ time: 2.0, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.65 });
-        } else {
+          events.push({ time: 0.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.22 });
+          events.push({ time: 2.0, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.68 });
+        } else if (w === 3) {
           events.push({ time: 0.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.3 });
           events.push({ time: 1.0, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.7 });
-          events.push({ time: 3.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 3, relX: 0.5 });
+          events.push({ time: 3.0, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 3, relX: 0.5 });
+        } else {
+          events.push({ time: 0.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.5 });
+          events.push({ time: 1.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.82 });
+          events.push({ time: 3.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 5, relX: 0.45 });
         }
-      } else {
-        // Sector 4+: Heavy Incursion (Scouts + Interceptors + SAM Turrets + Kamikazes + Jammers)
+      } else if (sectorId === 4) {
+        // Level 4: INVASION VECTOR (Heavy Swarm & Kamikaze Incursion)
         if (w === 1) {
           events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.5 });
           events.push({ time: 2.0, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.35 });
@@ -374,12 +381,30 @@ export class WaveRunner {
           events.push({ time: 0.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.8 });
           events.push({ time: 1.5, type: 'spawn', enemyType: 'RADAR_JAMMER', relX: 0.2 });
           events.push({ time: 3.0, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'vShape', count: 4, relX: 0.5 });
-        } else {
-          events.push({ time: 0.5, type: 'alert', text: 'CRITICAL INVASION ALERT', subtext: 'MULTIPLE KAMIKAZE VECTORS INCOMING', color: '#ff003c' });
+        } else if (w === 3) {
+          events.push({ time: 0.5, type: 'alert', text: 'KAMIKAZE SQUADRON DETECTED', subtext: 'HIGH SPEED DIVE-BOMBERS INCOMING', color: '#ff003c' });
           events.push({ time: 1.0, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.25 });
-          events.push({ time: 2.0, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.75 });
-          events.push({ time: 3.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.5 });
-          events.push({ time: 5.0, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'echelon', count: 3, relX: 0.4 });
+          events.push({ time: 1.8, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.75 });
+          events.push({ time: 3.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.5 });
+        } else if (w === 4) {
+          events.push({ time: 0.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.3 });
+          events.push({ time: 1.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.7 });
+          events.push({ time: 2.5, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.5 });
+          events.push({ time: 4.0, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'echelon', count: 4, relX: 0.3 });
+        } else {
+          events.push({ time: 0.5, type: 'alert', text: 'CRITICAL INVASION APEX', subtext: 'ALL SECTORS BREACHED // FULL DEFENSE ACTIVE', color: '#ff003c' });
+          events.push({ time: 1.0, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.2 });
+          events.push({ time: 1.8, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.8 });
+          events.push({ time: 2.8, type: 'spawn', enemyType: 'RADAR_JAMMER', relX: 0.5 });
+          events.push({ time: 3.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.85 });
+          events.push({ time: 5.0, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 5, relX: 0.5 });
+        }
+      } else {
+        // Generic sector fallback
+        if (w === 1) {
+          events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.5 });
+        } else {
+          events.push({ time: 0.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'vShape', count: 4, relX: 0.5 });
         }
       }
 
