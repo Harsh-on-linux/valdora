@@ -198,7 +198,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Any edge. Always solo. Max 3 on screen. Available from Wave 4.
 - Output: High-speed suicide ram attacker with visual warning telegraph.
 
-### Step 26b — EW-9 Specter / Radar Jammer (Target 5) 🔄 ← Current
+### Step 26b — EW-9 Specter / Radar Jammer (Target 5) ✅
 - **Silhouette**: Spherical/octagonal body bristling with 6 antenna spines and 2 satellite dish arrays. Clearly a utility/support drone — lots of sensor equipment, no visible weapons. Pulsing ECM aura rings radiating outward.
 - **Thermal**: Toxic green (`#39ff14` core) — ECM radiation signature.
 - **Scale**: 0.7× player size. **HP**: 40. **Score**: 500.
@@ -207,7 +207,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - **Spawn**: Top edge only. Max 1 on screen. Available from Wave 7.
 - Output: ECM support unit with HUD disruption effects.
 
-### Step 27 — Intel & Supply Drops
+### Step 27 — Intel & Supply Drops 🔄 ← Current
 - Armor repairs, ECM charges, ordnance power-ups, intel data packets with magnetic attraction toward player drone.
 - Output: Satisfying loot collection loop.
 

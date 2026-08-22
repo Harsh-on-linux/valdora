@@ -641,37 +641,38 @@ function drawKamikazeDrone(ctx, size, render, thermal, animTime, isDiving) {
 // ─────────────────────────────────────────────────────────────
 
 function drawRadarJammer(ctx, size, render, thermal, animTime, jamPulse) {
-  const bodyR = size * 0.32;
-  const spinePulse = 0.5 + Math.sin(animTime * 0.003) * 0.3;
+  const bodyR = size * 0.38;
+  const spinePulse = 0.5 + Math.sin(animTime * 0.004) * 0.35;
 
   ctx.save();
 
-  // Jamming aura ring (pulsing outward)
-  const auraPulse = Math.sin(animTime * 0.004 + jamPulse) * 0.5 + 0.5;
-  ctx.globalAlpha = auraPulse * 0.12;
+  // Primary Jamming aura ring (pulsing outward with toxic green ECM interference)
+  const auraPulse = Math.sin(animTime * 0.005 + jamPulse) * 0.5 + 0.5;
+  ctx.globalAlpha = auraPulse * 0.22;
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.5;
-  const auraR = bodyR * (2.0 + auraPulse * 0.8);
-  ctx.setLineDash([4, 6]);
+  ctx.lineWidth = 1.8;
+  const auraR = bodyR * (1.8 + auraPulse * 1.0);
+  ctx.setLineDash([6, 8]);
   ctx.beginPath();
   ctx.arc(0, 0, auraR, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.globalAlpha = 1;
 
-  // Second aura ring (offset phase)
-  const aura2Pulse = Math.sin(animTime * 0.004 + jamPulse + Math.PI) * 0.5 + 0.5;
-  ctx.globalAlpha = aura2Pulse * 0.08;
-  const aura2R = bodyR * (1.5 + aura2Pulse * 0.6);
+  // Secondary aura ring (offset phase)
+  const aura2Pulse = Math.sin(animTime * 0.005 + jamPulse + Math.PI) * 0.5 + 0.5;
+  ctx.globalAlpha = aura2Pulse * 0.15;
+  ctx.lineWidth = 1.2;
+  const aura2R = bodyR * (1.4 + aura2Pulse * 0.8);
   ctx.beginPath();
   ctx.arc(0, 0, aura2R, 0, Math.PI * 2);
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // Fill gradient
+  // Body fill gradient (toxic green ECM glow)
   const fillGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, bodyR);
   fillGrad.addColorStop(0, thermal.mid);
-  fillGrad.addColorStop(0.7, thermal.outer);
+  fillGrad.addColorStop(0.65, thermal.outer);
   fillGrad.addColorStop(1, thermal.outer);
 
   // Octagonal body
@@ -687,11 +688,11 @@ function drawRadarJammer(ctx, size, render, thermal, animTime, jamPulse) {
   ctx.fillStyle = fillGrad;
   ctx.fill();
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.8;
   ctx.stroke();
 
   // Inner octagon detail ring
-  ctx.globalAlpha = 0.25;
+  ctx.globalAlpha = 0.35;
   ctx.beginPath();
   for (let i = 0; i < 8; i++) {
     const angle = (i / 8) * Math.PI * 2 - Math.PI / 8;
@@ -704,22 +705,22 @@ function drawRadarJammer(ctx, size, render, thermal, animTime, jamPulse) {
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // Antenna spines (radiating outward)
+  // 6 Antenna spines (radiating outward)
   const antennaCount = render.antennaCount || 6;
   ctx.strokeStyle = thermal.core;
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 1.4;
 
   for (let i = 0; i < antennaCount; i++) {
     const angle = (i / antennaCount) * Math.PI * 2;
-    const innerR = bodyR * 1.05;
-    const outerR = bodyR * 1.6;
+    const innerR = bodyR * 1.02;
+    const outerR = bodyR * 1.65;
     const ix = Math.cos(angle) * innerR;
     const iy = Math.sin(angle) * innerR;
     const ox = Math.cos(angle) * outerR;
     const oy = Math.sin(angle) * outerR;
 
     // Spine line
-    ctx.globalAlpha = 0.6;
+    ctx.globalAlpha = 0.75;
     ctx.beginPath();
     ctx.moveTo(ix, iy);
     ctx.lineTo(ox, oy);
@@ -727,44 +728,45 @@ function drawRadarJammer(ctx, size, render, thermal, animTime, jamPulse) {
 
     // Spine tip node (blinking)
     const tipPulse = Math.sin(animTime * 0.008 + i * 1.2) * 0.5 + 0.5;
-    ctx.globalAlpha = tipPulse * 0.8;
+    ctx.globalAlpha = tipPulse * 0.9;
     ctx.fillStyle = thermal.core;
     ctx.beginPath();
-    ctx.arc(ox, oy, 2.5, 0, Math.PI * 2);
+    ctx.arc(ox, oy, 3, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 
-  // Satellite dish arrays
+  // 2 Satellite dish arrays
   const dishCount = render.dishCount || 2;
   for (let i = 0; i < dishCount; i++) {
     const angle = (i / dishCount) * Math.PI + Math.PI * 0.25;
-    const dx = Math.cos(angle) * bodyR * 0.65;
-    const dy = Math.sin(angle) * bodyR * 0.65;
+    const dx = Math.cos(angle) * bodyR * 0.68;
+    const dy = Math.sin(angle) * bodyR * 0.68;
 
     // Dish arc
     ctx.strokeStyle = thermal.core;
-    ctx.lineWidth = 1.5;
-    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 1.6;
+    ctx.globalAlpha = 0.7;
     ctx.beginPath();
-    ctx.arc(dx, dy, size * 0.06, angle - 0.8, angle + 0.8);
+    ctx.arc(dx, dy, size * 0.08, angle - 0.85, angle + 0.85);
     ctx.stroke();
 
     // Dish feed point
-    ctx.fillStyle = thermal.core;
-    ctx.globalAlpha = spinePulse * 0.7;
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = spinePulse * 0.85;
     ctx.beginPath();
-    ctx.arc(dx, dy, 1.5, 0, Math.PI * 2);
+    ctx.arc(dx, dy, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 
   // Central ECM emitter (pulsing core)
-  const coreGlowR = bodyR * 0.2;
-  const corePulse = 0.4 + Math.sin(animTime * 0.006) * 0.4;
+  const coreGlowR = bodyR * 0.28;
+  const corePulse = 0.5 + Math.sin(animTime * 0.008) * 0.45;
   ctx.globalAlpha = corePulse;
   const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreGlowR);
-  coreGrad.addColorStop(0, thermal.core);
+  coreGrad.addColorStop(0, '#ffffff');
+  coreGrad.addColorStop(0.4, thermal.core);
   coreGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = coreGrad;
   ctx.beginPath();

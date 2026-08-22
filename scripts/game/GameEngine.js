@@ -444,21 +444,28 @@ export class GameEngine {
         const rx = w * (0.2 + Math.random() * 0.6);
         const roll = Math.random();
 
-        if (roll < 0.20) {
+        if (roll < 0.12) {
+          // Spawn EW-9 Specter Radar Jammer support unit
+          this.enemies.spawn({
+            type: 'RADAR_JAMMER',
+            x: rx,
+            y: -50
+          });
+        } else if (roll < 0.28) {
           // Spawn KZ-X Wraith Kamikaze Drone suicide rammer
           this.enemies.spawn({
             type: 'KAMIKAZE_DRONE',
             x: rx,
             y: -40
           });
-        } else if (roll < 0.40) {
+        } else if (roll < 0.48) {
           // Spawn GT-12 Sentinel SAM Turret emplacement
           this.enemies.spawn({
             type: 'SAM_TURRET',
             x: rx,
             y: -50
           });
-        } else if (roll < 0.70) {
+        } else if (roll < 0.74) {
           // Spawn VK-7 Interceptors in pair or echelon
           this.enemies.spawnFormation({
             type: 'INTERCEPTOR',
@@ -481,6 +488,12 @@ export class GameEngine {
             spacingY: 42
           });
         }
+      }
+
+      // Check for active ECM Jammer disruption
+      const hasActiveJammer = this.enemies.getActiveEnemies().some(e => e.type === 'RADAR_JAMMER');
+      if (this.hudOverlay) {
+        this.hudOverlay.isJammingActive = hasActiveJammer;
       }
     }
 
