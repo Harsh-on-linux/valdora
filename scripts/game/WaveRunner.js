@@ -25,6 +25,8 @@ export class WaveRunner {
     this.waveActive = false;
     this.isScriptCompleted = false;
     this.isStageCleared = false;
+    this.isObjectiveMet = false;
+    this.isUnlimitedMode = false;
 
     // Timeline event cursor
     this.eventIndex = 0;
@@ -45,6 +47,7 @@ export class WaveRunner {
       waveStart: [],
       waveCleared: [],
       stageComplete: [],
+      missionCompletedChoice: [],
       bannerAlert: []
     };
   }
@@ -88,6 +91,8 @@ export class WaveRunner {
     this.waveActive = false;
     this.isScriptCompleted = false;
     this.isStageCleared = false;
+    this.isObjectiveMet = false;
+    this.isUnlimitedMode = false;
     this.eventIndex = 0;
 
     // Generate timeline script for this sector
@@ -129,8 +134,105 @@ export class WaveRunner {
     this._emit('waveStart', {
       waveIndex: this.currentWaveIndex,
       totalWaves: this.totalWaves,
-      isFinal: isFinalWave
+      isFinal: isFinalWave,
+      isUnlimited: false
     });
+  }
+
+  /**
+   * Transition into endless unlimited survival mode after sector objectives are met.
+   */
+  startUnlimitedMode() {
+    this.isUnlimitedMode = true;
+    this.isStageCleared = false;
+    this.showBanner(
+      '♾️ UNLIMITED MODE ENGAGED',
+      'HOSTILE REINFORCEMENTS INCOMING // SURVIVE AT ALL COSTS',
+      '#ffb703',
+      3.0
+    );
+    setTimeout(() => {
+      this.startNextUnlimitedWave();
+    }, 1500);
+  }
+
+  /**
+   * Procedurally generate and start the next escalating endless wave.
+   */
+  startNextUnlimitedWave() {
+    this.currentWaveIndex++;
+    this.waveTimer = 0;
+    this.waveActive = true;
+    this.eventIndex = 0;
+
+    const waveNum = this.currentWaveIndex;
+    const bannerTitle = `♾️ SURVIVAL WAVE 0${waveNum}`;
+    const bannerSub = `ESCALATING THREAT LEVEL // MULTI-SQUADRON CONTACTS`;
+    const bannerColor = waveNum % 2 === 0 ? '#ff003c' : '#ffb703';
+
+    this.showBanner(bannerTitle, bannerSub, bannerColor, 2.4);
+
+    // Procedurally build wave events for this endless wave
+    this.activeTimeline[waveNum - 1] = this._generateEndlessWaveEvents(waveNum);
+
+    this._emit('waveStart', {
+      waveIndex: waveNum,
+      totalWaves: waveNum,
+      isFinal: false,
+      isUnlimited: true
+    });
+  }
+
+  /**
+   * Procedurally generate mixed formation events for endless waves.
+   * @param {number} waveNum
+   * @returns {Array<Object>}
+   */
+  _generateEndlessWaveEvents(waveNum) {
+    const events = [];
+    const intensity = Math.min(8, Math.floor(waveNum / 2) + 2);
+
+    // Wave event 1: Vanguard scouts / interceptors
+    events.push({
+      time: 0.5,
+      type: 'formation',
+      enemyType: Math.random() > 0.5 ? 'INTERCEPTOR' : 'RECON_BUGGY',
+      formation: Math.random() > 0.5 ? 'vShape' : 'echelon',
+      count: Math.min(6, 2 + Math.floor(intensity * 0.7)),
+      relX: 0.25 + Math.random() * 0.5
+    });
+
+    // Wave event 2: SAM Turrets or Kamikazes
+    if (waveNum >= 4) {
+      events.push({
+        time: 2.2,
+        type: 'spawn',
+        enemyType: Math.random() > 0.4 ? 'SAM_TURRET' : 'KAMIKAZE_DRONE',
+        relX: 0.2 + Math.random() * 0.6
+      });
+    }
+
+    // Wave event 3: Flank attack
+    events.push({
+      time: 4.0,
+      type: 'formation',
+      enemyType: Math.random() > 0.6 ? 'KAMIKAZE_DRONE' : 'INTERCEPTOR',
+      formation: 'pair',
+      count: Math.min(4, 2 + Math.floor(waveNum * 0.3)),
+      relX: Math.random() > 0.5 ? 0.22 : 0.78
+    });
+
+    // Wave event 4: Heavy reinforcement at higher waves
+    if (waveNum >= 5) {
+      events.push({
+        time: 6.0,
+        type: 'spawn',
+        enemyType: Math.random() > 0.5 ? 'RADAR_JAMMER' : 'SAM_TURRET',
+        relX: 0.5
+      });
+    }
+
+    return events;
   }
 
   /**
@@ -140,7 +242,7 @@ export class WaveRunner {
    * @param {import('../audio/SoundManager.js').SoundManager} [soundManager=null]
    */
   update(dt, gameEngine, soundManager = null) {
-    if (!gameEngine || this.isStageCleared) return;
+    if (!gameEngine) return;
 
     // 1. Update banner duration
     if (this.banner.active) {
@@ -170,34 +272,39 @@ export class WaveRunner {
     const allEventsDispatched = this.eventIndex >= waveEvents.length;
     const activeEnemyCount = gameEngine.enemies ? gameEngine.enemies.getActiveCount() : 0;
 
-    if (allEventsDispatched && activeEnemyCount === 0 && this.waveTimer > 3.0) {
+    if (allEventsDispatched && activeEnemyCount === 0 && this.waveTimer > 2.5) {
       this.waveActive = false;
 
       this._emit('waveCleared', {
         waveIndex: this.currentWaveIndex,
-        totalWaves: this.totalWaves
+        totalWaves: this.totalWaves,
+        isUnlimited: this.isUnlimitedMode
       });
 
-      if (this.currentWaveIndex < this.totalWaves) {
-        // Schedule next wave after 2.5s breather
+      if (this.isUnlimitedMode) {
+        // Continuous endless survival wave progression
+        setTimeout(() => {
+          if (gameEngine.state === 'RUNNING') {
+            this.startNextUnlimitedWave();
+          }
+        }, 1800);
+      } else if (this.currentWaveIndex < this.totalWaves) {
+        // Schedule next scripted wave after 2.2s breather
         setTimeout(() => {
           if (gameEngine.state === 'RUNNING') {
             this.startNextWave();
           }
         }, 2200);
       } else {
-        // Mission complete!
+        // Primary mission objectives complete!
         this.isStageCleared = true;
-        this.showBanner('SECTOR SECURED', 'MISSION OBJECTIVES ACHIEVED // VICTORY', '#10b981', 4.0);
+        this.isObjectiveMet = true;
+        this.showBanner('SECTOR SECURED', 'MISSION OBJECTIVES ACHIEVED // PROCEED OR SURVIVE', '#10b981', 3.5);
 
-        setTimeout(() => {
-          if (gameEngine.state === 'RUNNING') {
-            this._emit('stageComplete', {
-              sectorId: this.currentSectorId,
-              score: gameEngine.score
-            });
-          }
-        }, 2000);
+        this._emit('missionCompletedChoice', {
+          sectorId: this.currentSectorId,
+          score: gameEngine.score
+        });
       }
     }
   }

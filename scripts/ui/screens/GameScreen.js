@@ -97,6 +97,22 @@ export const GameScreen = {
           <div class="wave-alert-sub" id="hud-wave-alert-sub">RADAR CONTACTS CONFIRMED // ENGAGE TARGETS</div>
         </div>
 
+        <!-- ═══════════ MISSION COMPLETION CHOICE OVERLAY MODAL ═══════════ -->
+        <div class="hud-completion-choice-modal" id="hud-completion-choice-modal" style="display: none;">
+          <div class="completion-modal-title">SECTOR 0${sectorId} SECURED // MISSION COMPLETE</div>
+          <div class="completion-modal-desc">
+            ALL HOSTILE INVASION WAVES ELIMINATED. PROCEED TO DEBRIEF & NEXT THEATER, OR ENGAGE UNLIMITED SURVIVAL PROTOCOL.
+          </div>
+          <div class="completion-modal-actions">
+            <button class="console-btn btn-primary" id="btn-choice-next" title="Proceed to Mission Results & Next Sector">
+              <span>PROCEED TO NEXT SECTOR ▶</span>
+            </button>
+            <button class="console-btn btn-secondary pulse-amber" id="btn-choice-unlimited" title="Continue Fighting in Unlimited Endless Mode">
+              <span>CONTINUE IN UNLIMITED MODE ♾️</span>
+            </button>
+          </div>
+        </div>
+
         <!-- ═══════════ MIDDLE TACTICAL SIDE PANELS ═══════════ -->
         <div class="hud-mid-tactical-layout">
           <!-- LEFT SIDEBAR: SHIP SYSTEMS & COORDINATES -->
@@ -488,13 +504,27 @@ export const GameScreen = {
 
         // Tactical Wave Indicator update
         const waveEl = container.querySelector('#hud-wave-val');
-        if (waveEl && telem.currentWave) {
-          waveEl.textContent = `WAVE ${telem.currentWave}/${telem.totalWaves || 3}`;
-          if (telem.currentWave >= telem.totalWaves) {
-            waveEl.style.color = 'var(--danger-red, #ff003c)';
-          } else {
-            waveEl.style.color = 'var(--cyan-bright, #00f0ff)';
+        if (waveEl) {
+          if (telem.isUnlimitedMode) {
+            waveEl.textContent = `♾️ ENDLESS W${telem.currentWave}`;
+            waveEl.style.color = '#ffb703';
+          } else if (telem.currentWave) {
+            waveEl.textContent = `WAVE ${telem.currentWave}/${telem.totalWaves || 3}`;
+            if (telem.currentWave >= telem.totalWaves) {
+              waveEl.style.color = 'var(--danger-red, #ff003c)';
+            } else {
+              waveEl.style.color = 'var(--cyan-bright, #00f0ff)';
+            }
           }
+        }
+
+        // Keep bottom action button styled as "NEXT SECTOR 0X ▶" once objectives are met
+        const resultsBtnEl = container.querySelector('#btn-test-results');
+        if (telem.isObjectiveMet && resultsBtnEl && !resultsBtnEl.classList.contains('pulse-green')) {
+          const nextSec = sectorId + 1;
+          resultsBtnEl.className = 'console-btn btn-sm btn-primary pulse-green';
+          resultsBtnEl.innerHTML = `<span>NEXT SECTOR 0${nextSec} ▶</span>`;
+          resultsBtnEl.title = `Sector 0${sectorId} Secured! Proceed to Sector 0${nextSec} or View Debrief`;
         }
 
         if (speedEl) speedEl.textContent = telem.speed || 0;
@@ -544,6 +574,51 @@ export const GameScreen = {
 
       if (activeEngine.waveRunner) {
         activeEngine.waveRunner.on('bannerAlert', onBannerAlert);
+      }
+
+      // ── MISSION OBJECTIVES COMPLETED CHOICE HANDLER ──
+      const choiceModal = container.querySelector('#hud-completion-choice-modal');
+      const btnChoiceNext = container.querySelector('#btn-choice-next');
+      const btnChoiceUnlimited = container.querySelector('#btn-choice-unlimited');
+      const resultsBtn = container.querySelector('#btn-test-results');
+
+      const onMissionCompletedChoice = (data) => {
+        if (choiceModal) choiceModal.style.display = 'block';
+
+        if (resultsBtn) {
+          const nextSec = data.nextSectorId || (sectorId + 1);
+          resultsBtn.className = 'console-btn btn-sm btn-primary pulse-green';
+          resultsBtn.innerHTML = `<span>NEXT SECTOR 0${nextSec} ▶</span>`;
+          resultsBtn.title = `Sector 0${sectorId} Secured! Proceed to Sector 0${nextSec} or View Debrief`;
+        }
+
+        if (soundManager && typeof soundManager.playVictory === 'function') {
+          soundManager.playVictory();
+        }
+      };
+
+      activeEngine.on('missionCompletedChoice', onMissionCompletedChoice);
+
+      if (btnChoiceNext) {
+        btnChoiceNext.addEventListener('click', () => {
+          soundManager.playStart();
+          if (choiceModal) choiceModal.style.display = 'none';
+          const summary = activeEngine ? activeEngine.getMissionSummary(true) : { sector: sectorId, victory: true };
+          if (activeEngine) activeEngine.stop();
+          if (router) router.show('results', summary);
+        });
+        btnChoiceNext.addEventListener('mouseenter', () => soundManager.playHover());
+      }
+
+      if (btnChoiceUnlimited) {
+        btnChoiceUnlimited.addEventListener('click', () => {
+          soundManager.playStart();
+          if (choiceModal) choiceModal.style.display = 'none';
+          if (activeEngine && activeEngine.waveRunner) {
+            activeEngine.waveRunner.startUnlimitedMode();
+          }
+        });
+        btnChoiceUnlimited.addEventListener('mouseenter', () => soundManager.playHover());
       }
 
       // Dynamic HUD auto-hide & panels toggle listener

@@ -91,6 +91,22 @@ export class GameEngine {
         soundManager.playVictory();
       }
     });
+
+    this.isObjectiveMet = false;
+    this.waveRunner.on('missionCompletedChoice', (data) => {
+      this.isObjectiveMet = true;
+      const sectorId = this.sectorConfig?.id || 1;
+      const stars = calculateStars(sectorId, this.score);
+      SaveManager.recordSectorVictory(sectorId, this.score, stars);
+      this._emit('missionCompletedChoice', {
+        ...data,
+        sectorId,
+        nextSectorId: sectorId + 1,
+        score: this.score,
+        stars
+      });
+    });
+
     this.sectorConfig = null;
     this.droneConfig = null;
     this.weaponConfig = null;
@@ -195,6 +211,7 @@ export class GameEngine {
     this.sectorConfig = getLevelById(sectorId) || { id: sectorId, name: `SECTOR ${sectorId}` };
     this.droneConfig = getDroneById(droneId);
     this.weaponConfig = getWeaponById(weaponId);
+    this.isObjectiveMet = false;
 
     // Initialize player drone archetype and position
     this.player.applyArchetype(droneId);
@@ -995,6 +1012,8 @@ export class GameEngine {
       // Mission Wave Progress
       currentWave: this.waveRunner ? this.waveRunner.currentWaveIndex : 1,
       totalWaves: this.waveRunner ? this.waveRunner.totalWaves : 3,
+      isUnlimitedMode: this.waveRunner ? !!this.waveRunner.isUnlimitedMode : false,
+      isObjectiveMet: !!this.isObjectiveMet,
       // Live Stars & Threshold Telemetry
       stars: calculateStars(this.sectorConfig?.id || 1, this.score),
       scoreThresholds: this.sectorConfig?.scoreThresholds || { star1: 10000, star2: 20000, star3: 30000 },
@@ -1062,6 +1081,11 @@ export class GameEngine {
    * @returns {Object} Mission debrief summary payload
    */
   getMissionSummary(isVictory = true) {
+    // If primary mission objectives were secured, preserve victory status even on survival defeat
+    if (this.isObjectiveMet) {
+      isVictory = true;
+    }
+
     const sectorId = this.sectorConfig?.id || 1;
     const levelInfo = getLevelById(sectorId) || {
       id: sectorId,
