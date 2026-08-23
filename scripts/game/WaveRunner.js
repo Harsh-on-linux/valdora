@@ -93,15 +93,17 @@ export class WaveRunner {
     // Generate timeline script for this sector
     this.activeTimeline = this._buildSectorScript(sectorId, this.totalWaves);
 
-    // Trigger initial mission intro banner
+    // Trigger initial mission intro banner (gives pilot 2.0s tactical briefing before hostiles drop)
     this.showBanner(
-      `SECTOR 0${sectorId} // ${sectorConfig?.name || 'MISSION START'}`,
-      `OBJECTIVE: NEUTRALIZE ALL INCOMING HOSTILE FORCES`,
+      `SECTOR 0${sectorId} // ${sectorConfig?.name || 'MISSION DEPLOYMENT'}`,
+      `OBJECTIVE: ELIMINATE ALL ${this.totalWaves} HOSTILE INVASION WAVES`,
       '#00f0ff',
-      3.0
+      2.2
     );
 
-    this.startNextWave();
+    setTimeout(() => {
+      this.startNextWave();
+    }, 2200);
   }
 
   /**
@@ -115,14 +117,14 @@ export class WaveRunner {
 
     const isFinalWave = this.currentWaveIndex >= this.totalWaves;
     const bannerTitle = isFinalWave
-      ? `FINAL WAVE // HOSTILE INVASION`
-      : `WAVE ${this.currentWaveIndex} OF ${this.totalWaves}`;
+      ? `🚨 FINAL WAVE 0${this.currentWaveIndex}/${this.totalWaves} // ALL HOSTILES INBOUND`
+      : `⚠️ WAVE 0${this.currentWaveIndex}/${this.totalWaves} // HOSTILE SQUADRON DETECTED`;
     const bannerSub = isFinalWave
-      ? `ALL SQUADRONS ENGAGE AT WILL`
-      : `RADAR CONTACTS CONFIRMED`;
+      ? `ALL WEAPONS AUTHORIZED // MAINTAIN MAXIMUM EVASION`
+      : `RADAR CONTACTS CONFIRMED // ENGAGE TARGETS`;
     const bannerColor = isFinalWave ? '#ff003c' : '#00f0ff';
 
-    this.showBanner(bannerTitle, bannerSub, bannerColor, 2.2);
+    this.showBanner(bannerTitle, bannerSub, bannerColor, 2.6);
 
     this._emit('waveStart', {
       waveIndex: this.currentWaveIndex,

@@ -467,58 +467,6 @@ export class GameEngine {
     if (this.enemies) {
       this.enemies.update(dt, this.width, this.height, this.player, this.projectiles, soundManager, this);
 
-      // In ongoing combat, maintain baseline tactical hostile presence
-      if (this.state === ENGINE_STATE.RUNNING && this.enemies.getActiveCount() < 5) {
-        const w = this.width || window.innerWidth;
-        const rx = w * (0.2 + Math.random() * 0.6);
-        const roll = Math.random();
-
-        if (roll < 0.12) {
-          // Spawn EW-9 Specter Radar Jammer support unit
-          this.enemies.spawn({
-            type: 'RADAR_JAMMER',
-            x: rx,
-            y: -50
-          });
-        } else if (roll < 0.28) {
-          // Spawn KZ-X Wraith Kamikaze Drone suicide rammer
-          this.enemies.spawn({
-            type: 'KAMIKAZE_DRONE',
-            x: rx,
-            y: -40
-          });
-        } else if (roll < 0.48) {
-          // Spawn GT-12 Sentinel SAM Turret emplacement
-          this.enemies.spawn({
-            type: 'SAM_TURRET',
-            x: rx,
-            y: -50
-          });
-        } else if (roll < 0.74) {
-          // Spawn VK-7 Interceptors in pair or echelon
-          this.enemies.spawnFormation({
-            type: 'INTERCEPTOR',
-            formation: Math.random() > 0.5 ? 'pair' : 'echelon',
-            count: Math.floor(Math.random() * 2) + 2,
-            startX: rx,
-            startY: -50,
-            spacingX: 64,
-            spacingY: 45
-          });
-        } else {
-          // Spawn RV-4 Scout Recon Buggy V-formation or staggered line
-          this.enemies.spawnFormation({
-            type: 'RECON_BUGGY',
-            formation: Math.random() > 0.5 ? 'vShape' : 'staggeredLine',
-            count: Math.floor(Math.random() * 2) + 3,
-            startX: rx,
-            startY: -50,
-            spacingX: 52,
-            spacingY: 42
-          });
-        }
-      }
-
       // Check for active ECM Jammer disruption
       const hasActiveJammer = this.enemies.getActiveEnemies().some(e => e.type === 'RADAR_JAMMER');
       if (this.hudOverlay) {
@@ -1047,6 +995,9 @@ export class GameEngine {
       // Mission Wave Progress
       currentWave: this.waveRunner ? this.waveRunner.currentWaveIndex : 1,
       totalWaves: this.waveRunner ? this.waveRunner.totalWaves : 3,
+      // Live Stars & Threshold Telemetry
+      stars: calculateStars(this.sectorConfig?.id || 1, this.score),
+      scoreThresholds: this.sectorConfig?.scoreThresholds || { star1: 10000, star2: 20000, star3: 30000 },
       // Merge rich tactical HUD snapshot
       ...hudSnapshot
     };

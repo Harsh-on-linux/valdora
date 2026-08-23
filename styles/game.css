@@ -835,3 +835,91 @@
     font-size: 0.68rem;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIVE HUD STAR INDICATOR & TACTICAL WAVE ALERT NOTIFIERS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.hud-stars-indicator {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  margin-left: 6px;
+  font-family: var(--font-heading, sans-serif);
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+}
+
+.hud-stars-indicator .star-slot {
+  color: rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hud-stars-indicator .star-slot.active {
+  color: var(--amber, #ffb703);
+  text-shadow: 0 0 10px rgba(255, 183, 3, 0.85);
+  transform: scale(1.15);
+}
+
+/* Center-screen Tactical Wave Alert Banner (HTML Layer) */
+.hud-wave-alert-box {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 620px;
+  padding: 16px 24px;
+  background: rgba(5, 10, 18, 0.92);
+  border: 1px solid var(--cyan-bright, #00f0ff);
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.35), inset 0 0 25px rgba(0, 240, 255, 0.1);
+  text-align: center;
+  pointer-events: none;
+  z-index: 50;
+  animation: waveBannerPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hud-wave-alert-box.final-wave {
+  border-color: var(--danger-red, #ff003c);
+  box-shadow: 0 0 40px rgba(255, 0, 60, 0.45), inset 0 0 25px rgba(255, 0, 60, 0.15);
+}
+
+.hud-wave-alert-box.victory-wave {
+  border-color: #10b981;
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.45), inset 0 0 25px rgba(16, 185, 129, 0.15);
+}
+
+@keyframes waveBannerPop {
+  0% { opacity: 0; transform: translate(-50%, -60%) scale(0.9); }
+  60% { transform: translate(-50%, -50%) scale(1.02); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+}
+
+.wave-alert-title {
+  font-family: var(--font-heading, 'Orbitron', sans-serif);
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--cyan-bright, #00f0ff);
+  text-shadow: 0 0 14px rgba(0, 240, 255, 0.8);
+  margin-bottom: 4px;
+}
+
+.hud-wave-alert-box.final-wave .wave-alert-title {
+  color: var(--danger-red, #ff003c);
+  text-shadow: 0 0 16px rgba(255, 0, 60, 0.85);
+}
+
+.hud-wave-alert-box.victory-wave .wave-alert-title {
+  color: #10b981;
+  text-shadow: 0 0 16px rgba(16, 185, 129, 0.85);
+}
+
+.wave-alert-sub {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-bright, #ffffff);
+}
+

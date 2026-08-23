@@ -57,10 +57,22 @@ export const GameScreen = {
 
           <div class="hud-info-card score-card">
             <span class="hud-label">MISSION SCORE</span>
-            <span class="hud-value" id="hud-score-val" style="color: var(--amber)">000,000</span>
+            <div style="display: flex; align-items: baseline; gap: 8px; justify-content: space-between;">
+              <span class="hud-value" id="hud-score-val" style="color: var(--amber)">000,000</span>
+              <span class="hud-stars-indicator" id="hud-stars-indicator" title="Live Star Evaluation">
+                <span class="star-slot" id="hud-star-0">☆</span>
+                <span class="star-slot" id="hud-star-1">☆</span>
+                <span class="star-slot" id="hud-star-2">☆</span>
+              </span>
+            </div>
           </div>
 
-          <div class="hud-info-card hud-fps-card" style="min-width: 75px; text-align: right;">
+          <div class="hud-info-card wave-card" style="text-align: center; min-width: 90px;">
+            <span class="hud-label">TACTICAL WAVE</span>
+            <span class="hud-value" id="hud-wave-val" style="color: var(--cyan-bright); font-size: 0.95rem;">WAVE 1/3</span>
+          </div>
+
+          <div class="hud-info-card hud-fps-card" style="min-width: 70px; text-align: right;">
             <span class="hud-label">SIM FPS</span>
             <span class="hud-value" id="hud-fps-val" style="color: var(--glow-cyan); font-size: 0.95rem;">60</span>
           </div>
@@ -77,6 +89,12 @@ export const GameScreen = {
               <span>⏸ PAUSE</span>
             </button>
           </div>
+        </div>
+
+        <!-- ═══════════ CENTER SCREEN TACTICAL WAVE ALERT NOTIFIER ═══════════ -->
+        <div class="hud-wave-alert-box" id="hud-wave-alert-box" style="display: none;">
+          <div class="wave-alert-title" id="hud-wave-alert-title">WAVE 1 OF 3</div>
+          <div class="wave-alert-sub" id="hud-wave-alert-sub">RADAR CONTACTS CONFIRMED // ENGAGE TARGETS</div>
         </div>
 
         <!-- ═══════════ MIDDLE TACTICAL SIDE PANELS ═══════════ -->
@@ -459,6 +477,26 @@ export const GameScreen = {
           }
         }
 
+        // Live Star Indicator updates
+        const curStars = telem.stars || 0;
+        const star0 = container.querySelector('#hud-star-0');
+        const star1 = container.querySelector('#hud-star-1');
+        const star2 = container.querySelector('#hud-star-2');
+        if (star0) { star0.textContent = curStars >= 1 ? '★' : '☆'; star0.classList.toggle('active', curStars >= 1); }
+        if (star1) { star1.textContent = curStars >= 2 ? '★' : '☆'; star1.classList.toggle('active', curStars >= 2); }
+        if (star2) { star2.textContent = curStars >= 3 ? '★' : '☆'; star2.classList.toggle('active', curStars >= 3); }
+
+        // Tactical Wave Indicator update
+        const waveEl = container.querySelector('#hud-wave-val');
+        if (waveEl && telem.currentWave) {
+          waveEl.textContent = `WAVE ${telem.currentWave}/${telem.totalWaves || 3}`;
+          if (telem.currentWave >= telem.totalWaves) {
+            waveEl.style.color = 'var(--danger-red, #ff003c)';
+          } else {
+            waveEl.style.color = 'var(--cyan-bright, #00f0ff)';
+          }
+        }
+
         if (speedEl) speedEl.textContent = telem.speed || 0;
         if (thrustEl) thrustEl.textContent = telem.thrust || 50;
         if (simTimeEl) simTimeEl.textContent = `${telem.simTime}s`;
@@ -472,6 +510,41 @@ export const GameScreen = {
 
       activeEngine.on('telemetry', onTelemetry);
       telemetryUnsub = () => activeEngine.off('telemetry', onTelemetry);
+
+      // ── TACTICAL WAVE ALERT BANNER NOTIFIER ──
+      const waveAlertBox = container.querySelector('#hud-wave-alert-box');
+      const waveAlertTitle = container.querySelector('#hud-wave-alert-title');
+      const waveAlertSub = container.querySelector('#hud-wave-alert-sub');
+      let waveAlertTimer = null;
+
+      const onBannerAlert = ({ text, subtext, color, duration }) => {
+        if (!waveAlertBox) return;
+        clearTimeout(waveAlertTimer);
+        if (waveAlertTitle) waveAlertTitle.textContent = text;
+        if (waveAlertSub) waveAlertSub.textContent = subtext || '';
+
+        const isFinal = text.includes('FINAL') || text.includes('🚨') || color === '#ff003c';
+        const isVictory = text.includes('SECURED') || text.includes('ACCOMPLISHED') || color === '#10b981';
+
+        waveAlertBox.className = `hud-wave-alert-box ${isFinal ? 'final-wave' : (isVictory ? 'victory-wave' : '')}`;
+        waveAlertBox.style.display = 'block';
+
+        if (soundManager) {
+          if (isVictory && typeof soundManager.playVictory === 'function') {
+            soundManager.playVictory();
+          } else if (typeof soundManager.playWarning === 'function') {
+            soundManager.playWarning();
+          }
+        }
+
+        waveAlertTimer = setTimeout(() => {
+          if (waveAlertBox) waveAlertBox.style.display = 'none';
+        }, (duration || 2.5) * 1000);
+      };
+
+      if (activeEngine.waveRunner) {
+        activeEngine.waveRunner.on('bannerAlert', onBannerAlert);
+      }
 
       // Dynamic HUD auto-hide & panels toggle listener
       const hudLayer = container.querySelector('.hud-layer');
