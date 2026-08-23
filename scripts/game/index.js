@@ -49,8 +49,9 @@ export { PickupPool, PICKUP_TYPES } from './PickupPool.js';
 export { WaveRunner } from './WaveRunner.js';
 export { CollisionSystem, COLLISION_LAYERS } from './CollisionSystem.js';
 export { HVTWarningSequence } from './HVTWarningSequence.js';
+export { BossEntity, BOSS_STATES } from './BossEntity.js';
 export { GameEngine, ENGINE_STATE } from './GameEngine.js';
-export const GAME_MODULE_VERSION = '1.9.0';
+export const GAME_MODULE_VERSION = '1.9.1';
 
 
 

@@ -234,7 +234,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 ### Step 31 — HVT warning sequence ✅
 - Klaxon sirens, red alert HUD banner, cinematic entrance animation via satellite zoom.
 
-### Step 32 — HVT framework & multi-segment entity 🔄 ← Current
+### Step 32 — HVT framework & multi-segment entity ✅
 - **Entity**: `BOSS_MOBILE_COMMAND` — ~2.5× player scale width. Central octagonal command bridge flanked by two armored weapon pod modules.
 - **Visual**: Octagonal core with armor plate lines, sensor dome, antenna arrays. Each pod has cut-corner rectangular body with 2 turret barrels. Connecting struts between core and pods.
 - **HP Split**: Left Pod (200 HP, 1.2 armor) + Right Pod (200 HP, 1.2 armor) + Core (400 HP, 2.0 armor) = 800 total.
@@ -242,7 +242,7 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Multi-phase health bar at screen top showing per-segment health.
 - Output: Multi-segment boss entity with independent segment destruction.
 
-### Step 33 — Phase 1: Radial Flak Barrage
+### Step 33 — Phase 1: Radial Flak Barrage 🔄 ← Current
 - Both weapon pods fire **rotating radial bullet patterns** — left pod clockwise, right pod counter-clockwise. 12 bullets per rotation at 0.8 rad/s, projectile speed 200px/s.
 - Core fires occasional aimed single shots at player (300px/s, 3s cooldown).
 - Boss oscillates laterally across screen (speed 50px/s, amplitude 200px).

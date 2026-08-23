@@ -374,6 +374,46 @@ export class CollisionSystem {
       this.insert(col);
     }
 
+    // C. Boss Entity Multi-Segments (Left Pod, Right Pod, Core)
+    if (gameEngine.boss && gameEngine.boss.active && !gameEngine.boss.isInvulnerable && gameEngine.boss.state !== 'DYING' && gameEngine.boss.state !== 'DEFEATED') {
+      const boss = gameEngine.boss;
+      for (const segKey of ['leftPod', 'rightPod', 'core']) {
+        const seg = boss.segments[segKey];
+        if (!seg || seg.destroyed) continue;
+
+        const pos = boss.getSegmentWorldPosition(segKey);
+        const col = {
+          id: `boss-${segKey}`,
+          type: 'circle',
+          layer: COLLISION_LAYERS.ENEMY,
+          mask: COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE,
+          entity: {
+            isBossSegment: true,
+            boss,
+            segmentId: segKey,
+            segment: seg,
+            hull: seg.hp,
+            maxHull: seg.maxHp,
+            contactDamage: 35,
+            x: pos.x,
+            y: pos.y,
+            relX: pos.x / gameEngine.width,
+            relY: pos.y / gameEngine.height
+          },
+          x: pos.x,
+          y: pos.y,
+          radius: pos.radius,
+          minX: pos.x - pos.radius,
+          maxX: pos.x + pos.radius,
+          minY: pos.y - pos.radius,
+          maxY: pos.y + pos.radius,
+          active: true
+        };
+        targetColliders.push(col);
+        this.insert(col);
+      }
+    }
+
     // 3. Register Active Projectiles (Player & Enemy)
     const projectileColliders = [];
     if (projectiles) {
@@ -524,8 +564,13 @@ export class CollisionSystem {
         const damage = proj.damage || 15;
         const blastRadius = proj.blastRadius || 85;
 
-        target.hull = Math.max(0, target.hull - damage);
-        target.flashTimer = 0.14;
+        if (target.isBossSegment) {
+          target.boss.applyDamage(target.segmentId, damage, gameEngine, soundManager);
+          target.hull = target.segment.hp;
+        } else {
+          target.hull = Math.max(0, target.hull - damage);
+          target.flashTimer = 0.14;
+        }
 
         // 2. Area-of-Effect (AoE) Blast Resolution for Hellfire Guided Missiles & Orbital Strike
         if (isOrbital) {
@@ -553,11 +598,32 @@ export class CollisionSystem {
 
             if (dist <= blastRadius) {
               const splashDamage = Math.max(1, Math.round(damage * (1.0 - dist / blastRadius) * 0.75));
-              otherTgt.hull = Math.max(0, otherTgt.hull - splashDamage);
-              otherTgt.flashTimer = 0.14;
+              if (otherTgt.isBossSegment) {
+                otherTgt.boss.applyDamage(otherTgt.segmentId, splashDamage, gameEngine, soundManager);
+                otherTgt.hull = otherTgt.segment.hp;
+              } else {
+                otherTgt.hull = Math.max(0, otherTgt.hull - splashDamage);
+                otherTgt.flashTimer = 0.14;
 
-              if (otherTgt.hull <= 0) {
-                this._handleTargetDestroyed(otherTgt, { x: ox, y: oy, active: true }, gameEngine, soundManager);
+                if (otherTgt.hull <= 0) {
+                  this._handleTargetDestroyed(otherTgt, { x: ox, y: oy, active: true }, gameEngine, soundManager);
+                }
+              }
+            }
+          }
+
+          // Also check boss segments for Hellfire splash if boss is active
+          if (gameEngine.boss && gameEngine.boss.active && !gameEngine.boss.isInvulnerable) {
+            for (const bSegKey of ['leftPod', 'rightPod', 'core']) {
+              const bSeg = gameEngine.boss.segments[bSegKey];
+              if (!bSeg || bSeg.destroyed) continue;
+              if (target.isBossSegment && target.segmentId === bSegKey) continue;
+
+              const bPos = gameEngine.boss.getSegmentWorldPosition(bSegKey);
+              const bDist = Math.hypot(bPos.x - epicX, bPos.y - epicY);
+              if (bDist <= blastRadius) {
+                const bSplash = Math.max(1, Math.round(damage * (1.0 - bDist / blastRadius) * 0.75));
+                gameEngine.boss.applyDamage(bSegKey, bSplash, gameEngine, soundManager);
               }
             }
           }
@@ -611,7 +677,7 @@ export class CollisionSystem {
         }
 
         // 6. Handle primary target destruction
-        if (target.hull <= 0) {
+        if (!target.isBossSegment && target.hull <= 0) {
           this._handleTargetDestroyed(target, tCol, gameEngine, soundManager);
         }
       }
@@ -694,8 +760,14 @@ export class CollisionSystem {
         if (gameEngine && typeof gameEngine.recordDamageTaken === 'function') {
           gameEngine.recordDamageTaken(ramDamage);
         }
-        target.hull = Math.max(0, target.hull - 35);
-        target.flashTimer = 0.15;
+
+        if (target.isBossSegment) {
+          target.boss.applyDamage(target.segmentId, 35, gameEngine, soundManager);
+          target.hull = target.segment.hp;
+        } else {
+          target.hull = Math.max(0, target.hull - 35);
+          target.flashTimer = 0.15;
+        }
 
         // Push player back slightly along collision normal
         player.vx -= hitResult.nx * 220;
@@ -713,7 +785,7 @@ export class CollisionSystem {
 
         this._recordContact(hitResult.hitX, hitResult.hitY, '#ffb703', hitResult.nx, hitResult.ny);
 
-        if (target.hull <= 0) {
+        if (!target.isBossSegment && target.hull <= 0) {
           this._handleTargetDestroyed(target, tCol, gameEngine, soundManager);
         }
       }

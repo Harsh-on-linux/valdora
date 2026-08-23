@@ -272,8 +272,9 @@ export class WaveRunner {
     const allEventsDispatched = this.eventIndex >= waveEvents.length;
     const activeEnemyCount = gameEngine.enemies ? gameEngine.enemies.getActiveCount() : 0;
     const isHvtActive = gameEngine.hvtWarning && gameEngine.hvtWarning.active;
+    const isBossActive = gameEngine.boss && gameEngine.boss.active && !gameEngine.boss.isDefeated;
 
-    if (allEventsDispatched && activeEnemyCount === 0 && this.waveTimer > 2.5 && !isHvtActive) {
+    if (allEventsDispatched && activeEnemyCount === 0 && this.waveTimer > 2.5 && !isHvtActive && !isBossActive) {
       this.waveActive = false;
 
       this._emit('waveCleared', {

@@ -24,6 +24,7 @@ import { PickupPool } from './PickupPool.js';
 import { WaveRunner } from './WaveRunner.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { HVTWarningSequence } from './HVTWarningSequence.js';
+import { BossEntity } from './BossEntity.js';
 import { soundManager } from '../audio/index.js';
 
 export const ENGINE_STATE = {
@@ -81,10 +82,18 @@ export class GameEngine {
     this.weapons = new WeaponSystem('VULCAN');
     this.enemies = new EnemyPool(40);
     this.pickups = new PickupPool(64);
+    this.boss = new BossEntity();
     this.waveRunner = new WaveRunner();
     this.hudOverlay = new TacticalHUDOverlay();
     this.hvtWarning = new HVTWarningSequence();
     this.collisions = new CollisionSystem({ cellSize: 80, debug: false });
+
+    // When HVT entrance sequence finishes, spawn boss into combat
+    this.hvtWarning.on('complete', (data) => {
+      if (this.state === ENGINE_STATE.RUNNING) {
+        this.spawnBoss(data.type || 'BOSS_MOBILE_COMMAND');
+      }
+    });
 
     this.waveRunner.on('stageComplete', (data) => {
       this.state = ENGINE_STATE.VICTORY;
@@ -229,6 +238,11 @@ export class GameEngine {
     // Clear pickups
     if (this.pickups) {
       this.pickups.clear();
+    }
+
+    // Reset Boss state
+    if (this.boss) {
+      this.boss.reset();
     }
 
     // Clear and initialize hostile target pool & wave runner
@@ -509,6 +523,11 @@ export class GameEngine {
       this.waveRunner.update(dt, this, soundManager);
     }
 
+    // 4.65. Update Multi-Segment HVT Boss Entity
+    if (this.boss && this.boss.active) {
+      this.boss.update(dt, this, soundManager);
+    }
+
     // 4.7. Update Cinematic HVT Red Alert & Satellite Optical Zoom Sequence
     if (this.hvtWarning) {
       this.hvtWarning.update(dt, this);
@@ -654,6 +673,11 @@ export class GameEngine {
     // 4. Render Player Drone (with sub-frame interpolation and FLIR trails)
     this.player.render(ctx, alpha, w, h);
 
+    // 4.2. Render Multi-Segment HVT Boss Entity
+    if (this.boss && this.boss.active) {
+      this.boss.render(ctx, performance.now());
+    }
+
     // 4.5. Render Active Weapon Targeting Guidance & Hold-To-Charge Reticles
     if (this.weapons && typeof this.weapons.render === 'function') {
       this.weapons.render(ctx, this.player, w, h);
@@ -663,6 +687,11 @@ export class GameEngine {
 
     // 5. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
     this.hudOverlay.render(ctx, this.player, w, h);
+
+    // 5.1. Render Tactical Multi-Segment Boss Health Bar HUD
+    if (this.boss && this.boss.active) {
+      this.boss.renderHUD(ctx, w, h);
+    }
 
     // 5.2. Render Tactical Wave Alert Banners & Announcements
     if (this.waveRunner) {
@@ -1032,6 +1061,19 @@ export class GameEngine {
   }
 
   /**
+   * Spawn Boss entity directly into combat arena.
+   * @param {string} [bossType='BOSS_MOBILE_COMMAND']
+   */
+  spawnBoss(bossType = 'BOSS_MOBILE_COMMAND') {
+    if (!this.boss) {
+      this.boss = new BossEntity();
+    }
+    const playerSize = this.player?.size || 54;
+    this.boss.spawn(bossType, this.width, this.height, playerSize);
+    this._emit('bossSpawned', { bossType, boss: this.boss });
+  }
+
+  /**
    * Get engine telemetry data snapshot.
    */
   getTelemetry() {
@@ -1066,6 +1108,11 @@ export class GameEngine {
       stationaryTimer: Number(this.stationaryTimer.toFixed(1)),
       panelsEnabled: this.panelsEnabled,
       hudHidden: this.hudHidden,
+      // Boss & HVT State
+      isBossActive: this.boss ? !!this.boss.active : false,
+      bossHp: this.boss ? this.boss.totalHp : 0,
+      bossMaxHp: this.boss ? this.boss.maxTotalHp : 800,
+      bossPhase: this.boss ? this.boss.phase : 1,
       // HVT Alert Warning State
       isHvtWarningActive: this.hvtWarning ? !!this.hvtWarning.active : false,
       hvtZoomFactor: this.hvtWarning ? this.hvtWarning.getZoomFactor() : 1.0,
