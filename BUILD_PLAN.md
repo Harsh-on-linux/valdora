@@ -224,14 +224,14 @@ Each step is small, builds directly on the previous one, and ends in something t
 - Level 3: Turret Outpost (Fortified positions)
 - Level 4: Heavy Incursion (Mixed swarms + Kamikazes)
 
-### Step 30 — Mission Results & Victory Flow 🔄 ← Current
+### Step 30 — Mission Results & Victory Flow ✅
 - Score calculation, accuracy bonus, 3-star rating thresholding, unlocks, and retry/next navigation.
 
 ---
 
 ## PHASE I — HVT 1: Mobile Command Center (Sector 5)
 
-### Step 31 — HVT warning sequence
+### Step 31 — HVT warning sequence 🔄 ← Current
 - Klaxon sirens, red alert HUD banner, cinematic entrance animation via satellite zoom.
 
 ### Step 32 — HVT framework & multi-segment entity

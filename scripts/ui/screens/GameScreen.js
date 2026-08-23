@@ -497,23 +497,15 @@ export const GameScreen = {
         if (engineState === 'VICTORY') {
           setTimeout(() => {
             if (router && window.__screenManager?.currentScreenName === 'game') {
-              router.show('results', {
-                sector: sectorId,
-                victory: true,
-                score: activeEngine ? activeEngine.score : 0,
-                kills: activeEngine?.enemies ? activeEngine.enemies.totalKills : 0
-              });
+              const summary = activeEngine ? activeEngine.getMissionSummary(true) : { sector: sectorId, victory: true };
+              router.show('results', summary);
             }
           }, 2400);
         } else if (engineState === 'GAMEOVER') {
           setTimeout(() => {
             if (router && window.__screenManager?.currentScreenName === 'game') {
-              router.show('results', {
-                sector: sectorId,
-                victory: false,
-                score: activeEngine ? activeEngine.score : 0,
-                kills: activeEngine?.enemies ? activeEngine.enemies.totalKills : 0
-              });
+              const summary = activeEngine ? activeEngine.getMissionSummary(false) : { sector: sectorId, victory: false };
+              router.show('results', summary);
             }
           }, 1800);
         }
@@ -627,16 +619,15 @@ export const GameScreen = {
     if (resultsBtn) {
       resultsBtn.addEventListener('click', () => {
         soundManager.playStart();
-        const sc = (activeEngine && activeEngine.score > 0) ? activeEngine.score : 145800;
-        const kl = (activeEngine?.enemies && activeEngine.enemies.totalKills > 0) ? activeEngine.enemies.totalKills : 42;
-        if (activeEngine) activeEngine.stop();
-        if (router) router.show('results', {
+        const summary = activeEngine ? activeEngine.getMissionSummary(true) : {
           sector: sectorId,
           victory: true,
-          score: sc,
-          kills: kl,
-          accuracy: 92
-        });
+          score: 12500,
+          kills: 24,
+          accuracy: 88
+        };
+        if (activeEngine) activeEngine.stop();
+        if (router) router.show('results', summary);
       });
       resultsBtn.addEventListener('mouseenter', () => soundManager.playHover());
     }

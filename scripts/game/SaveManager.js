@@ -121,6 +121,8 @@ export class SaveManager {
 
     const prevHighScore = data.sectorScores[sectorKey] || 0;
     const prevStars = data.sectorStars[sectorKey] || 0;
+    const isNewRecord = score > prevHighScore;
+    const prevMaxUnlocked = data.maxSectorUnlocked || 1;
 
     data.sectorScores[sectorKey] = Math.max(prevHighScore, score);
     data.sectorStars[sectorKey] = Math.max(prevStars, stars);
@@ -136,7 +138,15 @@ export class SaveManager {
     // Recalculate total stars
     data.starsEarned = Object.values(data.sectorStars).reduce((acc, s) => acc + s, 0);
 
-    return this.save(data);
+    const saved = this.save(data);
+    return {
+      ...saved,
+      isNewRecord,
+      prevHighScore,
+      prevStars,
+      newlyUnlocked: data.maxSectorUnlocked > prevMaxUnlocked,
+      nextSectorId: nextSector
+    };
   }
 
   /**

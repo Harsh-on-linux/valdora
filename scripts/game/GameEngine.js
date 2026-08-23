@@ -12,7 +12,7 @@
  */
 
 import { TacticalMapLayer } from './TacticalMapLayer.js';
-import { getLevelById } from './levels.js';
+import { getLevelById, calculateStars } from './levels.js';
 import { getDroneById, getWeaponById } from './drones.js';
 import { InputManager } from './InputManager.js';
 import { PlayerDrone } from './PlayerDrone.js';
@@ -101,6 +101,10 @@ export class GameEngine {
     this.maxHull = 100;
     this.shield = 100;
     this.maxShield = 100;
+    this.shotsFired = 0;
+    this.shotsHit = 0;
+    this.damageTaken = 0;
+    this.pickupsCollected = 0;
 
     // Dynamic HUD auto-hide tracking (hidden by default)
     this.isPlayerMoving = false;
@@ -223,6 +227,10 @@ export class GameEngine {
     this.maxHull = this.player.maxHull;
     this.shield = this.player.shield;
     this.maxShield = this.player.maxShield;
+    this.shotsFired = 0;
+    this.shotsHit = 0;
+    this.damageTaken = 0;
+    this.pickupsCollected = 0;
 
     // Attach input handlers to canvas
     this.input.attach(this.canvas);
@@ -542,6 +550,23 @@ export class GameEngine {
     // 8. Sync player stats with engine stats
     this.hull = this.player.hull;
     this.shield = this.player.shield;
+
+    // 9. Check for player destruction / Mission Compromised
+    if (this.state === ENGINE_STATE.RUNNING && this.player.hull <= 0) {
+      this.state = ENGINE_STATE.GAMEOVER;
+      this.addCameraShake(22);
+      if (this.projectiles) {
+        this.projectiles.spawnHitSparks(this.player.x, this.player.y, '#ff003c', 36);
+        this.projectiles.spawnHitSparks(this.player.x, this.player.y, '#ffb703', 24);
+        this.projectiles.spawnHitSparks(this.player.x, this.player.y, '#ffffff', 18);
+        this.projectiles.spawnMuzzleFlash(this.player.x, this.player.y, '#ff003c', 40, 0);
+      }
+      if (soundManager) {
+        if (typeof soundManager.playExplosion === 'function') soundManager.playExplosion(2.2);
+        if (typeof soundManager.playDefeat === 'function') soundManager.playDefeat();
+      }
+      this._emit('stateChange', this.state);
+    }
   }
 
   /**
@@ -1047,6 +1072,117 @@ export class GameEngine {
     });
     console.log(`🎛️ Tactical Panels: ${this.panelsEnabled ? 'ENABLED (Visible when stationary)' : 'DISABLED (Hidden)'}`);
     return this.panelsEnabled;
+  }
+
+  /**
+   * Record fired projectile count for accuracy statistics.
+   * @param {number} [count=1]
+   */
+  recordShotFired(count = 1) {
+    this.shotsFired += count;
+  }
+
+  /**
+   * Record projectile hit count on hostiles for accuracy calculation.
+   * @param {number} [count=1]
+   */
+  recordShotHit(count = 1) {
+    this.shotsHit += count;
+  }
+
+  /**
+   * Record total damage sustained by player.
+   * @param {number} [amount=0]
+   */
+  recordDamageTaken(amount = 0) {
+    this.damageTaken += amount;
+  }
+
+  /**
+   * Record collected pickup or intel data cache.
+   */
+  recordPickupCollected() {
+    this.pickupsCollected++;
+  }
+
+  /**
+   * Calculate comprehensive tactical mission evaluation summary.
+   * @param {boolean} [isVictory=true]
+   * @returns {Object} Mission debrief summary payload
+   */
+  getMissionSummary(isVictory = true) {
+    const sectorId = this.sectorConfig?.id || 1;
+    const levelInfo = getLevelById(sectorId) || {
+      id: sectorId,
+      name: `SECTOR ${sectorId.toString().padStart(2, '0')}`,
+      scoreThresholds: { star1: 1000, star2: 2000, star3: 3000 }
+    };
+
+    const baseScore = Math.max(0, Math.round(this.score));
+    const shotsFired = Math.max(0, this.shotsFired);
+    const shotsHit = Math.max(0, this.shotsHit);
+    const accuracyPct = shotsFired > 0 ? Math.min(100, Math.round((shotsHit / shotsFired) * 100)) : 100;
+
+    // Accuracy Bonus (up to +35% of base score for high precision >= 50%)
+    let accuracyBonus = 0;
+    if (accuracyPct >= 50) {
+      accuracyBonus = Math.round(baseScore * (accuracyPct / 100) * 0.35);
+    }
+
+    // Hull Integrity Bonus (awarded on victory based on remaining hull)
+    const hullPct = Math.max(0, Math.min(100, Math.round((this.player.hull / (this.player.maxHull || 100)) * 100)));
+    let hullBonus = 0;
+    if (isVictory) {
+      hullBonus = Math.round((hullPct / 100) * 1200);
+    }
+
+    // Rapid Clear Speed Bonus (awarded on victory for clearing sector within par time)
+    let timeBonus = 0;
+    if (isVictory) {
+      const parTime = 120; // 2 minutes par time
+      if (this.simTime < parTime) {
+        timeBonus = Math.round((parTime - this.simTime) * 20);
+      }
+    }
+
+    const totalFinalScore = baseScore + (isVictory ? (accuracyBonus + hullBonus + timeBonus) : 0);
+    const stars = isVictory ? calculateStars(sectorId, totalFinalScore) : 0;
+
+    let grade = 'F';
+    if (!isVictory) {
+      grade = 'MIA';
+    } else if (stars === 3 && accuracyPct >= 80) {
+      grade = 'S';
+    } else if (stars >= 2 && accuracyPct >= 60) {
+      grade = 'A';
+    } else if (stars >= 1) {
+      grade = 'B';
+    } else {
+      grade = 'C';
+    }
+
+    return {
+      sector: sectorId,
+      sectorName: levelInfo.name,
+      victory: isVictory,
+      baseScore,
+      accuracy: accuracyPct,
+      shotsFired,
+      shotsHit,
+      accuracyBonus,
+      hullPct,
+      hullBonus,
+      timeElapsed: Number(this.simTime.toFixed(1)),
+      timeBonus,
+      pickupsCollected: this.pickupsCollected || 0,
+      score: totalFinalScore,
+      stars,
+      grade,
+      kills: this.enemies ? this.enemies.totalKills : 0,
+      thresholds: levelInfo.scoreThresholds,
+      drone: this.droneConfig?.name || 'STRIKER',
+      weapon: this.weaponConfig?.name || 'VULCAN'
+    };
   }
 
   /**

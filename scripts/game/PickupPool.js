@@ -306,6 +306,11 @@ export class PickupPool {
 
     // 1. Award score
     gameEngine.score += cfg.scoreValue || 200;
+    if (typeof gameEngine.recordPickupCollected === 'function') {
+      gameEngine.recordPickupCollected();
+    } else {
+      gameEngine.pickupsCollected = (gameEngine.pickupsCollected || 0) + 1;
+    }
 
     // 2. Execute unique payload effect
     switch (pickup.type) {

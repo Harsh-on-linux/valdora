@@ -516,6 +516,10 @@ export class CollisionSystem {
         this.stats.hitsThisFrame++;
         this.stats.totalHits++;
 
+        if (gameEngine && typeof gameEngine.recordShotHit === 'function') {
+          gameEngine.recordShotHit(1);
+        }
+
         // 1. Apply ballistic damage
         const damage = proj.damage || 15;
         const blastRadius = proj.blastRadius || 85;
@@ -639,7 +643,11 @@ export class CollisionSystem {
         this.stats.totalHits++;
 
         // Apply damage to player
-        player.applyDamage(proj.damage || 12);
+        const dmg = proj.damage || 12;
+        player.applyDamage(dmg);
+        if (gameEngine && typeof gameEngine.recordDamageTaken === 'function') {
+          gameEngine.recordDamageTaken(dmg);
+        }
         gameEngine.addCameraShake(5);
 
         if (gameEngine.projectiles) {
@@ -683,6 +691,9 @@ export class CollisionSystem {
         // Ramming contact damage
         const ramDamage = target.contactDamage || 20;
         player.applyDamage(ramDamage);
+        if (gameEngine && typeof gameEngine.recordDamageTaken === 'function') {
+          gameEngine.recordDamageTaken(ramDamage);
+        }
         target.hull = Math.max(0, target.hull - 35);
         target.flashTimer = 0.15;
 
