@@ -19,6 +19,8 @@ let activeEngine = null;
 let telemetryUnsub = null;
 let hudVisibilityUnsub = null;
 let keyHandler = null;
+let onHvtStartHandler = null;
+let onHvtEndHandler = null;
 
 export const GameScreen = {
   mount(container, data = {}, router) {
@@ -640,6 +642,17 @@ export const GameScreen = {
       activeEngine.on('hudVisibilityChange', onHudVisibility);
       hudVisibilityUnsub = () => activeEngine.off('hudVisibilityChange', onHudVisibility);
 
+      // HVT Red Alert DOM effect listeners
+      onHvtStartHandler = () => {
+        if (hudLayer) hudLayer.classList.add('hvt-red-alert');
+      };
+      onHvtEndHandler = () => {
+        if (hudLayer) hudLayer.classList.remove('hvt-red-alert');
+      };
+      window.addEventListener('hvt:warning:start', onHvtStartHandler);
+      window.addEventListener('hvt:warning:end', onHvtEndHandler);
+      window.__triggerHvtWarning = (opts) => activeEngine?.triggerHvtWarning(opts);
+
       // Automatic Victory & Game Over debrief screen transitions
       const onStateChange = (engineState) => {
         if (engineState === 'VICTORY') {
@@ -839,6 +852,16 @@ export const GameScreen = {
       hudVisibilityUnsub();
       hudVisibilityUnsub = null;
     }
+
+    if (onHvtStartHandler) {
+      window.removeEventListener('hvt:warning:start', onHvtStartHandler);
+      onHvtStartHandler = null;
+    }
+    if (onHvtEndHandler) {
+      window.removeEventListener('hvt:warning:end', onHvtEndHandler);
+      onHvtEndHandler = null;
+    }
+    delete window.__triggerHvtWarning;
 
     // Note: If navigating to 'pause', engine is paused, otherwise stop
     const activeScreen = window.__screenManager?.currentScreenName;

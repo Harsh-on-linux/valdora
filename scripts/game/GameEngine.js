@@ -23,6 +23,7 @@ import { EnemyPool } from './EnemyPool.js';
 import { PickupPool } from './PickupPool.js';
 import { WaveRunner } from './WaveRunner.js';
 import { CollisionSystem } from './CollisionSystem.js';
+import { HVTWarningSequence } from './HVTWarningSequence.js';
 import { soundManager } from '../audio/index.js';
 
 export const ENGINE_STATE = {
@@ -82,6 +83,7 @@ export class GameEngine {
     this.pickups = new PickupPool(64);
     this.waveRunner = new WaveRunner();
     this.hudOverlay = new TacticalHUDOverlay();
+    this.hvtWarning = new HVTWarningSequence();
     this.collisions = new CollisionSystem({ cellSize: 80, debug: false });
 
     this.waveRunner.on('stageComplete', (data) => {
@@ -340,9 +342,20 @@ export class GameEngine {
   /**
    * Trigger screen shake impulse.
    * @param {number} intensity - Shake magnitude in pixels
+   * @param {number} [decay=0.92] - Decay factor per tick
    */
-  addCameraShake(intensity = 8) {
-    this.shakeIntensity = Math.min(this.shakeIntensity + intensity, 35);
+  addCameraShake(intensity = 8, decay = 0.92) {
+    this.shakeIntensity = Math.min(this.shakeIntensity + intensity, 40);
+    this.shakeDecay = decay;
+  }
+
+  /**
+   * Alias for addCameraShake with intensity and decay options.
+   * @param {number} [intensity=10]
+   * @param {number} [decay=0.92]
+   */
+  shake(intensity = 10, decay = 0.92) {
+    this.addCameraShake(intensity, decay);
   }
 
   /**
@@ -496,6 +509,11 @@ export class GameEngine {
       this.waveRunner.update(dt, this, soundManager);
     }
 
+    // 4.7. Update Cinematic HVT Red Alert & Satellite Optical Zoom Sequence
+    if (this.hvtWarning) {
+      this.hvtWarning.update(dt, this);
+    }
+
     // 4.8. Update Tactical Pickups, Supply Crates & Magnetic Attraction
     if (this.pickups) {
       this.pickups.update(dt, this.width, this.height, this.player);
@@ -605,6 +623,18 @@ export class GameEngine {
       ctx.translate(this.cameraShakeX, this.cameraShakeY);
     }
 
+    // 1. Render World Layers with Satellite Camera Zoom
+    const isZooming = this.hvtWarning && this.hvtWarning.active;
+    const zoom = isZooming ? this.hvtWarning.getZoomFactor() : 1.0;
+    const focal = isZooming ? this.hvtWarning.getFocalPoint(w, h) : { x: w * 0.5, y: h * 0.5 };
+
+    ctx.save();
+    if (zoom !== 1.0) {
+      ctx.translate(focal.x, focal.y);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-focal.x, -focal.y);
+    }
+
     // 1. Render Tactical Satellite & Topographic Map Layer
     this.tacticalMap.render(ctx, w, h);
 
@@ -629,12 +659,19 @@ export class GameEngine {
       this.weapons.render(ctx, this.player, w, h);
     }
 
+    ctx.restore();
+
     // 5. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
     this.hudOverlay.render(ctx, this.player, w, h);
 
     // 5.2. Render Tactical Wave Alert Banners & Announcements
     if (this.waveRunner) {
       this.waveRunner.render(ctx, w, h);
+    }
+
+    // 5.3. Render HVT Red Alert Warning & Satellite Optic Recon Overlay
+    if (this.hvtWarning) {
+      this.hvtWarning.render(ctx, w, h);
     }
 
     // 5.5. Render Virtual Touch Joystick Overlay (when active or onboarding cue)
@@ -967,6 +1004,34 @@ export class GameEngine {
   }
 
   /**
+   * Trigger cinematic HVT Red Alert & Satellite Optical Zoom Warning.
+   * @param {Object} [options]
+   * @param {string} [options.bossName]
+   * @param {string} [options.bossType]
+   * @param {number} [options.sector]
+   * @param {number} [options.duration=3.5]
+   * @param {Function} [options.onComplete]
+   */
+  triggerHvtWarning(options = {}) {
+    if (!this.hvtWarning) {
+      this.hvtWarning = new HVTWarningSequence();
+    }
+    const sector = options.sector || this.sectorConfig?.id || 5;
+    const bossName = options.bossName || this.sectorConfig?.bossName || 'HVT MOBILE COMMAND CENTER';
+    const bossType = options.bossType || 'BOSS_MOBILE_COMMAND';
+
+    this.hvtWarning.start({
+      bossName,
+      bossType,
+      sector,
+      duration: options.duration || 3.5,
+      onComplete: options.onComplete
+    });
+
+    this._emit('telemetry', this.getTelemetry());
+  }
+
+  /**
    * Get engine telemetry data snapshot.
    */
   getTelemetry() {
@@ -1001,6 +1066,9 @@ export class GameEngine {
       stationaryTimer: Number(this.stationaryTimer.toFixed(1)),
       panelsEnabled: this.panelsEnabled,
       hudHidden: this.hudHidden,
+      // HVT Alert Warning State
+      isHvtWarningActive: this.hvtWarning ? !!this.hvtWarning.active : false,
+      hvtZoomFactor: this.hvtWarning ? this.hvtWarning.getZoomFactor() : 1.0,
       // Active Weapon & Arsenal Telemetry
       activeWeapon: this.weapons?.activeWeaponId || 'VULCAN',
       weaponName: this.weapons?.weaponConfig?.name || 'GAU-22 VULCAN',

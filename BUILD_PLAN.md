@@ -231,10 +231,10 @@ Each step is small, builds directly on the previous one, and ends in something t
 
 ## PHASE I — HVT 1: Mobile Command Center (Sector 5)
 
-### Step 31 — HVT warning sequence 🔄 ← Current
+### Step 31 — HVT warning sequence ✅
 - Klaxon sirens, red alert HUD banner, cinematic entrance animation via satellite zoom.
 
-### Step 32 — HVT framework & multi-segment entity
+### Step 32 — HVT framework & multi-segment entity 🔄 ← Current
 - **Entity**: `BOSS_MOBILE_COMMAND` — ~2.5× player scale width. Central octagonal command bridge flanked by two armored weapon pod modules.
 - **Visual**: Octagonal core with armor plate lines, sensor dome, antenna arrays. Each pod has cut-corner rectangular body with 2 turret barrels. Connecting struts between core and pods.
 - **HP Split**: Left Pod (200 HP, 1.2 armor) + Right Pod (200 HP, 1.2 armor) + Core (400 HP, 2.0 armor) = 800 total.

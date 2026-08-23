@@ -271,8 +271,9 @@ export class WaveRunner {
     // 3. Check wave completion conditions
     const allEventsDispatched = this.eventIndex >= waveEvents.length;
     const activeEnemyCount = gameEngine.enemies ? gameEngine.enemies.getActiveCount() : 0;
+    const isHvtActive = gameEngine.hvtWarning && gameEngine.hvtWarning.active;
 
-    if (allEventsDispatched && activeEnemyCount === 0 && this.waveTimer > 2.5) {
+    if (allEventsDispatched && activeEnemyCount === 0 && this.waveTimer > 2.5 && !isHvtActive) {
       this.waveActive = false;
 
       this._emit('waveCleared', {
@@ -348,6 +349,17 @@ export class WaveRunner {
         this.showBanner(evt.text || 'WARNING', evt.subtext || '', evt.color || '#ff003c', evt.duration || 2.5);
         if (soundManager && typeof soundManager.playWarning === 'function') {
           soundManager.playWarning();
+        }
+        break;
+
+      case 'hvt_warning':
+        if (gameEngine && typeof gameEngine.triggerHvtWarning === 'function') {
+          gameEngine.triggerHvtWarning({
+            bossName: evt.bossName || 'HVT MOBILE COMMAND CENTER',
+            bossType: evt.bossType || 'BOSS_MOBILE_COMMAND',
+            sector: evt.sector || this.currentSectorId || 5,
+            duration: evt.duration || 3.5
+          });
         }
         break;
     }
@@ -507,6 +519,31 @@ export class WaveRunner {
           events.push({ time: 2.8, type: 'spawn', enemyType: 'RADAR_JAMMER', relX: 0.5 });
           events.push({ time: 3.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.85 });
           events.push({ time: 5.0, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 5, relX: 0.5 });
+        }
+      } else if (sectorId === 5) {
+        // Level 5: MOBILE COMMAND (HVT Encounter — High-Value Target Fortress)
+        if (w === 1) {
+          // Wave 1: Vanguard Interceptors & SAM outpost
+          events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 3, relX: 0.5 });
+          events.push({ time: 2.0, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.8 });
+          events.push({ time: 3.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'pair', count: 2, relX: 0.25 });
+        } else if (w === 2) {
+          // Wave 2: Heavy Escorts, Kamikaze Dive Bombers & ECM Jammer
+          events.push({ time: 0.5, type: 'spawn', enemyType: 'RADAR_JAMMER', relX: 0.5 });
+          events.push({ time: 1.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'echelon', count: 4, relX: 0.3 });
+          events.push({ time: 3.0, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.25 });
+          events.push({ time: 3.8, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.75 });
+          events.push({ time: 4.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.2 });
+        } else {
+          // Wave 3: CRITICAL THREAT — HVT RED ALERT WARNING & SATELLITE OPTICAL ZOOM
+          events.push({
+            time: 0.5,
+            type: 'hvt_warning',
+            bossName: 'HVT MOBILE COMMAND CENTER',
+            bossType: 'BOSS_MOBILE_COMMAND',
+            sector: 5,
+            duration: 3.5
+          });
         }
       } else {
         // Generic sector fallback
