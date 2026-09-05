@@ -5,6 +5,6 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "test": "node tests/collision-smoke.mjs && node tests/weapons-smoke.mjs && node tests/enemies-smoke.mjs"
+    "test": "node tests/collision-smoke.mjs && node tests/weapons-smoke.mjs && node tests/enemies-smoke.mjs && node tests/lifecycle-smoke.mjs"
   }
 }
