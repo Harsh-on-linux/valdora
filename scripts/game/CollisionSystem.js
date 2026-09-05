@@ -831,7 +831,8 @@ export class CollisionSystem {
 
     // 1. Add mission score
     const scoreVal = target.scoreValue || (target.threatLevel ? target.threatLevel * 150 : 250);
-    gameEngine.score += scoreVal;
+    if (typeof gameEngine.addScore === 'function') gameEngine.addScore(scoreVal);
+    else gameEngine.score += scoreVal;
 
     // 1.5. Roll tactical supply & intel drops
     if (gameEngine.pickups) {
@@ -911,8 +912,9 @@ export class CollisionSystem {
    * @param {import('./PlayerDrone.js').PlayerDrone} player
    * @param {import('./ProjectilePool.js').ProjectilePool} projectiles
    * @param {Array<Object>} targets
+   * @param {import('./EnemyPool.js').EnemyPool} [enemies]
    */
-  renderDebug(ctx, width, height, player, projectiles, targets) {
+  renderDebug(ctx, width, height, player, projectiles, targets, enemies) {
     if (!this.debug) return;
 
     ctx.save();

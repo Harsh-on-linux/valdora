@@ -27,6 +27,8 @@ export class WaveRunner {
     this.isStageCleared = false;
     this.isObjectiveMet = false;
     this.isUnlimitedMode = false;
+    this.spawnedThisWave = 0;
+    this.nextWaveDelay = 0;
 
     // Timeline event cursor
     this.eventIndex = 0;
@@ -64,6 +66,13 @@ export class WaveRunner {
     return this;
   }
 
+  off(event, callback) {
+    if (this.listeners[event]) {
+      this.listeners[event] = this.listeners[event].filter(listener => listener !== callback);
+    }
+    return this;
+  }
+
   /**
    * Emit internal event.
    * @param {string} event
@@ -83,6 +92,7 @@ export class WaveRunner {
    * @param {Object} sectorConfig
    */
   loadSector(sectorId = 1, sectorConfig = null) {
+    this.stop();
     this.currentSectorId = sectorId;
     this.sectorConfig = sectorConfig;
     this.totalWaves = sectorConfig?.waveCount || 3;
@@ -94,6 +104,7 @@ export class WaveRunner {
     this.isObjectiveMet = false;
     this.isUnlimitedMode = false;
     this.eventIndex = 0;
+    this.spawnedThisWave = 0;
 
     // Generate timeline script for this sector
     this.activeTimeline = this._buildSectorScript(sectorId, this.totalWaves);
@@ -106,19 +117,19 @@ export class WaveRunner {
       2.2
     );
 
-    setTimeout(() => {
-      this.startNextWave();
-    }, 2200);
+    this.nextWaveDelay = 2.2;
   }
 
   /**
    * Start the next scripted wave.
    */
   startNextWave() {
+    if (this.isScriptCompleted || this.isUnlimitedMode) return;
     this.currentWaveIndex++;
     this.waveTimer = 0;
     this.waveActive = true;
     this.eventIndex = 0;
+    this.spawnedThisWave = 0;
 
     const isFinalWave = this.currentWaveIndex >= this.totalWaves;
     const bannerTitle = isFinalWave
@@ -151,9 +162,7 @@ export class WaveRunner {
       '#ffb703',
       3.0
     );
-    setTimeout(() => {
-      this.startNextUnlimitedWave();
-    }, 1500);
+    this.nextWaveDelay = 1.5;
   }
 
   /**
@@ -164,6 +173,7 @@ export class WaveRunner {
     this.waveTimer = 0;
     this.waveActive = true;
     this.eventIndex = 0;
+    this.spawnedThisWave = 0;
 
     const waveNum = this.currentWaveIndex;
     const bannerTitle = `♾️ SURVIVAL WAVE 0${waveNum}`;
@@ -252,7 +262,16 @@ export class WaveRunner {
       }
     }
 
-    if (!this.waveActive) return;
+    if (!this.waveActive) {
+      if (this.nextWaveDelay > 0) {
+        this.nextWaveDelay = Math.max(0, this.nextWaveDelay - dt);
+        if (this.nextWaveDelay === 0 && gameEngine.state === 'RUNNING') {
+          if (this.isUnlimitedMode) this.startNextUnlimitedWave();
+          else if (!this.isScriptCompleted) this.startNextWave();
+        }
+      }
+      return;
+    }
 
     this.waveTimer += dt;
 
@@ -285,18 +304,10 @@ export class WaveRunner {
 
       if (this.isUnlimitedMode) {
         // Continuous endless survival wave progression
-        setTimeout(() => {
-          if (gameEngine.state === 'RUNNING') {
-            this.startNextUnlimitedWave();
-          }
-        }, 1800);
+          this.nextWaveDelay = 1.8;
       } else if (this.currentWaveIndex < this.totalWaves) {
         // Schedule next scripted wave after 2.2s breather
-        setTimeout(() => {
-          if (gameEngine.state === 'RUNNING') {
-            this.startNextWave();
-          }
-        }, 2200);
+        this.nextWaveDelay = 2.2;
       } else {
         // Primary mission objectives complete!
         this.isStageCleared = true;
@@ -307,6 +318,7 @@ export class WaveRunner {
           sectorId: this.currentSectorId,
           score: gameEngine.score
         });
+        this.isScriptCompleted = true;
       }
     }
   }
@@ -324,7 +336,7 @@ export class WaveRunner {
     switch (evt.type) {
       case 'formation':
         if (enemies) {
-          enemies.spawnFormation({
+          const spawned = enemies.spawnFormation({
             type: evt.enemyType || 'RECON_BUGGY',
             formation: evt.formation || 'vShape',
             count: evt.count || 3,
@@ -333,16 +345,17 @@ export class WaveRunner {
             spacingX: evt.spacingX || 55,
             spacingY: evt.spacingY || 45
           });
+          this.spawnedThisWave += spawned.length;
         }
         break;
 
       case 'spawn':
         if (enemies) {
-          enemies.spawn({
+          if (enemies.spawn({
             type: evt.enemyType || 'SAM_TURRET',
             x: evt.relX !== undefined ? w * evt.relX : (evt.x || w * 0.5),
             y: evt.y || -50
-          });
+          })) this.spawnedThisWave++;
         }
         break;
 
@@ -547,11 +560,17 @@ export class WaveRunner {
           });
         }
       } else {
-        // Generic sector fallback
-        if (w === 1) {
-          events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.5 });
-        } else {
-          events.push({ time: 0.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'vShape', count: 4, relX: 0.5 });
+        const enemyTypes = (this.sectorConfig?.enemyWaves || ['recon_buggy'])
+          .map(normalizeEnemyType)
+          .filter(Boolean);
+        const type = enemyTypes[(w - 1) % Math.max(1, enemyTypes.length)] || 'RECON_BUGGY';
+        const count = Math.min(7, 2 + Math.ceil(w / 2) + Math.floor((sectorId - 5) / 2));
+        events.push({ time: 0.5, type: 'formation', enemyType: type, formation: w % 3 === 0 ? 'echelon' : 'vShape', count, relX: 0.5 });
+        if (enemyTypes.length > 1) {
+          events.push({ time: 2.8, type: 'spawn', enemyType: enemyTypes[w % enemyTypes.length], relX: w % 2 ? 0.25 : 0.75 });
+        }
+        if (sectorId === 10 && w === waveCount) {
+          events.push({ time: 4.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'echelon', count, relX: 0.5 });
         }
       }
 
@@ -560,4 +579,23 @@ export class WaveRunner {
 
     return waves;
   }
+
+  stop() {
+    this.waveActive = false;
+    this.isUnlimitedMode = false;
+    this.isScriptCompleted = true;
+    this.nextWaveDelay = 0;
+  }
+}
+
+function normalizeEnemyType(type) {
+  const aliases = {
+    RECON_BUGGY: 'RECON_BUGGY',
+    INTERCEPTOR_JET: 'INTERCEPTOR',
+    INTERCEPTOR: 'INTERCEPTOR',
+    SAM_TURRET: 'SAM_TURRET',
+    KAMIKAZE_DRONE: 'KAMIKAZE_DRONE',
+    RADAR_JAMMER: 'RADAR_JAMMER'
+  };
+  return aliases[String(type || '').toUpperCase()] || null;
 }

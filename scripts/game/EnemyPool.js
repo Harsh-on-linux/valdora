@@ -202,6 +202,10 @@ export class EnemyPool {
           if (left) spawned.push(left);
           if (right) spawned.push(right);
         }
+        if (spawned.length < count) {
+          const tail = this.spawn({ type, x: cx, y: cy - (wingPairs + 1) * sy });
+          if (tail) spawned.push(tail);
+        }
         break;
       }
 
@@ -256,10 +260,10 @@ export class EnemyPool {
 
       case 'pair':
       default: {
-        const left = this.spawn({ type, x: cx - sx * 0.5, y: cy });
-        const right = this.spawn({ type, x: cx + sx * 0.5, y: cy });
-        if (left) spawned.push(left);
-        if (right) spawned.push(right);
+        for (let i = 0; i < count; i++) {
+          const enemy = this.spawn({ type, x: cx + (i - (count - 1) / 2) * sx, y: cy });
+          if (enemy) spawned.push(enemy);
+        }
         break;
       }
     }

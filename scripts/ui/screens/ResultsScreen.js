@@ -9,6 +9,7 @@ import { getLevelById, calculateStars } from '../../game/levels.js';
 import { SaveManager } from '../../game/SaveManager.js';
 
 let keyHandler = null;
+let fanfareTimer = null;
 
 export const ResultsScreen = {
   mount(container, data = {}, router) {
@@ -98,8 +99,10 @@ export const ResultsScreen = {
     `;
 
     // Star fanfare (single delayed chord, no per-star timers)
+    if (fanfareTimer) clearTimeout(fanfareTimer);
+    fanfareTimer = null;
     if (stars > 0) {
-      setTimeout(() => { try { soundManager.playStarAward?.(stars - 1); } catch (_) {} }, 350);
+      fanfareTimer = setTimeout(() => { fanfareTimer = null; try { soundManager.playStarAward?.(stars - 1); } catch (_) {} }, 350);
     }
 
     const go = (screen, s) => { soundManager.playClick(); if (router) router.show(screen, { sector: s }); };
@@ -119,6 +122,7 @@ export const ResultsScreen = {
 
   unmount() {
     if (keyHandler) { window.removeEventListener('keydown', keyHandler); keyHandler = null; }
+    if (fanfareTimer) { clearTimeout(fanfareTimer); fanfareTimer = null; }
   }
 };
 

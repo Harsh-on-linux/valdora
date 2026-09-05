@@ -70,6 +70,7 @@ export class PickupPool {
    */
   constructor(maxPickups = 64) {
     this.maxPickups = maxPickups;
+    this._boostTimer = null;
 
     // Pre-allocated object pool
     this.pickups = new Array(maxPickups);
@@ -305,7 +306,9 @@ export class PickupPool {
     const cfg = pickup.config;
 
     // 1. Award score
-    gameEngine.score += cfg.scoreValue || 200;
+    const scoreValue = cfg.scoreValue || 200;
+    if (typeof gameEngine.addScore === 'function') gameEngine.addScore(scoreValue);
+    else gameEngine.score += scoreValue;
     if (typeof gameEngine.recordPickupCollected === 'function') {
       gameEngine.recordPickupCollected();
     } else {
@@ -337,7 +340,8 @@ export class PickupPool {
       case 'ORDNANCE_OVERCHARGE':
         // Boost weapon firing speed & power
         player.boostMultiplier = 1.35;
-        setTimeout(() => { player.boostMultiplier = 1.0; }, 8000);
+        if (this._boostTimer) clearTimeout(this._boostTimer);
+        this._boostTimer = setTimeout(() => { this._boostTimer = null; player.boostMultiplier = 1.0; }, 8000);
         if (gameEngine.projectiles) {
           gameEngine.projectiles.spawnHitSparks(player.x, player.y, '#ffb703', 18);
         }
@@ -377,6 +381,10 @@ export class PickupPool {
    * Deactivate all pickups.
    */
   clear() {
+    if (this._boostTimer) {
+      clearTimeout(this._boostTimer);
+      this._boostTimer = null;
+    }
     for (let i = 0; i < this.maxPickups; i++) {
       this.pickups[i].active = false;
     }

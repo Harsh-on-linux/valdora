@@ -59,10 +59,23 @@ export class ScreenManager {
     const previousScreenInstance = this.activeScreenInstance;
     const previousScreenElement = this.activeScreenElement;
     const nextScreenModule = this.screens.get(targetScreenId);
+    const previousScreenId = this.activeScreenId;
 
     // Set active screen attribute on body and root for contextual layout styling immediately
     document.body.setAttribute('data-active-screen', targetScreenId);
     this.uiRoot.setAttribute('data-active-screen', targetScreenId);
+
+    // Unmount before mounting the next singleton screen. Several screens keep
+    // module-level listeners, so mounting first would overwrite their cleanup
+    // handles and leak input callbacks across transitions.
+    this.activeScreenId = targetScreenId;
+    if (previousScreenInstance && typeof previousScreenInstance.unmount === 'function') {
+      try {
+        previousScreenInstance.unmount();
+      } catch (err) {
+        console.error('[ScreenManager] Error unmounting previous screen:', err);
+      }
+    }
 
     // 1. Create container for the new screen
     const newScreenElement = document.createElement('div');
@@ -76,6 +89,9 @@ export class ScreenManager {
       }
     } catch (err) {
       console.error(`[ScreenManager] Error mounting screen "${targetScreenId}":`, err);
+      this.activeScreenId = previousScreenId;
+      document.body.setAttribute('data-active-screen', previousScreenId || '');
+      this.uiRoot.setAttribute('data-active-screen', previousScreenId || '');
       this.isTransitioning = false;
       return false;
     }
@@ -99,13 +115,6 @@ export class ScreenManager {
 
     // 5. Cleanup and unmount the previous screen
     if (previousScreenElement) {
-      try {
-        if (previousScreenInstance && typeof previousScreenInstance.unmount === 'function') {
-          previousScreenInstance.unmount();
-        }
-      } catch (err) {
-        console.error('[ScreenManager] Error unmounting previous screen:', err);
-      }
       if (previousScreenElement.parentNode) {
         previousScreenElement.parentNode.removeChild(previousScreenElement);
       }

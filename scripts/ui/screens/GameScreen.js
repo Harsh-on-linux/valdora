@@ -25,6 +25,8 @@ let waveBannerUnsub = null;
 let missionChoiceUnsub = null;
 let stateChangeUnsub = null;
 let waveAlertTimer = null;
+let debriefTimer = null;
+let debriefRouted = false;
 
 export const GameScreen = {
   mount(container, data = {}, router) {
@@ -636,21 +638,27 @@ export const GameScreen = {
       window.__triggerHvtWarning = (opts) => activeEngine?.triggerHvtWarning(opts);
 
       // Automatic Victory & Game Over debrief screen transitions
+      // Routed once only; the pending timer is cancelled on unmount so an
+      // abort/restart before the delay cannot route a stale mission's debrief.
+      debriefRouted = false;
+      const routeDebrief = (victory) => {
+        if (debriefRouted) return;
+        debriefRouted = true;
+        debriefTimer = null;
+        if (router && window.__screenManager?.getActiveScreenId() === 'game') {
+          const summary = activeEngine
+            ? activeEngine.getMissionSummary(victory)
+            : { sector: sectorId, victory };
+          router.show('results', summary);
+        }
+      };
       const onStateChange = (engineState) => {
         if (engineState === 'VICTORY') {
-          setTimeout(() => {
-            if (router && window.__screenManager?.getActiveScreenId() === 'game') {
-              const summary = activeEngine ? activeEngine.getMissionSummary(true) : { sector: sectorId, victory: true };
-              router.show('results', summary);
-            }
-          }, 2400);
+          if (debriefTimer) clearTimeout(debriefTimer);
+          debriefTimer = setTimeout(() => routeDebrief(true), 2400);
         } else if (engineState === 'GAMEOVER') {
-          setTimeout(() => {
-            if (router && window.__screenManager?.getActiveScreenId() === 'game') {
-              const summary = activeEngine ? activeEngine.getMissionSummary(false) : { sector: sectorId, victory: false };
-              router.show('results', summary);
-            }
-          }, 1800);
+          if (debriefTimer) clearTimeout(debriefTimer);
+          debriefTimer = setTimeout(() => routeDebrief(false), 1800);
         }
       };
       activeEngine.on('stateChange', onStateChange);
@@ -827,6 +835,11 @@ export const GameScreen = {
       clearTimeout(waveAlertTimer);
       waveAlertTimer = null;
     }
+    if (debriefTimer) {
+      clearTimeout(debriefTimer);
+      debriefTimer = null;
+    }
+    debriefRouted = false;
     if (keyHandler) {
       window.removeEventListener('keydown', keyHandler);
       keyHandler = null;
