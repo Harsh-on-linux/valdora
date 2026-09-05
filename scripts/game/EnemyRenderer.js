@@ -43,9 +43,10 @@ import { getEnemyById, getBossById, ENEMY_TYPES, BOSS_TYPES } from './enemies.js
  * @param {number} [options.hpPercent=1] - HP fraction (0-1) for damage FX
  * @param {boolean} [options.showIFF=true] - Show hostile IFF marker
  * @param {number} [options.turretAngle=0] - For SAM turrets, barrel angle
- * @param {boolean} [options.isDiving=false] - Kamikaze dive state
- * @param {number} [options.jamPulse=0] - Radar jammer pulse phase
- */
+   * @param {boolean} [options.isDiving=false] - Kamikaze dive state
+   * @param {boolean} [options.diveWarning=false] - Kamikaze pre-dive telegraph flash
+   * @param {number} [options.jamPulse=0] - Radar jammer pulse phase
+   */
 export function drawEnemy(ctx, enemyId, x, y, size, options = {}) {
   const enemy = getEnemyById(enemyId);
   if (!enemy) return;
@@ -57,6 +58,7 @@ export function drawEnemy(ctx, enemyId, x, y, size, options = {}) {
     showIFF = true,
     turretAngle = 0,
     isDiving = false,
+    diveWarning = false,
     jamPulse = 0
   } = options;
 
@@ -83,7 +85,7 @@ export function drawEnemy(ctx, enemyId, x, y, size, options = {}) {
       drawSAMTurret(ctx, scaledSize, render, thermal, animTime, turretAngle);
       break;
     case 'wedge':
-      drawKamikazeDrone(ctx, scaledSize, render, thermal, animTime, isDiving);
+      drawKamikazeDrone(ctx, scaledSize, render, thermal, animTime, isDiving, diveWarning);
       break;
     case 'octaSphere':
       drawRadarJammer(ctx, scaledSize, render, thermal, animTime, jamPulse);
@@ -514,10 +516,11 @@ function drawSAMTurret(ctx, size, render, thermal, animTime, turretAngle) {
 // ENEMY 4: KAMIKAZE DRONE — Pointed wedge + glowing nose cone
 // ─────────────────────────────────────────────────────────────
 
-function drawKamikazeDrone(ctx, size, render, thermal, animTime, isDiving) {
+function drawKamikazeDrone(ctx, size, render, thermal, animTime, isDiving, diveWarning = false) {
   const bodyLen = size * (render.bodyLength || 0.55);
   const bodyW = size * (render.bodyWidth || 0.35) * 0.5;
-  const divePulse = isDiving ? (0.5 + Math.sin(animTime * 0.025) * 0.5) : 0;
+  const showAlert = isDiving || diveWarning;
+  const divePulse = showAlert ? (0.5 + Math.sin(animTime * 0.025) * 0.5) : 0;
 
   ctx.save();
 
@@ -598,7 +601,7 @@ function drawKamikazeDrone(ctx, size, render, thermal, animTime, isDiving) {
   ctx.fill();
 
   // Dive warning telegraph flash (pulsing danger silhouette)
-  if (isDiving && divePulse > 0.4) {
+  if (showAlert && divePulse > 0.4) {
     ctx.globalAlpha = 0.45 * divePulse;
     ctx.fillStyle = '#ff003c';
     ctx.beginPath();
