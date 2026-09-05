@@ -1046,16 +1046,78 @@
   }
 }
 
-/* V2 HUD slim-down: wrap top bar, overlay sidebars on small screens, 44px touch */
+/* V2 mobile game HUD: overlay drawers, compact topbar, thumb-zone touch cluster */
 .hud-top-bar { flex-wrap: wrap; }
+.hud-layer button { touch-action: manipulation; }
 @media (max-width: 768px) {
+  .hud-layer {
+    padding-top: calc(6px + env(safe-area-inset-top));
+    padding-left: calc(6px + env(safe-area-inset-left));
+    padding-right: calc(6px + env(safe-area-inset-right));
+  }
   .hud-top-bar { gap: 6px; }
   .hud-info-card { padding: 4px 8px; }
-  .hud-mid-tactical-layout { position: relative; }
-  .hud-sidebar-left, .hud-sidebar-right { width: min(78vw, 260px); }
+  /* Side panels become floating drawers so they never squeeze the playfield */
+  .hud-mid-tactical-layout {
+    position: absolute;
+    top: 76px;
+    left: 6px;
+    right: 6px;
+    bottom: 150px;
+    margin: 0;
+    pointer-events: none;
+    z-index: 30;
+    align-items: flex-start;
+  }
+  .hud-sidebar-left, .hud-sidebar-right {
+    position: absolute;
+    top: 0;
+    display: flex;
+    width: min(72vw, 240px);
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: rgba(5, 8, 13, 0.88);
+    border: 1px solid rgba(45, 212, 220, 0.25);
+    padding: 6px;
+    pointer-events: auto;
+  }
+  .hud-sidebar-left { left: 0; }
+  .hud-sidebar-right { right: 0; }
   .hud-layer.hud-moving-hidden .hud-sidebar-left,
   .hud-layer.hud-moving-hidden .hud-sidebar-right { opacity: 0; visibility: hidden; transform: translateY(6px); pointer-events: none; }
   .hud-bottom-bar { flex-wrap: wrap; gap: 6px; }
+  .hud-wave-alert-box { width: calc(100% - 24px); padding: 12px 14px; }
+  .wave-alert-title { font-size: 1rem; }
+  .wave-alert-sub { font-size: 0.62rem; }
+}
+@media (max-width: 480px) {
+  /* Single compact top row: vitals + score + wave + pause */
+  .hud-top-bar { flex-wrap: nowrap; gap: 4px; }
+  .hud-top-bar .hud-info-card { padding: 3px 6px; min-width: 0; flex: 1 1 auto; }
+  .hud-top-bar .hud-value { font-size: 0.8rem; }
+  .hud-top-bar .hud-label { font-size: 0.52rem; }
+  .hud-score-target, .hud-wave-detail { display: none; }
+  .hud-stars-indicator { font-size: 0.7rem; letter-spacing: 1px; margin-left: 2px; }
+  #hud-toggle-label { display: none; }
+  #btn-toggle-panels { min-width: 44px; }
+  /* Slim bottom bar: actions only */
+  .hud-flight-telemetry { display: none; }
+  .hud-bottom-bar { flex-wrap: nowrap; justify-content: flex-end; padding-bottom: env(safe-area-inset-bottom); }
+  .hud-bottom-bar .console-btn { min-height: 44px; }
+  /* Thumb-zone combat cluster above the bottom bar */
+  .hud-touch-controls {
+    bottom: calc(108px + env(safe-area-inset-bottom));
+    right: calc(10px + env(safe-area-inset-right));
+  }
+  .hud-touch-right-actions {
+    grid-template-columns: 52px 76px;
+    grid-template-rows: 52px 76px;
+    gap: 10px;
+  }
+  .touch-action-btn { width: 52px; height: 52px; font-size: 0.58rem; }
+  .touch-action-btn.fire-btn { width: 76px; height: 76px; font-size: 0.72rem; }
+  .hud-completion-choice-modal { width: calc(100% - 24px); padding: 18px; }
 }
 @media (pointer: coarse) {
   .touch-action-btn { min-width: 56px; min-height: 56px; }

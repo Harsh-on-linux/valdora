@@ -3319,4 +3319,19 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible { outline: 2
   .keyboard-nav-hint-bar { display: none; }
 }
 
+/* V2 mobile shell: compact panels, stacked CTAs on narrow phones */
+@media (max-width: 768px) {
+  .console-panel { padding: 16px 14px; gap: 12px; max-width: 100%; }
+  .landing-card { padding: 18px 14px 16px; }
+  .screen-nav-bar.vertical { gap: 8px; }
+  .level-select-panel, .loadout-screen, .manual-panel, .settings-panel { max-width: 100%; }
+}
+@media (max-width: 420px) {
+  .landing-v2 .landing-duo, .pause-v2 .landing-duo { grid-template-columns: 1fr; }
+  .results-nav-footer { flex-direction: column; align-items: stretch; }
+  .results-nav-footer .console-btn { width: 100%; }
+  .dossier-dual-actions { flex-direction: column; }
+  .loadout-footer .console-btn { width: 100%; }
+}
+
 

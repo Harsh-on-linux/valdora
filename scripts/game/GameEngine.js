@@ -657,8 +657,8 @@ export class GameEngine {
       ctx.translate(-focal.x, -focal.y);
     }
 
-    // 1. Render Tactical Satellite & Topographic Map Layer
-    this.tacticalMap.render(ctx, w, h);
+    // 1. Background is the Starfield canvas behind (stars only) — no map
+    // grid, contours, waypoints or sweep lines, so combat reads cleanly.
 
     // 2. Render Tactical Pickups, Intel & Supply Crates
     if (this.pickups) {
@@ -860,70 +860,15 @@ export class GameEngine {
   }
 
   /**
-   * Render tactical HUD reticle, center crosshair, and telemetry watermark.
+   * Render pause dim overlay only. Background stays clean stars.
    */
   _renderTacticalOverlay(ctx, width, height) {
-    const cx = width / 2;
-    const cy = height / 2;
-
-    ctx.save();
-
-    // Central FLIR targeting crosshair
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.18)';
-    ctx.lineWidth = 1;
-
-    // Outer circle
-    ctx.beginPath();
-    ctx.arc(cx, cy, 48, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Center crosshair ticks
-    ctx.beginPath();
-    ctx.moveTo(cx - 16, cy);
-    ctx.lineTo(cx - 4, cy);
-    ctx.moveTo(cx + 4, cy);
-    ctx.lineTo(cx + 16, cy);
-    ctx.moveTo(cx, cy - 16);
-    ctx.lineTo(cx, cy - 4);
-    ctx.moveTo(cx, cy + 4);
-    ctx.lineTo(cx, cy + 16);
-    ctx.stroke();
-
-    // Subtle corner brackets on viewport
-    const pad = 16;
-    const len = 20;
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
-
-    // Top-left
-    ctx.beginPath();
-    ctx.moveTo(pad, pad + len);
-    ctx.lineTo(pad, pad);
-    ctx.lineTo(pad + len, pad);
-    ctx.stroke();
-
-    // Top-right
-    ctx.beginPath();
-    ctx.moveTo(width - pad - len, pad);
-    ctx.lineTo(width - pad, pad);
-    ctx.lineTo(width - pad, pad + len);
-    ctx.stroke();
-
-    // Bottom-left
-    ctx.beginPath();
-    ctx.moveTo(pad, height - pad - len);
-    ctx.lineTo(pad, height - pad);
-    ctx.lineTo(pad + len, height - pad);
-    ctx.stroke();
-
-    // Bottom-right
-    ctx.beginPath();
-    ctx.moveTo(width - pad - len, height - pad);
-    ctx.lineTo(width - pad, height - pad);
-    ctx.lineTo(width - pad, height - pad - len);
-    ctx.stroke();
-
     // If Paused, render tactical pause overlay badge
     if (this.state === ENGINE_STATE.PAUSED) {
+      const cx = width / 2;
+      const cy = height / 2;
+
+      ctx.save();
       ctx.fillStyle = 'rgba(5, 7, 10, 0.65)';
       ctx.fillRect(0, 0, width, height);
 
@@ -935,9 +880,8 @@ export class GameEngine {
       ctx.font = '12px "Share Tech Mono", monospace';
       ctx.fillStyle = 'rgba(0, 240, 255, 0.7)';
       ctx.fillText('SYSTEMS ARMED // PRESS RESUME OR ESC TO CONTINUE', cx, cy + 15);
+      ctx.restore();
     }
-
-    ctx.restore();
   }
 
   /**
