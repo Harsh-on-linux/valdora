@@ -95,12 +95,12 @@ export class GameEngine {
       }
     });
 
+    // Victory fanfare is played by the wave-banner notifier on the
+    // 'SECTOR SECURED' banner; the engine only moves the state machine here.
     this.waveRunner.on('stageComplete', (data) => {
+      if (this.state !== ENGINE_STATE.RUNNING) return;
       this.state = ENGINE_STATE.VICTORY;
       this._emit('stateChange', this.state);
-      if (soundManager && typeof soundManager.playVictory === 'function') {
-        soundManager.playVictory();
-      }
     });
 
     this.isObjectiveMet = false;
@@ -319,10 +319,11 @@ export class GameEngine {
   }
 
   /**
-   * Resume active simulation loop.
+   * Resume active simulation loop (from pause, or from victory when the
+   * pilot opts into unlimited survival instead of the debrief).
    */
   resume() {
-    if (this.state === ENGINE_STATE.PAUSED) {
+    if (this.state === ENGINE_STATE.PAUSED || this.state === ENGINE_STATE.VICTORY) {
       this.state = ENGINE_STATE.RUNNING;
       this.lastTime = performance.now();
       this.accumulator = 0;

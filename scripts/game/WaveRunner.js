@@ -314,6 +314,11 @@ export class WaveRunner {
           sectorId: this.currentSectorId,
           score: gameEngine.score
         });
+        // Drive the engine VICTORY transition (GameEngine listens for this).
+        this._emit('stageComplete', {
+          sectorId: this.currentSectorId,
+          score: gameEngine.score
+        });
         this.isScriptCompleted = true;
       }
     }
