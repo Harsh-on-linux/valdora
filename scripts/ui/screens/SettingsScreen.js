@@ -368,7 +368,20 @@ export const SettingsScreen = {
       });
     }
 
-    // 10. Navigation buttons
+    // 10. Accordion: first group open, rest collapsed (tap header to expand)
+    container.querySelectorAll('.settings-group').forEach((group, i) => {
+      const header = group.querySelector('.settings-group-header');
+      if (!header) return;
+      if (i > 0) group.classList.add('collapsed');
+      header.style.cursor = 'pointer';
+      header.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        group.classList.toggle('collapsed');
+        soundManager.playClick();
+      });
+    });
+
+    // 11. Navigation buttons
     container.querySelectorAll('[data-nav]').forEach(btn => {
       btn.addEventListener('click', () => {
         soundManager.playClick();
