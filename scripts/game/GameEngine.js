@@ -108,7 +108,6 @@ export class GameEngine {
       this.isObjectiveMet = true;
       const sectorId = this.sectorConfig?.id || 1;
       const stars = calculateStars(sectorId, this.score);
-      SaveManager.recordSectorVictory(sectorId, this.score, stars);
       this._emit('missionCompletedChoice', {
         ...data,
         sectorId,
@@ -146,7 +145,8 @@ export class GameEngine {
     this.listeners = {
       stateChange: [],
       telemetry: [],
-      hudVisibilityChange: []
+      hudVisibilityChange: [],
+      missionCompletedChoice: []
     };
 
     this._boundLoop = this._loop.bind(this);
@@ -228,6 +228,7 @@ export class GameEngine {
     this.player.applyArchetype(droneId);
     const startX = this.width / 2;
     const startY = this.height * 0.82;
+    this.player.spawn(startX, startY);
     // Initialize fresh weapon system with loadout & drone multipliers
     this.weapons = new WeaponSystem(this.weaponConfig ? this.weaponConfig.id : weaponId);
     this.weapons.applyDroneModifiers(this.droneConfig);
@@ -337,6 +338,8 @@ export class GameEngine {
   stop() {
     this.state = ENGINE_STATE.STOPPED;
     this.input.detach();
+    if (this.waveRunner) this.waveRunner.stop();
+    if (this.hvtWarning) this.hvtWarning.stop();
     if (this.hudHidden) {
       this.hudHidden = false;
       this._emit('hudVisibilityChange', {
@@ -1190,6 +1193,11 @@ export class GameEngine {
     this.pickupsCollected++;
   }
 
+  addScore(points = 0) {
+    this.score += Math.max(0, Number(points) || 0);
+    return this.score;
+  }
+
   /**
    * Calculate comprehensive tactical mission evaluation summary.
    * @param {boolean} [isVictory=true]
@@ -1236,7 +1244,7 @@ export class GameEngine {
     }
 
     const totalFinalScore = baseScore + (isVictory ? (accuracyBonus + hullBonus + timeBonus) : 0);
-    const stars = isVictory ? calculateStars(sectorId, totalFinalScore) : 0;
+    const stars = isVictory ? calculateStars(sectorId, baseScore) : 0;
 
     let grade = 'F';
     if (!isVictory) {
@@ -1286,6 +1294,6 @@ export class GameEngine {
     window.removeEventListener('collision:toggleDebug', this._boundDebugToggle);
     window.removeEventListener('weapon:cycle', this._boundWeaponCycle);
     window.removeEventListener('weapon:selectSlot', this._boundWeaponSlot);
-    this.listeners = { stateChange: [], telemetry: [], hudVisibilityChange: [] };
+    this.listeners = { stateChange: [], telemetry: [], hudVisibilityChange: [], missionCompletedChoice: [] };
   }
 }
