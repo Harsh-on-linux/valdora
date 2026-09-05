@@ -1141,6 +1141,407 @@ export class SoundManager {
   }
 
   /**
+   * Play triumphant mission victory fanfare
+   */
+  playVictory() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Triumphant major chord progression (C5 -> E5 -> G5 -> C6)
+    const chordNotes = [
+      { f: 523.25, t: 0.00, d: 0.45 },
+      { f: 659.25, t: 0.12, d: 0.50 },
+      { f: 783.99, t: 0.24, d: 0.55 },
+      { f: 1046.50, t: 0.38, d: 0.85 }
+    ];
+
+    chordNotes.forEach(({ f, t, d }) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, now + t);
+      osc.frequency.exponentialRampToValueAtTime(f * 1.01, now + t + d);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(3200, now + t);
+
+      gain.gain.setValueAtTime(0.001, now + t);
+      gain.gain.linearRampToValueAtTime(0.22 * this.sfxVolume, now + t + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + t + d);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+
+      this._cleanupOnEnd(osc, gain, filter);
+      osc.start(now + t);
+      osc.stop(now + t + d + 0.02);
+    });
+
+    // 2. Sub-bass triumphal impact resonance
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(120, now);
+    subOsc.frequency.exponentialRampToValueAtTime(45, now + 0.6);
+
+    subGain.gain.setValueAtTime(0.35 * this.sfxVolume, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+    this._cleanupOnEnd(subOsc, subGain);
+    subOsc.start(now);
+    subOsc.stop(now + 0.66);
+  }
+
+  /**
+   * Play mission defeat / drone compromised alert
+   */
+  playDefeat() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Descending minor tones
+    const defeatNotes = [
+      { f: 440, t: 0.00, d: 0.30 },
+      { f: 370, t: 0.15, d: 0.35 },
+      { f: 293.66, t: 0.30, d: 0.40 },
+      { f: 185, t: 0.48, d: 0.70 }
+    ];
+
+    defeatNotes.forEach(({ f, t, d }) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f, now + t);
+      osc.frequency.exponentialRampToValueAtTime(f * 0.88, now + t + d);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400, now + t);
+
+      gain.gain.setValueAtTime(0.001, now + t);
+      gain.gain.linearRampToValueAtTime(0.18 * this.sfxVolume, now + t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + t + d);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+
+      this._cleanupOnEnd(osc, gain, filter);
+      osc.start(now + t);
+      osc.stop(now + t + d + 0.02);
+    });
+
+    // 2. Low distorted warning drone
+    const warnOsc = this.ctx.createOscillator();
+    const warnGain = this.ctx.createGain();
+    warnOsc.type = 'sawtooth';
+    warnOsc.frequency.setValueAtTime(90, now);
+    warnOsc.frequency.linearRampToValueAtTime(60, now + 0.9);
+
+    warnGain.gain.setValueAtTime(0.24 * this.sfxVolume, now);
+    warnGain.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+
+    warnOsc.connect(warnGain);
+    warnGain.connect(this.sfxGain);
+    this._cleanupOnEnd(warnOsc, warnGain);
+    warnOsc.start(now);
+    warnOsc.stop(now + 1.0);
+  }
+
+  /**
+   * Play crystalline star award chime with ascending pitch
+   * @param {number} [starIndex=0] - 0 for 1st star, 1 for 2nd star, 2 for 3rd star
+   */
+  playStarAward(starIndex = 0) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    const baseFreqs = [587.33, 739.99, 987.77]; // D5, F#5, B5
+    const f = baseFreqs[Math.min(starIndex, baseFreqs.length - 1)] || 880;
+
+    // Harmonic bell pair
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(f, now);
+    osc1.frequency.exponentialRampToValueAtTime(f * 1.02, now + 0.3);
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(f * 2.0, now);
+    osc2.frequency.exponentialRampToValueAtTime(f * 2.02, now + 0.25);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.22 * this.sfxVolume, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(osc1, osc2, gain);
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.4);
+    osc2.stop(now + 0.4);
+  }
+
+  /**
+   * Play rapid micro-tick during score tally roll-up
+   */
+  playScoreCount() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1800 + Math.random() * 300, now);
+
+    gain.gain.setValueAtTime(0.05 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(osc, gain);
+    osc.start(now);
+    osc.stop(now + 0.02);
+  }
+
+  /**
+   * Play high-tech celebratory record chime
+   */
+  playRecordBeep() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    const notes = [880, 1174.66, 1760];
+    notes.forEach((f, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const t = now + i * 0.06;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, t);
+
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.18 * this.sfxVolume, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+
+      this._cleanupOnEnd(osc, gain);
+      osc.start(t);
+      osc.stop(t + 0.22);
+    });
+  }
+
+  /**
+   * Play standard tactical warning alert beeps (3 rapid stabs)
+   */
+  playWarning() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const t = now + i * 0.12;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.exponentialRampToValueAtTime(440, t + 0.08);
+
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.2 * this.sfxVolume, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+
+      this._cleanupOnEnd(osc, gain);
+      osc.start(t);
+      osc.stop(t + 0.09);
+    }
+  }
+
+  /**
+   * Play tactical Red Alert military oscillating klaxon siren
+   * @param {number} [duration=3.5] - Duration in seconds
+   */
+  playKlaxonSiren(duration = 3.5) {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Dual-carrier modulated klaxon horn
+    const carrier = this.ctx.createOscillator();
+    carrier.type = 'sawtooth';
+    carrier.frequency.setValueAtTime(680, now);
+
+    const lfo = this.ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(2.2, now); // 2.2 Hz warble rate
+
+    const lfoGain = this.ctx.createGain();
+    lfoGain.gain.setValueAtTime(220, now); // Frequency sweep range 460Hz - 900Hz
+
+    lfo.connect(carrier.frequency);
+
+    // Resonant megaphone filter
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(750, now);
+    filter.Q.setValueAtTime(3.2, now);
+
+    const klaxonGain = this.ctx.createGain();
+    klaxonGain.gain.setValueAtTime(0.001, now);
+    klaxonGain.gain.linearRampToValueAtTime(0.28 * this.sfxVolume, now + 0.1);
+    klaxonGain.gain.setValueAtTime(0.28 * this.sfxVolume, now + duration - 0.25);
+    klaxonGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    carrier.connect(filter);
+    filter.connect(klaxonGain);
+    klaxonGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(carrier, lfo, lfoGain, filter, klaxonGain);
+    lfo.start(now);
+    carrier.start(now);
+    lfo.stop(now + duration);
+    carrier.stop(now + duration);
+
+    // 2. Ominous sub-bass emergency rumble
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(55, now);
+
+    subGain.gain.setValueAtTime(0.001, now);
+    subGain.gain.linearRampToValueAtTime(0.3 * this.sfxVolume, now + 0.15);
+    subGain.gain.setValueAtTime(0.3 * this.sfxVolume, now + duration - 0.25);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(subOsc, subGain);
+    subOsc.start(now);
+    subOsc.stop(now + duration);
+  }
+
+  /**
+   * Play high-tech satellite optical zoom servo motor whine and focus telemetry clicks
+   */
+  playSatelliteZoom() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Optical servo motor whine
+    const servo = this.ctx.createOscillator();
+    const servoGain = this.ctx.createGain();
+    const servoFilter = this.ctx.createBiquadFilter();
+
+    servo.type = 'triangle';
+    servo.frequency.setValueAtTime(550, now);
+    servo.frequency.exponentialRampToValueAtTime(2600, now + 0.9);
+    servo.frequency.exponentialRampToValueAtTime(1200, now + 1.4);
+
+    servoFilter.type = 'lowpass';
+    servoFilter.frequency.setValueAtTime(3200, now);
+
+    servoGain.gain.setValueAtTime(0.001, now);
+    servoGain.gain.linearRampToValueAtTime(0.16 * this.sfxVolume, now + 0.08);
+    servoGain.gain.setValueAtTime(0.16 * this.sfxVolume, now + 1.1);
+    servoGain.gain.exponentialRampToValueAtTime(0.001, now + 1.45);
+
+    servo.connect(servoFilter);
+    servoFilter.connect(servoGain);
+    servoGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(servo, servoGain, servoFilter);
+    servo.start(now);
+    servo.stop(now + 1.5);
+
+    // 2. Rapid digital telemetry focus clicks
+    for (let i = 0; i < 5; i++) {
+      const clickTime = now + 0.18 + i * 0.16;
+      const clickOsc = this.ctx.createOscillator();
+      const clickGain = this.ctx.createGain();
+
+      clickOsc.type = 'sine';
+      clickOsc.frequency.setValueAtTime(2800 + i * 200, clickTime);
+
+      clickGain.gain.setValueAtTime(0.06 * this.sfxVolume, clickTime);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, clickTime + 0.02);
+
+      clickOsc.connect(clickGain);
+      clickGain.connect(this.sfxGain);
+
+      this._cleanupOnEnd(clickOsc, clickGain);
+      clickOsc.start(clickTime);
+      clickOsc.stop(clickTime + 0.025);
+    }
+  }
+
+  /**
+   * Play heavy cinematic sonic breach impact boom when HVT breaches the orbital grid
+   */
+  playHvtEntranceBoom() {
+    if (!this._ensureRunning()) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Deep exponential pitch-drop sub-bass boom
+    const boomOsc = this.ctx.createOscillator();
+    const boomGain = this.ctx.createGain();
+    const boomFilter = this.ctx.createBiquadFilter();
+
+    boomOsc.type = 'sawtooth';
+    boomOsc.frequency.setValueAtTime(130, now);
+    boomOsc.frequency.exponentialRampToValueAtTime(32, now + 0.85);
+
+    boomFilter.type = 'lowpass';
+    boomFilter.frequency.setValueAtTime(240, now);
+    boomFilter.frequency.exponentialRampToValueAtTime(60, now + 0.9);
+
+    boomGain.gain.setValueAtTime(0.001, now);
+    boomGain.gain.linearRampToValueAtTime(0.38 * this.sfxVolume, now + 0.03);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+
+    boomOsc.connect(boomFilter);
+    boomFilter.connect(boomGain);
+    boomGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(boomOsc, boomGain, boomFilter);
+    boomOsc.start(now);
+    boomOsc.stop(now + 1.0);
+
+    // 2. High-energy atmospheric discharge snap
+    const snapOsc = this.ctx.createOscillator();
+    const snapGain = this.ctx.createGain();
+
+    snapOsc.type = 'triangle';
+    snapOsc.frequency.setValueAtTime(950, now);
+    snapOsc.frequency.exponentialRampToValueAtTime(180, now + 0.12);
+
+    snapGain.gain.setValueAtTime(0.25 * this.sfxVolume, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    snapOsc.connect(snapGain);
+    snapGain.connect(this.sfxGain);
+
+    this._cleanupOnEnd(snapOsc, snapGain);
+    snapOsc.start(now);
+    snapOsc.stop(now + 0.16);
+  }
+
+  /**
    * Toggle mute / enable
    * @param {boolean} enabled
    */

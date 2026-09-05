@@ -118,14 +118,20 @@ export class SaveManager {
   static recordSectorVictory(sectorId, score, stars = 1) {
     const data = this.getSaveData();
     const sectorKey = `sector_${sectorId}`;
+    const safeScore = Math.max(0, Math.round(Number(score) || 0));
+    const safeStars = Math.max(0, Math.min(3, Math.round(Number(stars) || 0)));
 
     const prevHighScore = data.sectorScores[sectorKey] || 0;
     const prevStars = data.sectorStars[sectorKey] || 0;
+    const isNewRecord = safeScore > prevHighScore;
+    const prevMaxUnlocked = data.maxSectorUnlocked || 1;
 
-    data.sectorScores[sectorKey] = Math.max(prevHighScore, score);
-    data.sectorStars[sectorKey] = Math.max(prevStars, stars);
+    data.sectorScores[sectorKey] = Math.max(prevHighScore, safeScore);
+    data.sectorStars[sectorKey] = Math.max(prevStars, safeStars);
 
-    data.totalScore += score;
+    // Campaign total is the sum of each sector's best result, so reopening a
+    // results screen cannot inflate the profile score.
+    data.totalScore = Object.values(data.sectorScores).reduce((total, value) => total + (Number(value) || 0), 0);
     data.highScore = Math.max(data.highScore, data.totalScore);
     
     // Unlock next sector up to max 10
@@ -136,7 +142,15 @@ export class SaveManager {
     // Recalculate total stars
     data.starsEarned = Object.values(data.sectorStars).reduce((acc, s) => acc + s, 0);
 
-    return this.save(data);
+    const saved = this.save(data);
+    return {
+      ...saved,
+      isNewRecord,
+      prevHighScore,
+      prevStars,
+      newlyUnlocked: data.maxSectorUnlocked > prevMaxUnlocked,
+      nextSectorId: nextSector
+    };
   }
 
   /**

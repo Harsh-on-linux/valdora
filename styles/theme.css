@@ -179,3 +179,18 @@ html, body {
 .screen-container.screen-game {
   pointer-events: none;
 }
+
+/* V2 mobile shell: tall panels scroll instead of clipping on short viewports */
+@media (max-width: 768px), (max-height: 620px) {
+  .screen-container {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding: 12px 10px calc(12px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+  .screen-container.screen-game {
+    justify-content: center;
+    overflow: visible;
+    padding: 0;
+  }
+}

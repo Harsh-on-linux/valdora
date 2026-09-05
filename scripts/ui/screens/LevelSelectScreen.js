@@ -63,7 +63,7 @@ export const LevelSelectScreen = {
             <div class="starmap-radar-sweep"></div>
             
             <!-- SVG Vector Flight Paths Connecting Nodes -->
-            <svg class="starmap-svg-paths" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <svg class="starmap-svg-paths" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
               ${this._renderSvgPaths(maxUnlocked, this._selectedSectorId)}
             </svg>
 
@@ -481,9 +481,9 @@ export const LevelSelectScreen = {
             <div class="stars-display">${starIcons}</div>
           </div>
           <div class="stars-thresholds-row">
-            <span class="thresh-pill ${scoreReached(highScore, lvl.scoreThresholds.star1)}">1★: ${lvl.scoreThresholds.star1.toLocaleString()}</span>
-            <span class="thresh-pill ${scoreReached(highScore, lvl.scoreThresholds.star2)}">2★: ${lvl.scoreThresholds.star2.toLocaleString()}</span>
-            <span class="thresh-pill ${scoreReached(highScore, lvl.scoreThresholds.star3)}">3★: ${lvl.scoreThresholds.star3.toLocaleString()}</span>
+            <span class="thresh-pill ${stars >= 1 ? 'reached' : ''}">1★: ${lvl.scoreThresholds.star1.toLocaleString()}</span>
+            <span class="thresh-pill ${stars >= 2 ? 'reached' : ''}">2★: ${lvl.scoreThresholds.star2.toLocaleString()}</span>
+            <span class="thresh-pill ${stars >= 3 ? 'reached' : ''}">3★: ${lvl.scoreThresholds.star3.toLocaleString()}</span>
           </div>
         </div>
 
@@ -573,10 +573,6 @@ export const LevelSelectScreen = {
     this._router = null;
   }
 };
-
-function scoreReached(score, target) {
-  return score >= target ? 'reached' : '';
-}
 
 function formatEnemyName(str) {
   return str.replace(/_/g, ' ').toUpperCase();

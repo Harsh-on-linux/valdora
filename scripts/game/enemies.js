@@ -32,7 +32,7 @@ export const ENEMY_TYPES = {
     stats: {
       hp: 15,
       speed: 3.8,
-      scoreValue: 100,
+      scoreValue: 200,
       contactDamage: 10,
       fireRate: 0.5,     // shots per second
       armor: 0.2
@@ -104,7 +104,7 @@ export const ENEMY_TYPES = {
     stats: {
       hp: 30,
       speed: 4.5,
-      scoreValue: 250,
+      scoreValue: 400,
       contactDamage: 15,
       fireRate: 0.67,
       armor: 0.5
@@ -171,7 +171,7 @@ export const ENEMY_TYPES = {
     stats: {
       hp: 60,
       speed: 0.8,
-      scoreValue: 400,
+      scoreValue: 700,
       contactDamage: 20,
       fireRate: 0.4,
       armor: 1.5
@@ -239,7 +239,7 @@ export const ENEMY_TYPES = {
     stats: {
       hp: 10,
       speed: 6.0,
-      scoreValue: 200,
+      scoreValue: 350,
       contactDamage: 35,
       fireRate: 0,                // no projectile weapons
       armor: 0.1
@@ -308,7 +308,7 @@ export const ENEMY_TYPES = {
     stats: {
       hp: 40,
       speed: 1.5,
-      scoreValue: 500,
+      scoreValue: 900,
       contactDamage: 8,
       fireRate: 0,
       armor: 0.8

@@ -317,8 +317,13 @@ export class WeaponSystem {
       }
       this.barrelIndex = (this.barrelIndex + 1) % muzzles.length;
 
-      if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
-        gameEngine.addCameraShake(this.recoilImpulse);
+      if (gameEngine) {
+        if (typeof gameEngine.recordShotFired === 'function') {
+          gameEngine.recordShotFired(muzzles.length);
+        }
+        if (typeof gameEngine.addCameraShake === 'function') {
+          gameEngine.addCameraShake(this.recoilImpulse);
+        }
       }
 
       this.fireTimer = 1.0 / effectiveFireRate;
@@ -396,8 +401,13 @@ export class WeaponSystem {
       }
 
       // Concussive camera recoil kick
-      if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
-        gameEngine.addCameraShake(this.recoilImpulse);
+      if (gameEngine) {
+        if (typeof gameEngine.recordShotFired === 'function') {
+          gameEngine.recordShotFired(spreadAngles.length);
+        }
+        if (typeof gameEngine.addCameraShake === 'function') {
+          gameEngine.addCameraShake(this.recoilImpulse);
+        }
       }
 
       this.fireTimer = 1.0 / effectiveFireRate;
@@ -458,8 +468,13 @@ export class WeaponSystem {
         soundManager.playLaserFire(muzzleIdx);
       }
 
-      if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
-        gameEngine.addCameraShake(this.recoilImpulse);
+      if (gameEngine) {
+        if (typeof gameEngine.recordShotFired === 'function') {
+          gameEngine.recordShotFired(1);
+        }
+        if (typeof gameEngine.addCameraShake === 'function') {
+          gameEngine.addCameraShake(this.recoilImpulse);
+        }
       }
 
       this.fireTimer = 1.0 / effectiveFireRate;
@@ -555,8 +570,13 @@ export class WeaponSystem {
         soundManager.playHellfireFire();
       }
 
-      if (gameEngine && typeof gameEngine.addCameraShake === 'function') {
-        gameEngine.addCameraShake(this.recoilImpulse);
+      if (gameEngine) {
+        if (typeof gameEngine.recordShotFired === 'function') {
+          gameEngine.recordShotFired(muzzles.length);
+        }
+        if (typeof gameEngine.addCameraShake === 'function') {
+          gameEngine.addCameraShake(this.recoilImpulse);
+        }
       }
 
       this.fireTimer = 1.0 / effectiveFireRate;
@@ -640,6 +660,10 @@ export class WeaponSystem {
       hitsRemaining: 999,
       blastRadius: 140
     });
+
+    if (gameEngine && typeof gameEngine.recordShotFired === 'function') {
+      gameEngine.recordShotFired(1);
+    }
 
     // 2. High-orbit satellite injection entry flash & ground impact burst
     const groundY = player ? player.y : screenH * 0.75;

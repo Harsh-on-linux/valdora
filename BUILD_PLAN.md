@@ -1,327 +1,412 @@
-# Space Shooter — Master Build Plan
-## (Tactical Control Panel Aesthetic — Inspired by Satellite/FLIR Interfaces)
+# Space Shooter - Corrected Master Implementation Plan
 
-Each step is small, builds directly on the previous one, and ends in something testable. Grouped into phases and batches for clean incremental development.
+This plan reflects the current repository after code audit. A checkmark means
+the feature exists and has passed the required browser/runtime verification.
+`PARTIAL` means code or configuration exists, but behavior is incomplete or
+not verified. The current step is the only step being actively implemented.
 
----
+## Status Rules
 
-## 🏗️ BUILD BATCHES AT A GLANCE
-- **Batch 1 (Phases A & B)**: Foundation, Command UI Kit, Satellite Map/FLIR, Landing Page, Navigation, Telemetry & Settings (Steps 1–7)
-- **Batch 2 (Phases C, D, E)**: Sector Select, Drone/Payload Selection, Game Loop & Movement, Tactical HUD (Steps 8–15)
-- **Batch 3 (Phase F)**: Ordnance Arsenal (Vulcan, Flak, Laser Designator, Hellfire Swarm, Orbital Strike) & Collision Framework (Steps 16–21)
-- **Batch 4 (Phases G & H)**: Target Archetypes, Airdrops & Intel, Wave Engine & Sectors 1–4 (Steps 22–30)
-- **Batch 5 (Phase I)**: High-Value Target (HVT) Framework & Sector 5 Encounter (Steps 31–34)
-- **Batch 6 (Phase J)**: Radar Hazards, Sectors 6–9 & Mobile Multi-Phase Apex Target (Sector 10) (Steps 35–39)
-- **Batch 7 (Phases K & L)**: FLIR FX, Screen Shake, Audio Comm Synth, Save System, Balancing & QA (Steps 40–47)
+- `✅` Complete and verified.
+- `PARTIAL` Present, but requires implementation, correction, or verification.
+- `🔄 ← Current` Active implementation step.
+- No marker means pending.
 
----
+## Verification Required For Every Step
 
-## PHASE A — Foundation & Theme
+1. Run the local server with `npm run dev`.
+2. Open the affected screen or mission in a browser.
+3. Check the browser console for module, runtime, and rendering errors.
+4. Verify desktop and mobile behavior where the step affects input or layout.
+5. Run the smallest relevant automated or manual regression check.
+6. Update this file only after the step passes verification.
 
-### Step 1 — Project scaffold ✅
-- Create folder structure:
-  - `/index.html`
-  - `/styles/theme.css`
-  - `/styles/menu.css`
-  - `/styles/game.css`
-  - `/scripts/main.js`
-  - `/scripts/game/`
-  - `/scripts/ui/`
-  - `/assets/audio/`
-  - `/assets/fonts/`
-- Define CSS custom properties for the tactical FLIR theme: absolute black (`#000000`), scanline greys, UI-cyan (`#00f0ff`), danger-red (`#ff003c`), warning-amber (`#ffb703`), monospace fonts, 1px rigid borders, and CRT distortion effects.
-- Import Monospace tactical fonts (Share Tech Mono / Roboto Mono + system fallback stack).
-- Output: Initialized page with FLIR theme tokens, loaded fonts, and responsive canvas wrapper ready.
+## Current Repository Snapshot
 
-### Step 2 — Global state machine ✅
-- Build a lightweight screen manager (`landing`, `sectorSelect`, `loadout`, `game`, `pause`, `results`, `settings`).
-- Each screen is a JS module with `mount()` / `unmount()` lifecycle hooks.
-- Smooth transition wrapper (~250–350ms ease-out) so switching screens is seamless.
-- Output: Programmatic switching between screen containers with smooth transitions.
-
-### Step 3 — Reusable UI components (the "command kit") ✅
-- Build styled, reusable components: `<TacticalButton>`, `<DataPanel>`, `<TelemetryBar>`, `<Toggle>`, `<Modal>`.
-- Add press/hover states: subtle cyan background fill, 1px border highlight, micro-scale press feedback + audio click trigger.
-- Output: Component showcase view to test all UI elements in isolation.
-
-### Step 4 — Animated Satellite Map background ✅
-- Canvas-based tactical map (topographic or low-poly grid map) with scanning refresh lines.
-- Subtle CRT flicker, MGRS coordinate tracking, and slow map panning.
-- Output: Tactical map running continuously behind active screens.
+- Vanilla ES modules, Canvas 2D, Web Audio, and a small Node static server.
+- Menu, settings, level select, loadout, movement, touch input, HUD, weapons,
+  enemies, pickups, waves, results, and local persistence are present.
+- Sector 5 warning and multi-segment boss framework are present.
+- Sector 5 boss attack behavior is not complete.
+- Hazards, Sectors 6-9 gameplay, and the Sector 10 boss are not complete.
+- There are currently no automated test files.
+- `BUILD_PLAN.md` is the source of truth for implementation order.
 
 ---
 
-## PHASE B — Landing Page & Navigation
+## Phase A - Foundation and Theme
 
-### Step 5 — Landing page layout ✅
-- Title logo with pulsing holographic glow animation.
-- Primary buttons: Start/Continue, Level Select, Loadout, Settings, How to Play.
-- Ambient cockpit animation: scanline overlay, rotating radar sweep in corner.
-- Output: Visual landing page ready with interactive layout.
+### Step 1 - Project scaffold ✅
 
-### Step 6 — Landing page logic ✅
-- "Continue" button dynamically shows only if existing save state exists; otherwise "Start" begins Level 1.
-- Web Audio UI sound feedback (beeps, clicks, power hums).
-- Output: Interactive landing navigation with auditory feedback.
+- Maintain the HTML, CSS, module, asset, and server structure.
+- Keep the responsive canvas shell and centralized theme tokens.
 
-### Step 7 — How to Play / Settings screens ✅
-- How to Play: Interactive controls diagram, weapon stats legend, enemy threat guide.
-- Settings: Master volume, SFX volume, Music volume, control scheme toggle (Keyboard / Mouse / Touch), screen shake toggle.
-- Output: Settings persisted to `localStorage` and real-time audio gain adjustment.
+### Step 2 - Global screen state machine ✅
 
----
+- Maintain registered screens and mount/unmount lifecycle.
+- Keep the animated screen transition wrapper.
 
-## PHASE C — Level Select
+### Step 3 - Reusable command UI kit ✅
 
-### Step 8 — Level select data model ✅
-- Define `levels.js` config: 10 levels with id, name, isBoss flag, unlock requirement, target score, enemy waves, reward stars.
-- Output: Validated level configuration module.
+- Maintain tactical buttons, panels, telemetry bars, toggles, modals, and
+  component showcase behavior.
+- Keep keyboard focus and touch-sized controls in the shared components.
 
-### Step 9 — Level select UI (Star-Map console style) ✅
-- Node graph / tactical map layout of 10 mission sectors; Boss levels (5 & 10) feature highlighted warning aesthetics.
-- Visual lock states with lock icons, star rating badges, and sector preview cards on hover.
-- Output: Responsive star-map level select interface.
+### Step 4 - Tactical background layer ✅
 
-### Step 10 — Level select interactivity ✅
-- Audio-visual denial feedback on locked nodes; unlocked nodes launch level loadout / direct deployment.
-- Output: Full navigation flow into the game loop.
+- Maintain the animated starfield and satellite/tactical map canvas layers.
+- Keep resize and high-DPI handling.
 
 ---
 
-## PHASE D — Loadout / Drone Selection
+## Phase B - Landing, Navigation, and Settings
 
-### Step 11 — Drone data & procedural rendering function ✅
-- Procedural canvas drone drawing function: top-down tactical wireframes or high-contrast silhouette representations (Predator, Reaper, Ghost).
-- Color theme parameterization for heat signatures.
-- Output: Isolated drone preview canvas with targeting crosshairs.
+### Step 5 - Landing cockpit ✅
 
-### Step 12 — Loadout screen ✅
-- Selection cards for drone chassis variants (Surveillance, Heavy Strike, Electronic Warfare) and payload presets (Vulcan, Flak, Laser, Hellfire).
-- Persist player loadout choices to active game state.
-- Output: Fully interactive loadout configuration screen.
+- Maintain landing layout, title treatment, cockpit animation, and navigation.
 
----
+### Step 6 - Landing navigation and UI audio ✅
 
-## PHASE E — Core Gameplay Loop
+- Maintain new-game/continue behavior and procedural UI sound feedback.
 
-### Step 13 — Canvas game loop skeleton ✅
-- Fixed-timestep update + interpolated render loop via `requestAnimationFrame` for rock-solid 60+ FPS.
-- Background satellite map layer integration inside gameplay canvas.
-- Output: Smooth running game engine skeleton.
+### Step 7 - How To Play and Settings ✅
 
-### Step 14 — Player drone movement ✅
-- WASD / Arrow keys, Mouse follow mode, and virtual touch joystick for mobile.
-- Smooth acceleration, braking drag, banking angles on lateral movement, boundary clamping.
-- Output: Responsive, fluid drone handling.
-
-### Step 15 — Tactical HUD Overlay ✅
-- Tactical dashboard: Side data panels, Active/Passive Radar toggle, Ordnance meters, Coordinate tracker, Target bounding boxes.
-- Output: Real-time rendered HUD over the canvas viewport with CRT scanline post-processing.
+- Maintain control documentation, weapon/enemy guide, audio settings, control
+  scheme selection, CRT toggle, screen shake toggle, and persisted settings.
 
 ---
 
-## PHASE F — Ordnance Arsenal & Collisions
+## Phase C - Campaign Data and Loadout
 
-### Step 16 — Projectile pool & Vulcan Cannon ✅
-- Zero-allocation Object Pool for projectiles.
-- Rapid single/dual Vulcan Cannon with muzzle flashes and despawn boundaries.
-- Output: High-performance bullet firing mechanics.
+### Step 8 - Ten-sector data model ✅
 
-### Step 17 — Collision detection framework ✅
-- Fast spatial partitioning & Circle/AABB collision engine.
-- Bullet vs. Target, Drone vs. Target, Drone vs. Hazard collision resolution.
-- Output: Collision detection pipeline with debug visualization toggle.
+- Maintain level metadata, unlock requirements, wave counts, hazards, boss
+  flags, score thresholds, and map positions.
 
-### Step 18 — Flak Cannon Weapon ✅
-- 3 to 5-way angled spread with wide coverage, custom explosive particle tint.
-- Weapon cycle key (Q/E or 1-4) with HUD icon swap.
-- Output: Multi-directional crowd control firing.
+### Step 9 - Sector select console ✅
 
-### Step 19 — Laser Designator Beam ✅
-- Sustained high-energy beam with animated core, outer corona, and contact sparks.
-- Heat buildup mechanics with overheat lockout and cooling dissipation.
-- Output: Thermal-limited piercing beam weapon.
+- Maintain the ten-node sector map, lock states, boss styling, stars, and
+  sector preview cards.
 
-### Step 20 — Hellfire Swarm Missiles ✅
-- Self-propelling tracking missiles with smoke trails, auto-acquiring target lock, and area-of-effect blast on impact.
-- Output: Autonomous guided ordinance.
+### Step 10 - Sector select navigation ✅
 
-### Step 21 — Orbital Strike ✅
-- Hold-to-charge mechanics with accumulating targeting laser and massive vertical strike release.
-- Output: High-impact heavy attack option.
+- Maintain locked-node denial feedback and deployment/loadout routing.
+
+### Step 11 - Drone data and procedural previews ✅
+
+- Maintain Striker, Reaper, and Ghost chassis data and canvas previews.
+
+### Step 12 - Loadout selection ✅
+
+- Maintain chassis and payload selection with persisted active loadout.
 
 ---
 
-## PHASE G — Target Roster & Intel Drops
+## Phase D - Core Gameplay
 
-### Step 22 — Target base class, entity pool & enemy config ✅
-- Create `enemies.js` config module defining all 5 enemy archetypes + 2 boss entities with stats, thermal palettes, render params, weapon configs, movement behaviors, and spawn rules.
-- Create `EnemyRenderer.js` procedural canvas drawing system for all hostile entities (mirrors `DroneRenderer.js` pipeline but with hostile aesthetics).
-- Base target class: hitpoints, movement vectors, bounding volumes, FLIR heat-flash shaders, intel drop tables, zero-allocation object pool.
-- All enemies use hostile thermal palettes (reds, oranges, toxic greens) distinct from player drone colors (cyan, purple, amber).
-- Hostile IFF markers (blinking red triangle) drawn above each enemy. Damage state degradation as HP decreases (sparking, missing panels, smoke).
-- Output: Core target lifecycle architecture with enemy config and procedural rendering scaffold.
+### Step 13 - Fixed-timestep game loop ✅
 
-### Step 23 — RV-4 Scout / Recon Buggy (Target 1) ✅
-- **Silhouette**: Compact hexagonal disc body with 4 thrust pods at cardinal directions. Flat, surveillance micro-drone — no wings, no cockpit.
-- **Thermal**: Dim red-orange (`#e85a3a` core) — low heat signature.
-- **Scale**: 0.6× player size. **HP**: 15 (dies in 2–3 Vulcan hits). **Score**: 100.
-- **Movement**: Fast linear descent from top edge. Slight random lateral drift (30px). Spawns in V-formations, staggered lines, or clusters of 3–7.
-- **Attack**: Single forward pulse shot every 2s, aimed straight down. Low damage (10 contact). Low threat individually — dangerous in numbers.
-- **Spawn**: Top edge only. Max 12 on screen. Available from Wave 1.
-- Output: Fully rendered and behaviorally active Recon Buggy enemy.
+- Maintain the fixed 60 Hz simulation, interpolated rendering, lifecycle
+  states, canvas resize, and basic telemetry.
 
-### Step 24 — VK-7 Interceptor / Interceptor Jet (Target 2) ✅
-- **Silhouette**: Narrow swept-back arrowhead body with sharp angular wings. Aggressive mass-produced hostile fighter — sleek but utilitarian, dual engine exhausts.
-- **Thermal**: Hot orange (`#ff8c1a` core) — high-speed thermal bloom.
-- **Scale**: 0.75× player size. **HP**: 30. **Score**: 250.
-- **Movement**: Sinusoidal weaving horizontally (amplitude 120px, frequency 1.8 Hz) while descending at 90px/s. Amplitude and frequency scale up at higher levels.
-- **Attack**: Angled dual-fire — two projectiles at ±15° from forward direction every 1.5s. Projectile speed 320px/s.
-- **Spawn**: Top, left, or right edges. Pairs, diamonds, or echelon formations of 2–4. Max 6 on screen. Available from Wave 2.
-- Output: Evasive sinusoidal fighter with angled dual-fire.
+### Step 14 - Player movement and input ✅
 
-### Step 25 — GT-12 Sentinel / SAM Turret (Target 3) ✅
-- **Silhouette**: Wide hexagonal base platform with rotating turret barrel assembly. Industrial defense emplacement — armor plates, corner reinforcement bolts, antenna mast. Clearly a weapons platform, not a ship.
-- **Thermal**: Warning amber (`#ffb703` core) — high armor glow.
-- **Scale**: 0.85× player size. **HP**: 60 (tanky). **Score**: 400.
-- **Movement**: Enters slowly from top (40px/s), anchors at Y-position (upper 25% of screen), then drifts laterally very slowly (20px drift).
-- **Attack**: Aimed burst fire — turret tracks player position, fires 3-round burst (0.12s between shots) aimed directly at player drone. 2.5s cooldown between bursts. Projectile speed 380px/s.
-- **Spawn**: Top edge only. Solo or pairs. Max 2 on screen. Available from Wave 3.
-- Output: Stationary aimed turret with burst fire pattern.
+- Maintain keyboard, mouse-follow, virtual joystick, acceleration, drag,
+  banking, clamping, boost, and touch fire controls.
 
-### Step 26 — KZ-X Wraith / Kamikaze Drone (Target 4) ✅
-- **Silhouette**: Pointed wedge/missile-like body with small stabilizer fins. Glowing explosive front nose cone. Exposed wiring/panel detail for disposable, cobbled-together look.
-- **Thermal**: Danger red (`#ff003c` core) — overheating dive signature.
-- **Scale**: 0.5× player size. **HP**: 10 (fragile). **Score**: 200.
-- **Movement**: Spawns from any edge (top, left, right). Brief slow approach (60px/s), then locks onto player position and dives at extreme speed (600px/s) in a straight line. Leaves hot exhaust trail.
-- **Attack**: No projectiles — pure contact damage (35). 0.5s flashing red warning indicator telegraph before dive.
-- **Spawn**: Any edge. Always solo. Max 3 on screen. Available from Wave 4.
-- Output: High-speed suicide ram attacker with visual warning telegraph.
+### Step 15 - Tactical gameplay HUD ✅
 
-### Step 26b — EW-9 Specter / Radar Jammer (Target 5) ✅
-- **Silhouette**: Spherical/octagonal body bristling with 6 antenna spines and 2 satellite dish arrays. Clearly a utility/support drone — lots of sensor equipment, no visible weapons. Pulsing ECM aura rings radiating outward.
-- **Thermal**: Toxic green (`#39ff14` core) — ECM radiation signature.
-- **Scale**: 0.7× player size. **HP**: 40. **Score**: 500.
-- **Movement**: Slow erratic floating pattern (25px/s descent, 50px lateral drift, 40px amplitude wobble). Stays in upper 40% of screen.
-- **Attack**: No direct fire. While alive, applies **jamming aura**: HUD static/noise overlay (0.35 alpha), reduced radar range (50%), scrambled enemy IFF markers (flickering). Priority kill target.
-- **Spawn**: Top edge only. Max 1 on screen. Available from Wave 7.
-- Output: ECM support unit with HUD disruption effects.
-
-### Step 27 — Intel & Supply Drops ✅
-- Armor repairs, ECM charges, ordnance power-ups, intel data packets with magnetic attraction toward player drone.
-- Output: Satisfying loot collection loop.
+- Maintain radar modes, ordnance meters, coordinate telemetry, target markers,
+  wave alerts, boss health UI, and responsive HUD behavior.
 
 ---
 
-## PHASE H — Wave Engine & Levels 1–4
+## Phase E - Ordnance, Collision, and Combat Regression
 
-### Step 28 — Wave-script runner ✅
-- Timeline-based wave orchestration, formation coordinates, and stage completion conditions.
+### Step 16 - Projectile pool and Vulcan cannon ✅
 
-### Step 29 — Levels 1–4 Implementation ✅
-- Level 1: Training Sector (Scout drones)
-- Level 2: Asteroid Fringe (Drones + Zigzags)
-- Level 3: Turret Outpost (Fortified positions)
-- Level 4: Heavy Incursion (Mixed swarms + Kamikazes)
+- Maintain pooled projectiles, Vulcan firing, muzzle effects, despawn bounds,
+  and shot statistics.
 
-### Step 30 — Mission Results & Victory Flow 🔄 ← Current
-- Score calculation, accuracy bonus, 3-star rating thresholding, unlocks, and retry/next navigation.
+### Step 17 - Runtime and lifecycle stabilization ✅
 
----
+Fix the issues found during the audit before adding more combat content.
 
-## PHASE I — HVT 1: Mobile Command Center (Sector 5)
+- Import `SaveManager` wherever mission completion records progress.
+- Add the missing engine score API or route boss bounty through the existing
+  score path.
+- Replace invalid `currentScreenName` checks with the actual ScreenManager API.
+- Fix collision debug rendering so its enemy pool argument is defined and used.
+- Ensure pause, resume, abort, victory, and game-over transitions do not stop
+  or restart the wrong engine state.
+- Record a victory once only; prevent duplicate save writes from the engine
+  and results screen.
+- Cancel wave, screen, and pickup timers when a mission or screen is stopped.
+- Verify no browser console errors through landing -> deploy -> pause -> resume
+  -> victory/game-over -> results.
 
-### Step 31 — HVT warning sequence
-- Klaxon sirens, red alert HUD banner, cinematic entrance animation via satellite zoom.
+### Step 18 - Collision framework completion 🔄 ← Current
 
-### Step 32 — HVT framework & multi-segment entity
-- **Entity**: `BOSS_MOBILE_COMMAND` — ~2.5× player scale width. Central octagonal command bridge flanked by two armored weapon pod modules.
-- **Visual**: Octagonal core with armor plate lines, sensor dome, antenna arrays. Each pod has cut-corner rectangular body with 2 turret barrels. Connecting struts between core and pods.
-- **HP Split**: Left Pod (200 HP, 1.2 armor) + Right Pod (200 HP, 1.2 armor) + Core (400 HP, 2.0 armor) = 800 total.
-- **Thermal**: Phase 1 warning amber (`#ffb703`), Phase 2 danger red (`#ff003c`) with flicker damage FX.
-- Multi-phase health bar at screen top showing per-segment health.
-- Output: Multi-segment boss entity with independent segment destruction.
+The current spatial hash and CCD code is present but does not yet satisfy the
+zero-allocation and debug correctness requirements.
 
-### Step 33 — Phase 1: Radial Flak Barrage
-- Both weapon pods fire **rotating radial bullet patterns** — left pod clockwise, right pod counter-clockwise. 12 bullets per rotation at 0.8 rad/s, projectile speed 200px/s.
-- Core fires occasional aimed single shots at player (300px/s, 3s cooldown).
-- Boss oscillates laterally across screen (speed 50px/s, amplitude 200px).
-- **Destroying a pod** removes that pod's radial pattern (visual: pod detaches with explosion, replaced by sparking debris stub).
-- Phase transitions to Phase 2 when both pods are destroyed.
+- Verify player/projectile/enemy/pickup collision behavior.
+- Complete hazard-layer registration hooks.
+- Fix duplicate collider/pair work and avoid per-tick string/object churn in
+  the hot path where practical.
+- Verify high-speed projectile CCD and penetration behavior.
+- Verify debug grid, hitboxes, contacts, and telemetry without exceptions.
 
-### Step 34 — Phase 2: Core Overdrive & Escort Deploy
-- Triggered when both weapon pods destroyed. Core shield drops visually (overheat glow FX).
-- Core movement speed doubles (100px/s, amplitude 280px).
-- Core fires **rapid 5-way spread shots** (60° total spread, 350px/s, 1.2s cooldown).
-- **Spawns 2 Interceptor escorts** every 15 seconds.
-- Visual FX: Overheat glow pulsing, spark emissions from core.
-- **Defeat sequence**: Left pod detaches & explodes (0s) → Right pod detaches & explodes (0.4s) → Core massive FLIR heat-flash detonation (1.0s). Screen shake intensity 12, 24 debris pieces.
+### Step 19 - Weapon regression pass
 
----
+The five player weapons exist, but they must be verified against the intended
+behavior rather than treated as complete from configuration alone.
 
-## PHASE J — Hazards, Sectors 6–9 & Apex Target (Sector 10)
+- Verify Flak spread, detonation, and cooldown.
+- Verify Laser heat, overheat lockout, sustained visual beam behavior, and
+  piercing rules.
+- Verify Hellfire target acquisition, homing, smoke, and area damage.
+- Verify Orbital hold-to-charge, release threshold, beam collision, and ammo.
+- Verify weapon compatibility, cycling, slot selection, and HUD synchronization.
 
-### Step 35 — Radar Hazards
-- Destructible signal jammers and proximity mines.
+### Step 20 - Enemy combat and score regression
 
-### Step 36 — Sectors 6–9 Implementation
-- Heavy gauntlet with dense hazard fields and multi-threat encounters.
+- Verify all five enemy movement patterns and attack patterns.
+- Verify enemy projectiles damage the player exactly once per impact.
+- Verify kamikaze telegraph, dive, contact damage, and cleanup.
+- Verify radar jammer effects disappear immediately on destruction.
+- Verify kills, drops, score, accuracy, and mission statistics.
 
-### Step 37 — Boss 2 Framework (Apex Submersible Dreadnought)
-- **Entity**: `BOSS_APEX_DREADNOUGHT` — ~3× player width. Elongated submarine/dreadnought hull with segmented armored spine.
-- **Visual**: Forward sensor array, midship beam weapon emitter, aft engine bank (4 engines). Industrial brutalist design — thick plated hull with heavy greeble detail, spine hardpoints (4 turret mounts), 8 armor plate rows.
-- **HP Split**: Forward Array (300) + Beam Emitter (400) + Mid Section (500) + Engine Bank (300) + Core (500) = 2000 total.
-- **Thermal**: Phase 1 deep purple (`#8b5cf6`), Phase 2 hot crimson (`#dc2626`), Phase 3 white-hot overload (`#fbbf24` → `#ffffff`).
-- Output: Campaign final boss with 3-phase escalating threat framework.
+### Step 21 - Pickup, wave, and results lifecycle regression
 
-### Step 38 — Phase 1 (Submerge Dash) & Phase 2 (Heavy Sweeping Beam)
-- **Phase 1 — "Submerge Dash"** (100%–50% HP):
-  - Periodically "submerges" (0.6s fade-out with ripple FX), fully invulnerable during 2s submerge duration, then surfaces at new position with 150px shockwave.
-  - Fires homing torpedo salvos: 3 torpedoes, 180px/s speed, 2.5 rad/s homing turn rate, 4s cooldown. Smoke trails on torpedoes.
-  - Submerge cycle every 6 seconds.
-- **Phase 2 — "Heavy Sweeping Beam"** (50%–25% HP):
-  - Stops teleporting, anchors center-screen (50% X, 25% Y).
-  - Charges and fires **sweeping tactical beam** (40px wide, full screen length): 1.5s charge telegraph, 8s active, rotates at 0.4 rad/s with 45° safe gap. 4s cooldown between sweeps.
-  - Simultaneously fires point-defense turrets at player: aimed 2-round bursts, 350px/s, 2s cooldown.
-  - Beam emitter visually charges with pulsing core glow and direction indicator.
-
-### Step 39 — Phase 3: Enraged Desperation & Grand Ending
-- **Phase 3 — "Enraged Desperation"** (below 25% HP):
-  - Movement becomes erratic (80px/s, 250px amplitude, 40px jitter).
-  - **Everything fires simultaneously**: Torpedo salvos (5 torpedoes, 3s cooldown, 220px/s), sweeping beam (doubled rotation 0.8 rad/s, smaller 30° gap), radial bullet waves (16 projectiles, 250px/s, 2.5s cooldown), and Kamikaze drone spawns (2 every 10s).
-  - **Visual FX**: Hull cracking (jagged crack lines with energy leak glow spots), persistent screen shake (intensity 4), CRT glitch overlay, rapid flickering (rate 12).
-  - Thermal shifts to white-hot overload (`#fbbf24` → `#ffffff`).
-- **Defeat sequence**: Forward Array breaks (0s) → Beam Emitter breaks (0.5s) → Engine Bank breaks (1.0s) → Mid Section breaks (1.5s) → Core massive detonation (2.5s). Screen-white flash, shake intensity 20, 40 debris pieces, victory fanfare trigger.
-- Output: Campaign Completion Victory sequence.
+- Verify magnetic pickup collection and effect expiration.
+- Verify wave completion waits for all spawned hostiles.
+- Verify wave timers cannot trigger stale missions after restart.
+- Verify unlimited mode is optional and does not block normal victory.
+- Verify score bonuses, stars, grade, unlocks, retry, next-sector, and replay
+  behavior without inflating campaign totals.
 
 ---
 
-## PHASE K — Polish, Visual FX & Audio
+## Phase F - Existing Enemy Roster and Early Campaign
 
-### Step 40 — Particle engine & Impact Juice
-- Sparks, smoke plumes, shockwave rings, floating embers, FLIR heat particles.
+### Step 22 - Enemy configuration and renderer ✅
 
-### Step 41 — Screen Shake & CRT Hit-Stop
-- Directional camera shakes, CRT static glitches, and micro-freeze frames on critical hits.
+- Maintain the five enemy archetypes, hostile thermal palettes, IFF markers,
+  damage degradation, and pooled lifecycle.
+- Keep configuration validation, but run it as part of the regression pass.
 
-### Step 42 — Web Audio Sound Effects & Procedural Soundtrack
-- Synthesized military comms beeps, explosions, drone hums, and dynamic electronic dark synth music.
+### Step 23 - Recon Buggy ✅
 
-### Step 43 — UI Polish & Motion Design
-- Tactical scanlines, heavy CRT flicker options, seamless state transitions, and responsive polish.
+- Maintain linear descent, drift, formations, pulse fire, score, and drops.
+
+### Step 24 - Interceptor ✅
+
+- Maintain sinusoidal movement, angled dual fire, formations, and scaling.
+
+### Step 25 - SAM Turret ✅
+
+- Maintain anchored movement, tracking turret, and three-round bursts.
+
+### Step 26 - Kamikaze Drone ✅
+
+- Maintain warning telegraph, lock-on dive, contact damage, and cleanup.
+
+### Step 27 - Radar Jammer and drops ✅
+
+- Maintain jammer HUD disruption, radar reduction, IFF scrambling, repairs,
+  ordnance drops, and intel packets.
+
+### Step 28 - Scripted wave runner ✅
+
+- Maintain timeline events, formation spawning, banners, wave clearing, and
+  mission completion choices.
+
+### Step 29 - Sectors 1-4 ✅
+
+- Maintain the current scripted Training, Asteroid, Turret, and Incursion
+  missions.
+- Hazard names in the level data are metadata only until Phase H implements
+  actual hazard entities.
+
+### Step 30 - Results and victory flow PARTIAL
+
+- The results screen and score presentation exist.
+- Complete Step 17 and Step 21 fixes before considering this verified.
 
 ---
 
-## PHASE L — Persistence, Balance & QA
+## Phase G - Sector 5 Mobile Command HVT
 
-### Step 44 — Save/Load System
-- `localStorage` persistence for progress, stars, high scores, custom settings, and loadout preferences.
+### Step 31 - HVT warning sequence ✅
 
-### Step 45 — Difficulty & Weapon Balancing
-- Fine-tuned damage curves, spawn intervals, and score multipliers.
+- Maintain red alert banner, klaxon, satellite optic zoom, and entrance timing.
 
-### Step 46 — Performance & Memory Optimization
-- 60+ FPS profiling, garbage-collection minimization, and mobile responsiveness.
+### Step 32 - Mobile Command multi-segment framework ✅
 
-### Step 47 — Final QA & Master Release
-- Comprehensive end-to-end playtesting across all 10 levels, menus, and controls.
+- Maintain left pod, right pod, and core health, armor, hit testing, health
+  bar, rendering, segment destruction, and phase state scaffolding.
+- This step does not claim that boss attacks are complete.
+
+### Step 33 - Phase 1 radial flak barrage
+
+- Implement left-pod clockwise radial fire.
+- Implement right-pod counter-clockwise radial fire.
+- Fire 12 bullets per rotation at the configured rotation speed.
+- Implement aimed core shots on their cooldown.
+- Stop each pod attack immediately after that pod is destroyed.
+- Verify projectile collision, player damage, audio, and visual telegraphs.
+
+### Step 34 - Phase 2 core overdrive
+
+- Trigger only after both weapon pods are destroyed.
+- Implement core five-way spread fire and configured cooldown.
+- Double core movement speed and lateral amplitude.
+- Spawn two interceptor escorts every 15 seconds.
+- Add shield-drop, overheat glow, sparks, and phase transition feedback.
+
+### Step 35 - Sector 5 defeat and end-to-end verification
+
+- Implement pod detach/debris stubs and the ordered defeat sequence.
+- Award boss score through the single mission score path.
+- Drop the configured supplies once.
+- Complete Sector 5 through both phases on desktop and mobile controls.
+- Verify victory, results, save unlock, retry, and next-sector routing.
+
+---
+
+## Phase H - Hazards and Sectors 6-9
+
+### Step 36 - Hazard entity and collision system
+
+- Add the minimum pooled hazard representation needed by the level data.
+- Implement active/destructible hazard state, rendering, damage, and cleanup.
+- Register hazards in CollisionSystem using the existing HAZARD layer.
+- Add deterministic spawn/configuration hooks to WaveRunner.
+
+### Step 37 - Radar and environmental hazards
+
+- Implement destructible signal jammers.
+- Implement proximity mines with proximity detection and telegraphing.
+- Implement micrometeor/flak-burst behavior only where used by a sector.
+- Keep hazard damage, score, and drop rules explicit.
+
+### Step 38 - Sectors 6-7
+
+- Implement Nebula Gauntlet waves and ion-storm effects.
+- Implement Jammer Corridor encounters and destructible jammer objectives.
+- Verify hazard density and radar disruption do not make the missions unfair.
+
+### Step 39 - Sectors 8-9
+
+- Implement Siege Platform minefields and defense batteries.
+- Implement Dreadnought Approach heavy mixed waves.
+- Add the intended escalation without relying on the generic fallback script.
+
+---
+
+## Phase I - Sector 10 Apex Dreadnought
+
+### Step 40 - Apex boss entity framework
+
+- Add a boss implementation that supports five segments: forward array, beam
+  emitter, mid section, engine bank, and core.
+- Do not reuse the three-segment Mobile Command assumptions.
+- Add segment-specific collision, health display, armor, and destruction state.
+
+### Step 41 - Apex Phase 1: Submerge Dash
+
+- Implement fade/submerge invulnerability and repositioning.
+- Implement surface ripple/shockwave damage or telegraph behavior.
+- Implement homing torpedo salvos and smoke trails.
+- Add phase health threshold handling.
+
+### Step 42 - Apex Phase 2: Sweeping Beam
+
+- Anchor the boss at the configured center position.
+- Implement charge telegraph, rotating beam, and safe gap.
+- Implement point-defense aimed bursts.
+- Verify beam collision continuously and fairly.
+
+### Step 43 - Apex Phase 3: Enraged Desperation
+
+- Implement erratic movement and persistent low-intensity shake/glitch.
+- Combine torpedoes, beam, radial bullets, and kamikaze spawns.
+- Implement hull cracks, energy leaks, white-hot thermal state, and flicker.
+
+### Step 44 - Campaign completion sequence
+
+- Implement ordered five-segment destruction and final detonation.
+- Add screen flash, final shake, debris, fanfare, score, and Sector 10 save
+  completion.
+- Verify no further waves spawn after final victory.
+
+---
+
+## Phase J - Polish, Audio, and Accessibility
+
+### Step 45 - Particle and impact engine
+
+- Consolidate sparks, smoke, embers, heat particles, shockwaves, and debris in
+  a bounded pooled system.
+- Define mobile-safe particle caps.
+
+### Step 46 - Screen shake, hit-stop, and CRT effects
+
+- Respect the screen-shake setting in every camera impulse.
+- Add directional shake and short hit-stop for critical impacts.
+- Add optional CRT glitch/flicker without blocking gameplay or readability.
+
+### Step 47 - Audio completion
+
+- Keep procedural UI and weapon sounds.
+- Add the missing procedural soundtrack or explicitly remove the unused music
+  control if music is not part of release scope.
+- Verify master, SFX, music, mute, and browser audio-unlock behavior.
+
+### Step 48 - UI polish and accessibility
+
+- Remove the duplicated legacy cockpit UI or make it the single source of truth.
+- Replace hardcoded timestamp/sector/wave display with live state.
+- Verify focus states, labels, contrast, reduced motion, touch target sizes,
+  landscape/portrait behavior, and small-screen overflow.
+
+---
+
+## Phase K - Persistence, Balance, Performance, and Release
+
+### Step 49 - Save/load hardening
+
+- Validate and normalize malformed localStorage data.
+- Make victory recording idempotent for replay and repeated results opens.
+- Persist progress, stars, high scores, settings, and loadout preferences.
+- Provide a safe reset path without creating duplicate campaign records.
+
+### Step 50 - Difficulty and weapon balance
+
+- Tune enemy HP, armor, fire rates, damage, spawn intervals, boss timings,
+  weapon heat/ammo, score thresholds, and star requirements.
+- Test each drone and weapon across early, mid, and boss missions.
+
+### Step 51 - Performance and memory verification
+
+- Profile fixed-update and render cost on desktop and mobile-sized viewports.
+- Remove avoidable per-tick allocations from collision, enemy, boss, and HUD
+  hot paths.
+- Verify pool capacity behavior, timer cleanup, resize behavior, and stable
+  60 FPS targets.
+
+### Step 52 - Automated checks and browser QA
+
+- Add lightweight tests for level validation, save idempotency, stars, weapon
+  cycling, collision geometry, wave completion, and boss segment transitions.
+- Run end-to-end browser checks for all screens, all ten sectors, pause/resume,
+  results, settings, keyboard, mouse, and touch controls.
+- Confirm zero uncaught console errors and no broken module or asset requests.
+
+### Step 53 - Master release
+
+- Verify clean startup from a fresh browser profile.
+- Verify existing-save migration and campaign reset.
+- Confirm mobile orientation and touch behavior.
+- Confirm release scope, documentation, and final performance baseline.

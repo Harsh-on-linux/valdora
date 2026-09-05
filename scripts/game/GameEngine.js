@@ -12,7 +12,7 @@
  */
 
 import { TacticalMapLayer } from './TacticalMapLayer.js';
-import { getLevelById } from './levels.js';
+import { getLevelById, calculateStars } from './levels.js';
 import { getDroneById, getWeaponById } from './drones.js';
 import { InputManager } from './InputManager.js';
 import { PlayerDrone } from './PlayerDrone.js';
@@ -23,6 +23,8 @@ import { EnemyPool } from './EnemyPool.js';
 import { PickupPool } from './PickupPool.js';
 import { WaveRunner } from './WaveRunner.js';
 import { CollisionSystem } from './CollisionSystem.js';
+import { HVTWarningSequence } from './HVTWarningSequence.js';
+import { BossEntity } from './BossEntity.js';
 import { soundManager } from '../audio/index.js';
 
 export const ENGINE_STATE = {
@@ -80,9 +82,18 @@ export class GameEngine {
     this.weapons = new WeaponSystem('VULCAN');
     this.enemies = new EnemyPool(40);
     this.pickups = new PickupPool(64);
+    this.boss = new BossEntity();
     this.waveRunner = new WaveRunner();
     this.hudOverlay = new TacticalHUDOverlay();
+    this.hvtWarning = new HVTWarningSequence();
     this.collisions = new CollisionSystem({ cellSize: 80, debug: false });
+
+    // When HVT entrance sequence finishes, spawn boss into combat
+    this.hvtWarning.on('complete', (data) => {
+      if (this.state === ENGINE_STATE.RUNNING) {
+        this.spawnBoss(data.type || 'BOSS_MOBILE_COMMAND');
+      }
+    });
 
     this.waveRunner.on('stageComplete', (data) => {
       this.state = ENGINE_STATE.VICTORY;
@@ -91,6 +102,21 @@ export class GameEngine {
         soundManager.playVictory();
       }
     });
+
+    this.isObjectiveMet = false;
+    this.waveRunner.on('missionCompletedChoice', (data) => {
+      this.isObjectiveMet = true;
+      const sectorId = this.sectorConfig?.id || 1;
+      const stars = calculateStars(sectorId, this.score);
+      this._emit('missionCompletedChoice', {
+        ...data,
+        sectorId,
+        nextSectorId: sectorId + 1,
+        score: this.score,
+        stars
+      });
+    });
+
     this.sectorConfig = null;
     this.droneConfig = null;
     this.weaponConfig = null;
@@ -101,6 +127,10 @@ export class GameEngine {
     this.maxHull = 100;
     this.shield = 100;
     this.maxShield = 100;
+    this.shotsFired = 0;
+    this.shotsHit = 0;
+    this.damageTaken = 0;
+    this.pickupsCollected = 0;
 
     // Dynamic HUD auto-hide tracking (hidden by default)
     this.isPlayerMoving = false;
@@ -115,7 +145,8 @@ export class GameEngine {
     this.listeners = {
       stateChange: [],
       telemetry: [],
-      hudVisibilityChange: []
+      hudVisibilityChange: [],
+      missionCompletedChoice: []
     };
 
     this._boundLoop = this._loop.bind(this);
@@ -191,11 +222,13 @@ export class GameEngine {
     this.sectorConfig = getLevelById(sectorId) || { id: sectorId, name: `SECTOR ${sectorId}` };
     this.droneConfig = getDroneById(droneId);
     this.weaponConfig = getWeaponById(weaponId);
+    this.isObjectiveMet = false;
 
     // Initialize player drone archetype and position
     this.player.applyArchetype(droneId);
     const startX = this.width / 2;
     const startY = this.height * 0.82;
+    this.player.spawn(startX, startY);
     // Initialize fresh weapon system with loadout & drone multipliers
     this.weapons = new WeaponSystem(this.weaponConfig ? this.weaponConfig.id : weaponId);
     this.weapons.applyDroneModifiers(this.droneConfig);
@@ -206,6 +239,11 @@ export class GameEngine {
     // Clear pickups
     if (this.pickups) {
       this.pickups.clear();
+    }
+
+    // Reset Boss state
+    if (this.boss) {
+      this.boss.reset();
     }
 
     // Clear and initialize hostile target pool & wave runner
@@ -223,6 +261,10 @@ export class GameEngine {
     this.maxHull = this.player.maxHull;
     this.shield = this.player.shield;
     this.maxShield = this.player.maxShield;
+    this.shotsFired = 0;
+    this.shotsHit = 0;
+    this.damageTaken = 0;
+    this.pickupsCollected = 0;
 
     // Attach input handlers to canvas
     this.input.attach(this.canvas);
@@ -296,6 +338,8 @@ export class GameEngine {
   stop() {
     this.state = ENGINE_STATE.STOPPED;
     this.input.detach();
+    if (this.waveRunner) this.waveRunner.stop();
+    if (this.hvtWarning) this.hvtWarning.stop();
     if (this.hudHidden) {
       this.hudHidden = false;
       this._emit('hudVisibilityChange', {
@@ -315,9 +359,20 @@ export class GameEngine {
   /**
    * Trigger screen shake impulse.
    * @param {number} intensity - Shake magnitude in pixels
+   * @param {number} [decay=0.92] - Decay factor per tick
    */
-  addCameraShake(intensity = 8) {
-    this.shakeIntensity = Math.min(this.shakeIntensity + intensity, 35);
+  addCameraShake(intensity = 8, decay = 0.92) {
+    this.shakeIntensity = Math.min(this.shakeIntensity + intensity, 40);
+    this.shakeDecay = decay;
+  }
+
+  /**
+   * Alias for addCameraShake with intensity and decay options.
+   * @param {number} [intensity=10]
+   * @param {number} [decay=0.92]
+   */
+  shake(intensity = 10, decay = 0.92) {
+    this.addCameraShake(intensity, decay);
   }
 
   /**
@@ -459,58 +514,6 @@ export class GameEngine {
     if (this.enemies) {
       this.enemies.update(dt, this.width, this.height, this.player, this.projectiles, soundManager, this);
 
-      // In ongoing combat, maintain baseline tactical hostile presence
-      if (this.state === ENGINE_STATE.RUNNING && this.enemies.getActiveCount() < 5) {
-        const w = this.width || window.innerWidth;
-        const rx = w * (0.2 + Math.random() * 0.6);
-        const roll = Math.random();
-
-        if (roll < 0.12) {
-          // Spawn EW-9 Specter Radar Jammer support unit
-          this.enemies.spawn({
-            type: 'RADAR_JAMMER',
-            x: rx,
-            y: -50
-          });
-        } else if (roll < 0.28) {
-          // Spawn KZ-X Wraith Kamikaze Drone suicide rammer
-          this.enemies.spawn({
-            type: 'KAMIKAZE_DRONE',
-            x: rx,
-            y: -40
-          });
-        } else if (roll < 0.48) {
-          // Spawn GT-12 Sentinel SAM Turret emplacement
-          this.enemies.spawn({
-            type: 'SAM_TURRET',
-            x: rx,
-            y: -50
-          });
-        } else if (roll < 0.74) {
-          // Spawn VK-7 Interceptors in pair or echelon
-          this.enemies.spawnFormation({
-            type: 'INTERCEPTOR',
-            formation: Math.random() > 0.5 ? 'pair' : 'echelon',
-            count: Math.floor(Math.random() * 2) + 2,
-            startX: rx,
-            startY: -50,
-            spacingX: 64,
-            spacingY: 45
-          });
-        } else {
-          // Spawn RV-4 Scout Recon Buggy V-formation or staggered line
-          this.enemies.spawnFormation({
-            type: 'RECON_BUGGY',
-            formation: Math.random() > 0.5 ? 'vShape' : 'staggeredLine',
-            count: Math.floor(Math.random() * 2) + 3,
-            startX: rx,
-            startY: -50,
-            spacingX: 52,
-            spacingY: 42
-          });
-        }
-      }
-
       // Check for active ECM Jammer disruption
       const hasActiveJammer = this.enemies.getActiveEnemies().some(e => e.type === 'RADAR_JAMMER');
       if (this.hudOverlay) {
@@ -521,6 +524,16 @@ export class GameEngine {
     // 4.6. Update Wave Timeline Runner & Mission Orchestration
     if (this.waveRunner) {
       this.waveRunner.update(dt, this, soundManager);
+    }
+
+    // 4.65. Update Multi-Segment HVT Boss Entity
+    if (this.boss && this.boss.active) {
+      this.boss.update(dt, this, soundManager);
+    }
+
+    // 4.7. Update Cinematic HVT Red Alert & Satellite Optical Zoom Sequence
+    if (this.hvtWarning) {
+      this.hvtWarning.update(dt, this);
     }
 
     // 4.8. Update Tactical Pickups, Supply Crates & Magnetic Attraction
@@ -542,6 +555,23 @@ export class GameEngine {
     // 8. Sync player stats with engine stats
     this.hull = this.player.hull;
     this.shield = this.player.shield;
+
+    // 9. Check for player destruction / Mission Compromised
+    if (this.state === ENGINE_STATE.RUNNING && this.player.hull <= 0) {
+      this.state = ENGINE_STATE.GAMEOVER;
+      this.addCameraShake(22);
+      if (this.projectiles) {
+        this.projectiles.spawnHitSparks(this.player.x, this.player.y, '#ff003c', 36);
+        this.projectiles.spawnHitSparks(this.player.x, this.player.y, '#ffb703', 24);
+        this.projectiles.spawnHitSparks(this.player.x, this.player.y, '#ffffff', 18);
+        this.projectiles.spawnMuzzleFlash(this.player.x, this.player.y, '#ff003c', 40, 0);
+      }
+      if (soundManager) {
+        if (typeof soundManager.playExplosion === 'function') soundManager.playExplosion(2.2);
+        if (typeof soundManager.playDefeat === 'function') soundManager.playDefeat();
+      }
+      this._emit('stateChange', this.state);
+    }
   }
 
   /**
@@ -615,8 +645,20 @@ export class GameEngine {
       ctx.translate(this.cameraShakeX, this.cameraShakeY);
     }
 
-    // 1. Render Tactical Satellite & Topographic Map Layer
-    this.tacticalMap.render(ctx, w, h);
+    // 1. Render World Layers with Satellite Camera Zoom
+    const isZooming = this.hvtWarning && this.hvtWarning.active;
+    const zoom = isZooming ? this.hvtWarning.getZoomFactor() : 1.0;
+    const focal = isZooming ? this.hvtWarning.getFocalPoint(w, h) : { x: w * 0.5, y: h * 0.5 };
+
+    ctx.save();
+    if (zoom !== 1.0) {
+      ctx.translate(focal.x, focal.y);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-focal.x, -focal.y);
+    }
+
+    // 1. Background is the Starfield canvas behind (stars only) — no map
+    // grid, contours, waypoints or sweep lines, so combat reads cleanly.
 
     // 2. Render Tactical Pickups, Intel & Supply Crates
     if (this.pickups) {
@@ -634,17 +676,34 @@ export class GameEngine {
     // 4. Render Player Drone (with sub-frame interpolation and FLIR trails)
     this.player.render(ctx, alpha, w, h);
 
+    // 4.2. Render Multi-Segment HVT Boss Entity
+    if (this.boss && this.boss.active) {
+      this.boss.render(ctx, performance.now());
+    }
+
     // 4.5. Render Active Weapon Targeting Guidance & Hold-To-Charge Reticles
     if (this.weapons && typeof this.weapons.render === 'function') {
       this.weapons.render(ctx, this.player, w, h);
     }
 
+    ctx.restore();
+
     // 5. Render Tactical HUD Overlay (Reticle, Compass, Radar, Bounding Boxes)
     this.hudOverlay.render(ctx, this.player, w, h);
+
+    // 5.1. Render Tactical Multi-Segment Boss Health Bar HUD
+    if (this.boss && this.boss.active) {
+      this.boss.renderHUD(ctx, w, h);
+    }
 
     // 5.2. Render Tactical Wave Alert Banners & Announcements
     if (this.waveRunner) {
       this.waveRunner.render(ctx, w, h);
+    }
+
+    // 5.3. Render HVT Red Alert Warning & Satellite Optic Recon Overlay
+    if (this.hvtWarning) {
+      this.hvtWarning.render(ctx, w, h);
     }
 
     // 5.5. Render Virtual Touch Joystick Overlay (when active or onboarding cue)
@@ -801,70 +860,15 @@ export class GameEngine {
   }
 
   /**
-   * Render tactical HUD reticle, center crosshair, and telemetry watermark.
+   * Render pause dim overlay only. Background stays clean stars.
    */
   _renderTacticalOverlay(ctx, width, height) {
-    const cx = width / 2;
-    const cy = height / 2;
-
-    ctx.save();
-
-    // Central FLIR targeting crosshair
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.18)';
-    ctx.lineWidth = 1;
-
-    // Outer circle
-    ctx.beginPath();
-    ctx.arc(cx, cy, 48, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Center crosshair ticks
-    ctx.beginPath();
-    ctx.moveTo(cx - 16, cy);
-    ctx.lineTo(cx - 4, cy);
-    ctx.moveTo(cx + 4, cy);
-    ctx.lineTo(cx + 16, cy);
-    ctx.moveTo(cx, cy - 16);
-    ctx.lineTo(cx, cy - 4);
-    ctx.moveTo(cx, cy + 4);
-    ctx.lineTo(cx, cy + 16);
-    ctx.stroke();
-
-    // Subtle corner brackets on viewport
-    const pad = 16;
-    const len = 20;
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
-
-    // Top-left
-    ctx.beginPath();
-    ctx.moveTo(pad, pad + len);
-    ctx.lineTo(pad, pad);
-    ctx.lineTo(pad + len, pad);
-    ctx.stroke();
-
-    // Top-right
-    ctx.beginPath();
-    ctx.moveTo(width - pad - len, pad);
-    ctx.lineTo(width - pad, pad);
-    ctx.lineTo(width - pad, pad + len);
-    ctx.stroke();
-
-    // Bottom-left
-    ctx.beginPath();
-    ctx.moveTo(pad, height - pad - len);
-    ctx.lineTo(pad, height - pad);
-    ctx.lineTo(pad + len, height - pad);
-    ctx.stroke();
-
-    // Bottom-right
-    ctx.beginPath();
-    ctx.moveTo(width - pad - len, height - pad);
-    ctx.lineTo(width - pad, height - pad);
-    ctx.lineTo(width - pad, height - pad - len);
-    ctx.stroke();
-
     // If Paused, render tactical pause overlay badge
     if (this.state === ENGINE_STATE.PAUSED) {
+      const cx = width / 2;
+      const cy = height / 2;
+
+      ctx.save();
       ctx.fillStyle = 'rgba(5, 7, 10, 0.65)';
       ctx.fillRect(0, 0, width, height);
 
@@ -876,9 +880,8 @@ export class GameEngine {
       ctx.font = '12px "Share Tech Mono", monospace';
       ctx.fillStyle = 'rgba(0, 240, 255, 0.7)';
       ctx.fillText('SYSTEMS ARMED // PRESS RESUME OR ESC TO CONTINUE', cx, cy + 15);
+      ctx.restore();
     }
-
-    ctx.restore();
   }
 
   /**
@@ -977,6 +980,47 @@ export class GameEngine {
   }
 
   /**
+   * Trigger cinematic HVT Red Alert & Satellite Optical Zoom Warning.
+   * @param {Object} [options]
+   * @param {string} [options.bossName]
+   * @param {string} [options.bossType]
+   * @param {number} [options.sector]
+   * @param {number} [options.duration=3.5]
+   * @param {Function} [options.onComplete]
+   */
+  triggerHvtWarning(options = {}) {
+    if (!this.hvtWarning) {
+      this.hvtWarning = new HVTWarningSequence();
+    }
+    const sector = options.sector || this.sectorConfig?.id || 5;
+    const bossName = options.bossName || this.sectorConfig?.bossName || 'HVT MOBILE COMMAND CENTER';
+    const bossType = options.bossType || 'BOSS_MOBILE_COMMAND';
+
+    this.hvtWarning.start({
+      bossName,
+      bossType,
+      sector,
+      duration: options.duration || 3.5,
+      onComplete: options.onComplete
+    });
+
+    this._emit('telemetry', this.getTelemetry());
+  }
+
+  /**
+   * Spawn Boss entity directly into combat arena.
+   * @param {string} [bossType='BOSS_MOBILE_COMMAND']
+   */
+  spawnBoss(bossType = 'BOSS_MOBILE_COMMAND') {
+    if (!this.boss) {
+      this.boss = new BossEntity();
+    }
+    const playerSize = this.player?.size || 54;
+    this.boss.spawn(bossType, this.width, this.height, playerSize);
+    this._emit('bossSpawned', { bossType, boss: this.boss });
+  }
+
+  /**
    * Get engine telemetry data snapshot.
    */
   getTelemetry() {
@@ -1011,6 +1055,14 @@ export class GameEngine {
       stationaryTimer: Number(this.stationaryTimer.toFixed(1)),
       panelsEnabled: this.panelsEnabled,
       hudHidden: this.hudHidden,
+      // Boss & HVT State
+      isBossActive: this.boss ? !!this.boss.active : false,
+      bossHp: this.boss ? this.boss.totalHp : 0,
+      bossMaxHp: this.boss ? this.boss.maxTotalHp : 800,
+      bossPhase: this.boss ? this.boss.phase : 1,
+      // HVT Alert Warning State
+      isHvtWarningActive: this.hvtWarning ? !!this.hvtWarning.active : false,
+      hvtZoomFactor: this.hvtWarning ? this.hvtWarning.getZoomFactor() : 1.0,
       // Active Weapon & Arsenal Telemetry
       activeWeapon: this.weapons?.activeWeaponId || 'VULCAN',
       weaponName: this.weapons?.weaponConfig?.name || 'GAU-22 VULCAN',
@@ -1022,6 +1074,11 @@ export class GameEngine {
       // Mission Wave Progress
       currentWave: this.waveRunner ? this.waveRunner.currentWaveIndex : 1,
       totalWaves: this.waveRunner ? this.waveRunner.totalWaves : 3,
+      isUnlimitedMode: this.waveRunner ? !!this.waveRunner.isUnlimitedMode : false,
+      isObjectiveMet: !!this.isObjectiveMet,
+      // Live Stars & Threshold Telemetry
+      stars: calculateStars(this.sectorConfig?.id || 1, this.score),
+      scoreThresholds: this.sectorConfig?.scoreThresholds || { star1: 10000, star2: 20000, star3: 30000 },
       // Merge rich tactical HUD snapshot
       ...hudSnapshot
     };
@@ -1050,6 +1107,127 @@ export class GameEngine {
   }
 
   /**
+   * Record fired projectile count for accuracy statistics.
+   * @param {number} [count=1]
+   */
+  recordShotFired(count = 1) {
+    this.shotsFired += count;
+  }
+
+  /**
+   * Record projectile hit count on hostiles for accuracy calculation.
+   * @param {number} [count=1]
+   */
+  recordShotHit(count = 1) {
+    this.shotsHit += count;
+  }
+
+  /**
+   * Record total damage sustained by player.
+   * @param {number} [amount=0]
+   */
+  recordDamageTaken(amount = 0) {
+    this.damageTaken += amount;
+  }
+
+  /**
+   * Record collected pickup or intel data cache.
+   */
+  recordPickupCollected() {
+    this.pickupsCollected++;
+  }
+
+  addScore(points = 0) {
+    this.score += Math.max(0, Number(points) || 0);
+    return this.score;
+  }
+
+  /**
+   * Calculate comprehensive tactical mission evaluation summary.
+   * @param {boolean} [isVictory=true]
+   * @returns {Object} Mission debrief summary payload
+   */
+  getMissionSummary(isVictory = true) {
+    // If primary mission objectives were secured, preserve victory status even on survival defeat
+    if (this.isObjectiveMet) {
+      isVictory = true;
+    }
+
+    const sectorId = this.sectorConfig?.id || 1;
+    const levelInfo = getLevelById(sectorId) || {
+      id: sectorId,
+      name: `SECTOR ${sectorId.toString().padStart(2, '0')}`,
+      scoreThresholds: { star1: 1000, star2: 2000, star3: 3000 }
+    };
+
+    const baseScore = Math.max(0, Math.round(this.score));
+    const shotsFired = Math.max(0, this.shotsFired);
+    const shotsHit = Math.max(0, this.shotsHit);
+    const accuracyPct = shotsFired > 0 ? Math.min(100, Math.round((shotsHit / shotsFired) * 100)) : 100;
+
+    // Accuracy Bonus (up to +35% of base score for high precision >= 50%)
+    let accuracyBonus = 0;
+    if (accuracyPct >= 50) {
+      accuracyBonus = Math.round(baseScore * (accuracyPct / 100) * 0.35);
+    }
+
+    // Hull Integrity Bonus (awarded on victory based on remaining hull)
+    const hullPct = Math.max(0, Math.min(100, Math.round((this.player.hull / (this.player.maxHull || 100)) * 100)));
+    let hullBonus = 0;
+    if (isVictory) {
+      hullBonus = Math.round((hullPct / 100) * 1200);
+    }
+
+    // Rapid Clear Speed Bonus (awarded on victory for clearing sector within par time)
+    let timeBonus = 0;
+    if (isVictory) {
+      const parTime = 120; // 2 minutes par time
+      if (this.simTime < parTime) {
+        timeBonus = Math.round((parTime - this.simTime) * 20);
+      }
+    }
+
+    const totalFinalScore = baseScore + (isVictory ? (accuracyBonus + hullBonus + timeBonus) : 0);
+    const stars = isVictory ? calculateStars(sectorId, baseScore) : 0;
+
+    let grade = 'F';
+    if (!isVictory) {
+      grade = 'MIA';
+    } else if (stars === 3 && accuracyPct >= 80) {
+      grade = 'S';
+    } else if (stars >= 2 && accuracyPct >= 60) {
+      grade = 'A';
+    } else if (stars >= 1) {
+      grade = 'B';
+    } else {
+      grade = 'C';
+    }
+
+    return {
+      sector: sectorId,
+      sectorName: levelInfo.name,
+      victory: isVictory,
+      baseScore,
+      accuracy: accuracyPct,
+      shotsFired,
+      shotsHit,
+      accuracyBonus,
+      hullPct,
+      hullBonus,
+      timeElapsed: Number(this.simTime.toFixed(1)),
+      timeBonus,
+      pickupsCollected: this.pickupsCollected || 0,
+      score: totalFinalScore,
+      stars,
+      grade,
+      kills: this.enemies ? this.enemies.totalKills : 0,
+      thresholds: levelInfo.scoreThresholds,
+      drone: this.droneConfig?.name || 'STRIKER',
+      weapon: this.weaponConfig?.name || 'VULCAN'
+    };
+  }
+
+  /**
    * Destroy instance and remove event listeners.
    */
   destroy() {
@@ -1060,6 +1238,6 @@ export class GameEngine {
     window.removeEventListener('collision:toggleDebug', this._boundDebugToggle);
     window.removeEventListener('weapon:cycle', this._boundWeaponCycle);
     window.removeEventListener('weapon:selectSlot', this._boundWeaponSlot);
-    this.listeners = { stateChange: [], telemetry: [], hudVisibilityChange: [] };
+    this.listeners = { stateChange: [], telemetry: [], hudVisibilityChange: [], missionCompletedChoice: [] };
   }
 }

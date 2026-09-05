@@ -114,6 +114,27 @@
   font-size: 1.15rem;
 }
 
+.hud-score-target {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.hud-wave-detail {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.5rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
 .hud-actions-right {
   display: flex;
   align-items: center;
@@ -812,6 +833,10 @@
     font-size: 0.65rem;
   }
 
+  .hud-score-target {
+    font-size: 0.48rem;
+  }
+
   .hud-touch-controls {
     bottom: 50px;
     right: 6px;
@@ -835,3 +860,268 @@
     font-size: 0.68rem;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIVE HUD STAR INDICATOR & TACTICAL WAVE ALERT NOTIFIERS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.hud-stars-indicator {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  margin-left: 6px;
+  font-family: var(--font-heading, sans-serif);
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+}
+
+.hud-stars-indicator .star-slot {
+  color: rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hud-stars-indicator .star-slot.active {
+  color: var(--amber, #ffb703);
+  text-shadow: 0 0 10px rgba(255, 183, 3, 0.85);
+  transform: scale(1.15);
+}
+
+/* Center-screen Tactical Wave Alert Banner (HTML Layer) */
+.hud-wave-alert-box {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 620px;
+  padding: 16px 24px;
+  background: rgba(5, 10, 18, 0.92);
+  border: 1px solid var(--cyan-bright, #00f0ff);
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.35), inset 0 0 25px rgba(0, 240, 255, 0.1);
+  text-align: center;
+  pointer-events: none;
+  z-index: 50;
+  animation: waveBannerPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hud-wave-alert-box.final-wave {
+  border-color: var(--danger-red, #ff003c);
+  box-shadow: 0 0 40px rgba(255, 0, 60, 0.45), inset 0 0 25px rgba(255, 0, 60, 0.15);
+}
+
+.hud-wave-alert-box.hvt-alert {
+  border-color: #ff003c;
+  background: rgba(20, 3, 7, 0.96);
+  box-shadow: 0 0 55px rgba(255, 0, 60, 0.65), inset 0 0 35px rgba(255, 0, 60, 0.25);
+  animation: hvtAlertStrobe 0.4s infinite alternate;
+}
+
+@keyframes hvtAlertStrobe {
+  0% { border-color: #ff003c; box-shadow: 0 0 35px rgba(255, 0, 60, 0.45); }
+  100% { border-color: #ffb703; box-shadow: 0 0 65px rgba(255, 0, 60, 0.85); }
+}
+
+.hud-layer.hvt-red-alert {
+  animation: hudRedAlertPulse 0.5s infinite alternate;
+}
+
+@keyframes hudRedAlertPulse {
+  0% { filter: drop-shadow(0 0 5px rgba(255, 0, 60, 0.3)); }
+  100% { filter: drop-shadow(0 0 15px rgba(255, 0, 60, 0.75)); }
+}
+
+.hud-wave-alert-box.victory-wave {
+  border-color: #10b981;
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.45), inset 0 0 25px rgba(16, 185, 129, 0.15);
+}
+
+@keyframes waveBannerPop {
+  0% { opacity: 0; transform: translate(-50%, -60%) scale(0.9); }
+  60% { transform: translate(-50%, -50%) scale(1.02); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+}
+
+.wave-alert-title {
+  font-family: var(--font-heading, 'Orbitron', sans-serif);
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--cyan-bright, #00f0ff);
+  text-shadow: 0 0 14px rgba(0, 240, 255, 0.8);
+  margin-bottom: 4px;
+}
+
+.hud-wave-alert-box.final-wave .wave-alert-title {
+  color: var(--danger-red, #ff003c);
+  text-shadow: 0 0 16px rgba(255, 0, 60, 0.85);
+}
+
+.hud-wave-alert-box.hvt-alert .wave-alert-title {
+  color: var(--danger-red, #ff003c);
+  text-shadow: 0 0 20px rgba(255, 0, 60, 0.95);
+}
+
+.hud-wave-alert-box.victory-wave .wave-alert-title {
+  color: #10b981;
+  text-shadow: 0 0 16px rgba(16, 185, 129, 0.85);
+}
+
+.wave-alert-sub {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-bright, #ffffff);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MISSION COMPLETION CHOICE MODAL (PROCEED VS UNLIMITED SURVIVAL)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.hud-completion-choice-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 580px;
+  padding: 24px 28px;
+  background: rgba(8, 14, 24, 0.96);
+  border: 1px solid #10b981;
+  box-shadow: 0 0 45px rgba(16, 185, 129, 0.35), inset 0 0 25px rgba(16, 185, 129, 0.1);
+  text-align: center;
+  z-index: 60;
+  pointer-events: auto;
+  animation: modalSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalSlideUp {
+  0% { opacity: 0; transform: translate(-50%, -42%) scale(0.95); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+}
+
+.completion-modal-title {
+  font-family: var(--font-heading, 'Orbitron', sans-serif);
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #10b981;
+  text-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
+  margin-bottom: 6px;
+}
+
+.completion-modal-desc {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: 20px;
+  line-height: 1.4;
+  letter-spacing: 1px;
+}
+
+.completion-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.completion-modal-actions .console-btn {
+  flex: 1 1 200px;
+  padding: 10px 14px;
+}
+
+.pulse-green {
+  animation: pulseGreenGlow 1.6s infinite alternate;
+}
+
+@keyframes pulseGreenGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    border-color: #10b981;
+  }
+  100% {
+    box-shadow: 0 0 22px rgba(16, 185, 129, 0.9), inset 0 0 10px rgba(16, 185, 129, 0.4);
+    border-color: #34d399;
+  }
+}
+
+/* V2 mobile game HUD: overlay drawers, compact topbar, thumb-zone touch cluster */
+.hud-top-bar { flex-wrap: wrap; }
+.hud-layer button { touch-action: manipulation; }
+@media (max-width: 768px) {
+  .hud-layer {
+    padding-top: calc(6px + env(safe-area-inset-top));
+    padding-left: calc(6px + env(safe-area-inset-left));
+    padding-right: calc(6px + env(safe-area-inset-right));
+  }
+  .hud-top-bar { gap: 6px; }
+  .hud-info-card { padding: 4px 8px; }
+  /* Side panels become floating drawers so they never squeeze the playfield */
+  .hud-mid-tactical-layout {
+    position: absolute;
+    top: 76px;
+    left: 6px;
+    right: 6px;
+    bottom: 150px;
+    margin: 0;
+    pointer-events: none;
+    z-index: 30;
+    align-items: flex-start;
+  }
+  .hud-sidebar-left, .hud-sidebar-right {
+    position: absolute;
+    top: 0;
+    display: flex;
+    width: min(72vw, 240px);
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: rgba(5, 8, 13, 0.88);
+    border: 1px solid rgba(45, 212, 220, 0.25);
+    padding: 6px;
+    pointer-events: auto;
+  }
+  .hud-sidebar-left { left: 0; }
+  .hud-sidebar-right { right: 0; }
+  .hud-layer.hud-moving-hidden .hud-sidebar-left,
+  .hud-layer.hud-moving-hidden .hud-sidebar-right { opacity: 0; visibility: hidden; transform: translateY(6px); pointer-events: none; }
+  .hud-bottom-bar { flex-wrap: wrap; gap: 6px; }
+  .hud-wave-alert-box { width: calc(100% - 24px); padding: 12px 14px; }
+  .wave-alert-title { font-size: 1rem; }
+  .wave-alert-sub { font-size: 0.62rem; }
+}
+@media (max-width: 480px) {
+  /* Single compact top row: vitals + score + wave + pause */
+  .hud-top-bar { flex-wrap: nowrap; gap: 4px; }
+  .hud-top-bar .hud-info-card { padding: 3px 6px; min-width: 0; flex: 1 1 auto; }
+  .hud-top-bar .hud-value { font-size: 0.8rem; }
+  .hud-top-bar .hud-label { font-size: 0.52rem; }
+  .hud-score-target, .hud-wave-detail { display: none; }
+  .hud-stars-indicator { font-size: 0.7rem; letter-spacing: 1px; margin-left: 2px; }
+  #hud-toggle-label { display: none; }
+  #btn-toggle-panels { min-width: 44px; }
+  /* Slim bottom bar: actions only */
+  .hud-flight-telemetry { display: none; }
+  .hud-bottom-bar { flex-wrap: nowrap; justify-content: flex-end; padding-bottom: env(safe-area-inset-bottom); }
+  .hud-bottom-bar .console-btn { min-height: 44px; }
+  /* Thumb-zone combat cluster above the bottom bar */
+  .hud-touch-controls {
+    bottom: calc(108px + env(safe-area-inset-bottom));
+    right: calc(10px + env(safe-area-inset-right));
+  }
+  .hud-touch-right-actions {
+    grid-template-columns: 52px 76px;
+    grid-template-rows: 52px 76px;
+    gap: 10px;
+  }
+  .touch-action-btn { width: 52px; height: 52px; font-size: 0.58rem; }
+  .touch-action-btn.fire-btn { width: 76px; height: 76px; font-size: 0.72rem; }
+  .hud-completion-choice-modal { width: calc(100% - 24px); padding: 18px; }
+}
+@media (pointer: coarse) {
+  .touch-action-btn { min-width: 56px; min-height: 56px; }
+  .weapon-slot-chip { min-height: 44px; min-width: 44px; }
+  #btn-pause, #btn-toggle-panels { min-height: 44px; }
+}
+#game-canvas { touch-action: none; }

@@ -191,14 +191,11 @@ export const LoadoutScreen = {
       keyBadge.textContent = `${index + 1}`;
       card.appendChild(keyBadge);
 
-      // Mini canvas widget
-      const miniWidget = createDronePreviewWidget(card, drone.id, {
-        width: 80,
-        height: 85,
-        animate: false
-      });
-      miniWidget.canvas.className = 'drone-card-mini-canvas';
-      this._miniWidgets.push(miniWidget);
+      // Chassis glyph (single animated preview lives left; cards stay light)
+      const glyph = document.createElement('div');
+      glyph.className = 'drone-card-glyph';
+      glyph.textContent = drone.id.charAt(0);
+      card.appendChild(glyph);
 
       // Name & class
       const nameEl = document.createElement('div');

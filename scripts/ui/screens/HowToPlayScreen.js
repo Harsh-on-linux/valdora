@@ -5,6 +5,7 @@
  */
 
 import { soundManager } from '../../audio/index.js';
+import { statBar } from '../components.js';
 
 export const HowToPlayScreen = {
   _activeTab: 'controls',
@@ -296,15 +297,7 @@ export const HowToPlayScreen = {
               <p class="weapon-spec-desc">${w.desc}</p>
               
               <div class="weapon-stats-grid">
-                ${w.stats.map(s => `
-                  <div class="weapon-stat-row">
-                    <span class="stat-lbl">${s.label}</span>
-                    <div class="stat-bar-track">
-                      <div class="stat-bar-fill fill-${s.col}" style="width: ${s.val}%"></div>
-                    </div>
-                    <span class="stat-num">${s.val}%</span>
-                  </div>
-                `).join('')}
+                ${w.stats.map(s => statBar(s.label, s.val, s.col)).join('')}
               </div>
             </div>
           `).join('')}

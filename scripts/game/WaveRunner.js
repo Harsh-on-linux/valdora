@@ -25,6 +25,10 @@ export class WaveRunner {
     this.waveActive = false;
     this.isScriptCompleted = false;
     this.isStageCleared = false;
+    this.isObjectiveMet = false;
+    this.isUnlimitedMode = false;
+    this.spawnedThisWave = 0;
+    this.nextWaveDelay = 0;
 
     // Timeline event cursor
     this.eventIndex = 0;
@@ -45,6 +49,7 @@ export class WaveRunner {
       waveStart: [],
       waveCleared: [],
       stageComplete: [],
+      missionCompletedChoice: [],
       bannerAlert: []
     };
   }
@@ -57,6 +62,13 @@ export class WaveRunner {
   on(event, callback) {
     if (this.listeners[event]) {
       this.listeners[event].push(callback);
+    }
+    return this;
+  }
+
+  off(event, callback) {
+    if (this.listeners[event]) {
+      this.listeners[event] = this.listeners[event].filter(listener => listener !== callback);
     }
     return this;
   }
@@ -80,6 +92,7 @@ export class WaveRunner {
    * @param {Object} sectorConfig
    */
   loadSector(sectorId = 1, sectorConfig = null) {
+    this.stop();
     this.currentSectorId = sectorId;
     this.sectorConfig = sectorConfig;
     this.totalWaves = sectorConfig?.waveCount || 3;
@@ -88,47 +101,148 @@ export class WaveRunner {
     this.waveActive = false;
     this.isScriptCompleted = false;
     this.isStageCleared = false;
+    this.isObjectiveMet = false;
+    this.isUnlimitedMode = false;
     this.eventIndex = 0;
+    this.spawnedThisWave = 0;
 
     // Generate timeline script for this sector
     this.activeTimeline = this._buildSectorScript(sectorId, this.totalWaves);
 
-    // Trigger initial mission intro banner
+    // Trigger initial mission intro banner (gives pilot 2.0s tactical briefing before hostiles drop)
     this.showBanner(
-      `SECTOR 0${sectorId} // ${sectorConfig?.name || 'MISSION START'}`,
-      `OBJECTIVE: NEUTRALIZE ALL INCOMING HOSTILE FORCES`,
+      `SECTOR 0${sectorId} // ${sectorConfig?.name || 'MISSION DEPLOYMENT'}`,
+      `OBJECTIVE: ELIMINATE ALL ${this.totalWaves} HOSTILE INVASION WAVES`,
       '#00f0ff',
-      3.0
+      2.2
     );
 
-    this.startNextWave();
+    this.nextWaveDelay = 2.2;
   }
 
   /**
    * Start the next scripted wave.
    */
   startNextWave() {
+    if (this.isScriptCompleted || this.isUnlimitedMode) return;
     this.currentWaveIndex++;
     this.waveTimer = 0;
     this.waveActive = true;
     this.eventIndex = 0;
+    this.spawnedThisWave = 0;
 
     const isFinalWave = this.currentWaveIndex >= this.totalWaves;
     const bannerTitle = isFinalWave
-      ? `FINAL WAVE // HOSTILE INVASION`
-      : `WAVE ${this.currentWaveIndex} OF ${this.totalWaves}`;
+      ? `🚨 FINAL WAVE 0${this.currentWaveIndex}/${this.totalWaves} // ALL HOSTILES INBOUND`
+      : `⚠️ WAVE 0${this.currentWaveIndex}/${this.totalWaves} // HOSTILE SQUADRON DETECTED`;
     const bannerSub = isFinalWave
-      ? `ALL SQUADRONS ENGAGE AT WILL`
-      : `RADAR CONTACTS CONFIRMED`;
+      ? `ALL WEAPONS AUTHORIZED // MAINTAIN MAXIMUM EVASION`
+      : `RADAR CONTACTS CONFIRMED // ENGAGE TARGETS`;
     const bannerColor = isFinalWave ? '#ff003c' : '#00f0ff';
 
-    this.showBanner(bannerTitle, bannerSub, bannerColor, 2.2);
+    this.showBanner(bannerTitle, bannerSub, bannerColor, 2.6);
 
     this._emit('waveStart', {
       waveIndex: this.currentWaveIndex,
       totalWaves: this.totalWaves,
-      isFinal: isFinalWave
+      isFinal: isFinalWave,
+      isUnlimited: false
     });
+  }
+
+  /**
+   * Transition into endless unlimited survival mode after sector objectives are met.
+   */
+  startUnlimitedMode() {
+    this.isUnlimitedMode = true;
+    this.isStageCleared = false;
+    this.showBanner(
+      '♾️ UNLIMITED MODE ENGAGED',
+      'HOSTILE REINFORCEMENTS INCOMING // SURVIVE AT ALL COSTS',
+      '#ffb703',
+      3.0
+    );
+    this.nextWaveDelay = 1.5;
+  }
+
+  /**
+   * Procedurally generate and start the next escalating endless wave.
+   */
+  startNextUnlimitedWave() {
+    this.currentWaveIndex++;
+    this.waveTimer = 0;
+    this.waveActive = true;
+    this.eventIndex = 0;
+    this.spawnedThisWave = 0;
+
+    const waveNum = this.currentWaveIndex;
+    const bannerTitle = `♾️ SURVIVAL WAVE 0${waveNum}`;
+    const bannerSub = `ESCALATING THREAT LEVEL // MULTI-SQUADRON CONTACTS`;
+    const bannerColor = waveNum % 2 === 0 ? '#ff003c' : '#ffb703';
+
+    this.showBanner(bannerTitle, bannerSub, bannerColor, 2.4);
+
+    // Procedurally build wave events for this endless wave
+    this.activeTimeline[waveNum - 1] = this._generateEndlessWaveEvents(waveNum);
+
+    this._emit('waveStart', {
+      waveIndex: waveNum,
+      totalWaves: waveNum,
+      isFinal: false,
+      isUnlimited: true
+    });
+  }
+
+  /**
+   * Procedurally generate mixed formation events for endless waves.
+   * @param {number} waveNum
+   * @returns {Array<Object>}
+   */
+  _generateEndlessWaveEvents(waveNum) {
+    const events = [];
+    const intensity = Math.min(8, Math.floor(waveNum / 2) + 2);
+
+    // Wave event 1: Vanguard scouts / interceptors
+    events.push({
+      time: 0.5,
+      type: 'formation',
+      enemyType: Math.random() > 0.5 ? 'INTERCEPTOR' : 'RECON_BUGGY',
+      formation: Math.random() > 0.5 ? 'vShape' : 'echelon',
+      count: Math.min(6, 2 + Math.floor(intensity * 0.7)),
+      relX: 0.25 + Math.random() * 0.5
+    });
+
+    // Wave event 2: SAM Turrets or Kamikazes
+    if (waveNum >= 4) {
+      events.push({
+        time: 2.2,
+        type: 'spawn',
+        enemyType: Math.random() > 0.4 ? 'SAM_TURRET' : 'KAMIKAZE_DRONE',
+        relX: 0.2 + Math.random() * 0.6
+      });
+    }
+
+    // Wave event 3: Flank attack
+    events.push({
+      time: 4.0,
+      type: 'formation',
+      enemyType: Math.random() > 0.6 ? 'KAMIKAZE_DRONE' : 'INTERCEPTOR',
+      formation: 'pair',
+      count: Math.min(4, 2 + Math.floor(waveNum * 0.3)),
+      relX: Math.random() > 0.5 ? 0.22 : 0.78
+    });
+
+    // Wave event 4: Heavy reinforcement at higher waves
+    if (waveNum >= 5) {
+      events.push({
+        time: 6.0,
+        type: 'spawn',
+        enemyType: Math.random() > 0.5 ? 'RADAR_JAMMER' : 'SAM_TURRET',
+        relX: 0.5
+      });
+    }
+
+    return events;
   }
 
   /**
@@ -138,7 +252,7 @@ export class WaveRunner {
    * @param {import('../audio/SoundManager.js').SoundManager} [soundManager=null]
    */
   update(dt, gameEngine, soundManager = null) {
-    if (!gameEngine || this.isStageCleared) return;
+    if (!gameEngine) return;
 
     // 1. Update banner duration
     if (this.banner.active) {
@@ -148,7 +262,16 @@ export class WaveRunner {
       }
     }
 
-    if (!this.waveActive) return;
+    if (!this.waveActive) {
+      if (this.nextWaveDelay > 0) {
+        this.nextWaveDelay = Math.max(0, this.nextWaveDelay - dt);
+        if (this.nextWaveDelay === 0 && gameEngine.state === 'RUNNING') {
+          if (this.isUnlimitedMode) this.startNextUnlimitedWave();
+          else if (!this.isScriptCompleted) this.startNextWave();
+        }
+      }
+      return;
+    }
 
     this.waveTimer += dt;
 
@@ -167,35 +290,35 @@ export class WaveRunner {
     // 3. Check wave completion conditions
     const allEventsDispatched = this.eventIndex >= waveEvents.length;
     const activeEnemyCount = gameEngine.enemies ? gameEngine.enemies.getActiveCount() : 0;
+    const isHvtActive = gameEngine.hvtWarning && gameEngine.hvtWarning.active;
+    const isBossActive = gameEngine.boss && gameEngine.boss.active && !gameEngine.boss.isDefeated;
 
-    if (allEventsDispatched && activeEnemyCount === 0 && this.waveTimer > 3.0) {
+    if (allEventsDispatched && activeEnemyCount === 0 && this.waveTimer > 2.5 && !isHvtActive && !isBossActive) {
       this.waveActive = false;
 
       this._emit('waveCleared', {
         waveIndex: this.currentWaveIndex,
-        totalWaves: this.totalWaves
+        totalWaves: this.totalWaves,
+        isUnlimited: this.isUnlimitedMode
       });
 
-      if (this.currentWaveIndex < this.totalWaves) {
-        // Schedule next wave after 2.5s breather
-        setTimeout(() => {
-          if (gameEngine.state === 'RUNNING') {
-            this.startNextWave();
-          }
-        }, 2200);
+      if (this.isUnlimitedMode) {
+        // Continuous endless survival wave progression
+          this.nextWaveDelay = 1.8;
+      } else if (this.currentWaveIndex < this.totalWaves) {
+        // Schedule next scripted wave after 2.2s breather
+        this.nextWaveDelay = 2.2;
       } else {
-        // Mission complete!
+        // Primary mission objectives complete!
         this.isStageCleared = true;
-        this.showBanner('SECTOR SECURED', 'MISSION OBJECTIVES ACHIEVED // VICTORY', '#10b981', 4.0);
+        this.isObjectiveMet = true;
+        this.showBanner('SECTOR SECURED', 'MISSION OBJECTIVES ACHIEVED // PROCEED OR SURVIVE', '#10b981', 3.5);
 
-        setTimeout(() => {
-          if (gameEngine.state === 'RUNNING') {
-            this._emit('stageComplete', {
-              sectorId: this.currentSectorId,
-              score: gameEngine.score
-            });
-          }
-        }, 2000);
+        this._emit('missionCompletedChoice', {
+          sectorId: this.currentSectorId,
+          score: gameEngine.score
+        });
+        this.isScriptCompleted = true;
       }
     }
   }
@@ -213,7 +336,7 @@ export class WaveRunner {
     switch (evt.type) {
       case 'formation':
         if (enemies) {
-          enemies.spawnFormation({
+          const spawned = enemies.spawnFormation({
             type: evt.enemyType || 'RECON_BUGGY',
             formation: evt.formation || 'vShape',
             count: evt.count || 3,
@@ -222,16 +345,17 @@ export class WaveRunner {
             spacingX: evt.spacingX || 55,
             spacingY: evt.spacingY || 45
           });
+          this.spawnedThisWave += spawned.length;
         }
         break;
 
       case 'spawn':
         if (enemies) {
-          enemies.spawn({
+          if (enemies.spawn({
             type: evt.enemyType || 'SAM_TURRET',
             x: evt.relX !== undefined ? w * evt.relX : (evt.x || w * 0.5),
             y: evt.y || -50
-          });
+          })) this.spawnedThisWave++;
         }
         break;
 
@@ -239,6 +363,17 @@ export class WaveRunner {
         this.showBanner(evt.text || 'WARNING', evt.subtext || '', evt.color || '#ff003c', evt.duration || 2.5);
         if (soundManager && typeof soundManager.playWarning === 'function') {
           soundManager.playWarning();
+        }
+        break;
+
+      case 'hvt_warning':
+        if (gameEngine && typeof gameEngine.triggerHvtWarning === 'function') {
+          gameEngine.triggerHvtWarning({
+            bossName: evt.bossName || 'HVT MOBILE COMMAND CENTER',
+            bossType: evt.bossType || 'BOSS_MOBILE_COMMAND',
+            sector: evt.sector || this.currentSectorId || 5,
+            duration: evt.duration || 3.5
+          });
         }
         break;
     }
@@ -399,12 +534,43 @@ export class WaveRunner {
           events.push({ time: 3.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.85 });
           events.push({ time: 5.0, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 5, relX: 0.5 });
         }
-      } else {
-        // Generic sector fallback
+      } else if (sectorId === 5) {
+        // Level 5: MOBILE COMMAND (HVT Encounter — High-Value Target Fortress)
         if (w === 1) {
-          events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'pair', count: 2, relX: 0.5 });
+          // Wave 1: Vanguard Interceptors & SAM outpost
+          events.push({ time: 0.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'vShape', count: 3, relX: 0.5 });
+          events.push({ time: 2.0, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.8 });
+          events.push({ time: 3.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'pair', count: 2, relX: 0.25 });
+        } else if (w === 2) {
+          // Wave 2: Heavy Escorts, Kamikaze Dive Bombers & ECM Jammer
+          events.push({ time: 0.5, type: 'spawn', enemyType: 'RADAR_JAMMER', relX: 0.5 });
+          events.push({ time: 1.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'echelon', count: 4, relX: 0.3 });
+          events.push({ time: 3.0, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.25 });
+          events.push({ time: 3.8, type: 'spawn', enemyType: 'KAMIKAZE_DRONE', relX: 0.75 });
+          events.push({ time: 4.5, type: 'spawn', enemyType: 'SAM_TURRET', relX: 0.2 });
         } else {
-          events.push({ time: 0.5, type: 'formation', enemyType: 'RECON_BUGGY', formation: 'vShape', count: 4, relX: 0.5 });
+          // Wave 3: CRITICAL THREAT — HVT RED ALERT WARNING & SATELLITE OPTICAL ZOOM
+          events.push({
+            time: 0.5,
+            type: 'hvt_warning',
+            bossName: 'HVT MOBILE COMMAND CENTER',
+            bossType: 'BOSS_MOBILE_COMMAND',
+            sector: 5,
+            duration: 3.5
+          });
+        }
+      } else {
+        const enemyTypes = (this.sectorConfig?.enemyWaves || ['recon_buggy'])
+          .map(normalizeEnemyType)
+          .filter(Boolean);
+        const type = enemyTypes[(w - 1) % Math.max(1, enemyTypes.length)] || 'RECON_BUGGY';
+        const count = Math.min(7, 2 + Math.ceil(w / 2) + Math.floor((sectorId - 5) / 2));
+        events.push({ time: 0.5, type: 'formation', enemyType: type, formation: w % 3 === 0 ? 'echelon' : 'vShape', count, relX: 0.5 });
+        if (enemyTypes.length > 1) {
+          events.push({ time: 2.8, type: 'spawn', enemyType: enemyTypes[w % enemyTypes.length], relX: w % 2 ? 0.25 : 0.75 });
+        }
+        if (sectorId === 10 && w === waveCount) {
+          events.push({ time: 4.5, type: 'formation', enemyType: 'INTERCEPTOR', formation: 'echelon', count, relX: 0.5 });
         }
       }
 
@@ -413,4 +579,23 @@ export class WaveRunner {
 
     return waves;
   }
+
+  stop() {
+    this.waveActive = false;
+    this.isUnlimitedMode = false;
+    this.isScriptCompleted = true;
+    this.nextWaveDelay = 0;
+  }
+}
+
+function normalizeEnemyType(type) {
+  const aliases = {
+    RECON_BUGGY: 'RECON_BUGGY',
+    INTERCEPTOR_JET: 'INTERCEPTOR',
+    INTERCEPTOR: 'INTERCEPTOR',
+    SAM_TURRET: 'SAM_TURRET',
+    KAMIKAZE_DRONE: 'KAMIKAZE_DRONE',
+    RADAR_JAMMER: 'RADAR_JAMMER'
+  };
+  return aliases[String(type || '').toUpperCase()] || null;
 }

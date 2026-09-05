@@ -1,1 +1,9 @@
-{"type": "module", "name": "space-shooter", "version": "1.0.0"}
+{
+  "name": "space-shooter",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  }
+}

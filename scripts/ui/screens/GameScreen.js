@@ -19,6 +19,14 @@ let activeEngine = null;
 let telemetryUnsub = null;
 let hudVisibilityUnsub = null;
 let keyHandler = null;
+let onHvtStartHandler = null;
+let onHvtEndHandler = null;
+let waveBannerUnsub = null;
+let missionChoiceUnsub = null;
+let stateChangeUnsub = null;
+let waveAlertTimer = null;
+let debriefTimer = null;
+let debriefRouted = false;
 
 export const GameScreen = {
   mount(container, data = {}, router) {
@@ -50,19 +58,23 @@ export const GameScreen = {
             </div>
           </div>
 
-          <div class="hud-info-card score-card hud-theater-card" style="text-align: center;">
-            <span class="hud-label">THEATER // SECTOR ${sectorId.toString().padStart(2, '0')}</span>
-            <span class="hud-value" style="color: var(--glow-cyan); font-size: 0.95rem;">${escapeHtml(sectorName)}</span>
-          </div>
-
           <div class="hud-info-card score-card">
-            <span class="hud-label">MISSION SCORE</span>
-            <span class="hud-value" id="hud-score-val" style="color: var(--amber)">000,000</span>
+            <span class="hud-label">SCORE</span>
+            <div style="display: flex; align-items: baseline; gap: 8px; justify-content: space-between;">
+              <span class="hud-value" id="hud-score-val" style="color: var(--amber)">000,000</span>
+              <span class="hud-stars-indicator" id="hud-stars-indicator" title="Live Star Evaluation">
+                <span class="star-slot" id="hud-star-0">☆</span>
+                <span class="star-slot" id="hud-star-1">☆</span>
+                <span class="star-slot" id="hud-star-2">☆</span>
+              </span>
+            </div>
+            <span class="hud-score-target" id="hud-score-target">NEXT STAR ${levelInfo?.scoreThresholds?.star1?.toLocaleString() || '1,000'}</span>
           </div>
 
-          <div class="hud-info-card hud-fps-card" style="min-width: 75px; text-align: right;">
-            <span class="hud-label">SIM FPS</span>
-            <span class="hud-value" id="hud-fps-val" style="color: var(--glow-cyan); font-size: 0.95rem;">60</span>
+          <div class="hud-info-card wave-card" style="text-align: center; min-width: 90px;">
+            <span class="hud-label">WAVE</span>
+            <span class="hud-value" id="hud-wave-val" style="color: var(--cyan-bright); font-size: 0.95rem;">0/${levelInfo?.waveCount || 3}</span>
+            <span class="hud-wave-detail" id="hud-wave-detail">STANDBY</span>
           </div>
 
           <div style="display: flex; gap: 6px; align-items: center;">
@@ -70,11 +82,30 @@ export const GameScreen = {
               <span id="hud-toggle-icon">◧</span>
               <span id="hud-toggle-label">PANELS</span>
             </button>
-            <button class="console-btn btn-sm btn-secondary" id="btn-toggle-hitboxes" title="Toggle Collision Hitbox Debug (Hotkey: H / F3)">
-              <span>🎯 HITBOXES</span>
-            </button>
             <button class="console-btn btn-sm" id="btn-pause" title="Pause Mission (Esc / P)">
-              <span>⏸ PAUSE</span>
+              <span>⏸</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ═══════════ CENTER SCREEN TACTICAL WAVE ALERT NOTIFIER ═══════════ -->
+        <div class="hud-wave-alert-box" id="hud-wave-alert-box" style="display: none;">
+          <div class="wave-alert-title" id="hud-wave-alert-title">WAVE 1 OF 3</div>
+          <div class="wave-alert-sub" id="hud-wave-alert-sub">RADAR CONTACTS CONFIRMED // ENGAGE TARGETS</div>
+        </div>
+
+        <!-- ═══════════ MISSION COMPLETION CHOICE OVERLAY MODAL ═══════════ -->
+        <div class="hud-completion-choice-modal" id="hud-completion-choice-modal" style="display: none;">
+          <div class="completion-modal-title">SECTOR 0${sectorId} SECURED // MISSION COMPLETE</div>
+          <div class="completion-modal-desc">
+            ALL HOSTILE INVASION WAVES ELIMINATED. PROCEED TO DEBRIEF & NEXT THEATER, OR ENGAGE UNLIMITED SURVIVAL PROTOCOL.
+          </div>
+          <div class="completion-modal-actions">
+            <button class="console-btn btn-primary" id="btn-choice-next" title="Proceed to Mission Results & Next Sector">
+              <span>PROCEED TO NEXT SECTOR ▶</span>
+            </button>
+            <button class="console-btn btn-secondary pulse-amber" id="btn-choice-unlimited" title="Continue Fighting in Unlimited Endless Mode">
+              <span>CONTINUE IN UNLIMITED MODE ♾️</span>
             </button>
           </div>
         </div>
@@ -102,19 +133,6 @@ export const GameScreen = {
               <div class="hud-sys-row">
                 <span class="hud-sys-label">THREAT CONTACTS</span>
                 <span class="hud-sys-value" id="hud-sys-threats" style="color: var(--amber);">3 HOSTILE</span>
-              </div>
-            </div>
-
-            <!-- Real-time Tactical Coordinates -->
-            <div class="hud-data-panel hud-coords-panel">
-              <div class="hud-panel-title">
-                <span class="hud-panel-dot amber"></span> MGRS GRID: <span id="hud-coord-grid">44V-UTM</span>
-              </div>
-              <div class="hud-coords-stream">
-                <div>X: <span id="hud-coord-x" class="hud-telemetry-num">1284.7</span></div>
-                <div>Y: <span id="hud-coord-y" class="hud-telemetry-num">-892.3</span></div>
-                <div>ALT: <span id="hud-coord-alt" class="hud-telemetry-num">1450m</span></div>
-                <div>BRG: <span id="hud-coord-brg" class="hud-telemetry-num">000°</span> G: <span id="hud-coord-g" class="hud-telemetry-num">1.0G</span></div>
               </div>
             </div>
           </div>
@@ -263,23 +281,13 @@ export const GameScreen = {
 
         <!-- ═══════════ BOTTOM HUD BAR ═══════════ -->
         <div class="hud-bottom-bar">
-          <div class="hud-info-card">
-            <span class="hud-label">PAYLOAD // DRONE CHASSIS</span>
-            <span class="hud-value" style="color: var(--glow-amber); font-size: 0.9rem;">
-              ${escapeHtml(weaponName)} · ${escapeHtml(droneName)}
-            </span>
-          </div>
-
           <div class="hud-info-card hud-flight-telemetry" style="font-family: var(--font-hud-mono, monospace); font-size: 0.75rem; color: var(--text-secondary);">
-            <span>SPD: <span id="hud-speed-val" style="color: #ffffff;">0</span> KM/S</span>
-            <span style="margin-left: 8px;">THR: <span id="hud-thrust-val" style="color: var(--amber);">50</span>%</span>
-            <span style="margin-left: 8px;">TIME: <span id="hud-sim-time" style="color: var(--cyan)">0.0s</span></span>
-            <span style="margin-left: 8px;">MODE: <span id="hud-control-scheme" style="color: var(--green)">AUTO</span></span>
+            <span>${escapeHtml(droneName)} · <span id="hud-sim-time" style="color: var(--cyan)">0.0s</span></span>
           </div>
 
           <div class="hud-actions-right">
             <button class="console-btn btn-sm btn-secondary" id="btn-abort-to-map">
-              <span>◀ ABORT</span>
+              <span>◀ MAP</span>
             </button>
             <button class="console-btn btn-sm btn-primary" id="btn-test-results">
               <span>DEBRIEF ▶</span>
@@ -310,6 +318,8 @@ export const GameScreen = {
       // Hook up live HUD telemetry listener
       const fpsEl = container.querySelector('#hud-fps-val');
       const scoreEl = container.querySelector('#hud-score-val');
+      const scoreTargetEl = container.querySelector('#hud-score-target');
+      const waveDetailEl = container.querySelector('#hud-wave-detail');
       const hullEl = container.querySelector('#hud-hull-val');
       const shieldEl = container.querySelector('#hud-shield-val');
       const hullFill = container.querySelector('#hud-hull-fill');
@@ -355,6 +365,15 @@ export const GameScreen = {
       const onTelemetry = (telem) => {
         if (fpsEl) fpsEl.textContent = telem.fps;
         if (scoreEl) scoreEl.textContent = String(telem.score).padStart(6, '0');
+        if (scoreTargetEl && telem.scoreThresholds) {
+          const thresholds = telem.scoreThresholds;
+          const nextTarget = telem.stars < 1 ? thresholds.star1 : telem.stars < 2 ? thresholds.star2 : telem.stars < 3 ? thresholds.star3 : thresholds.star3;
+          scoreTargetEl.textContent = telem.stars >= 3 ? '★ ★ ★ MAX RATING' : `NEXT ★ ${nextTarget.toLocaleString()}`;
+        }
+        if (waveDetailEl) {
+          const status = telem.isObjectiveMet ? 'OBJECTIVES SECURED' : telem.waveActive ? `${telem.activeEnemies || 0} HOSTILES REMAIN` : 'NEXT WAVE INBOUND';
+          waveDetailEl.textContent = status;
+        }
 
         const hullPct = Math.round((telem.hull / (telem.maxHull || 100)) * 100);
         const shieldPct = Math.round((telem.shield / (telem.maxShield || 100)) * 100);
@@ -459,6 +478,40 @@ export const GameScreen = {
           }
         }
 
+        // Live Star Indicator updates
+        const curStars = telem.stars || 0;
+        const star0 = container.querySelector('#hud-star-0');
+        const star1 = container.querySelector('#hud-star-1');
+        const star2 = container.querySelector('#hud-star-2');
+        if (star0) { star0.textContent = curStars >= 1 ? '★' : '☆'; star0.classList.toggle('active', curStars >= 1); }
+        if (star1) { star1.textContent = curStars >= 2 ? '★' : '☆'; star1.classList.toggle('active', curStars >= 2); }
+        if (star2) { star2.textContent = curStars >= 3 ? '★' : '☆'; star2.classList.toggle('active', curStars >= 3); }
+
+        // Tactical Wave Indicator update
+        const waveEl = container.querySelector('#hud-wave-val');
+        if (waveEl) {
+          if (telem.isUnlimitedMode) {
+            waveEl.textContent = `♾️ ENDLESS W${telem.currentWave}`;
+            waveEl.style.color = '#ffb703';
+          } else if (telem.currentWave) {
+            waveEl.textContent = `WAVE ${telem.currentWave}/${telem.totalWaves || 3}`;
+            if (telem.currentWave >= telem.totalWaves) {
+              waveEl.style.color = 'var(--danger-red, #ff003c)';
+            } else {
+              waveEl.style.color = 'var(--cyan-bright, #00f0ff)';
+            }
+          }
+        }
+
+        // Keep bottom action button styled as "NEXT SECTOR 0X ▶" once objectives are met
+        const resultsBtnEl = container.querySelector('#btn-test-results');
+        if (telem.isObjectiveMet && resultsBtnEl && !resultsBtnEl.classList.contains('pulse-green')) {
+          const nextSec = sectorId + 1;
+          resultsBtnEl.className = 'console-btn btn-sm btn-primary pulse-green';
+          resultsBtnEl.innerHTML = `<span>NEXT SECTOR 0${nextSec} ▶</span>`;
+          resultsBtnEl.title = `Sector 0${sectorId} Secured! Proceed to Sector 0${nextSec} or View Debrief`;
+        }
+
         if (speedEl) speedEl.textContent = telem.speed || 0;
         if (thrustEl) thrustEl.textContent = telem.thrust || 50;
         if (simTimeEl) simTimeEl.textContent = `${telem.simTime}s`;
@@ -472,6 +525,87 @@ export const GameScreen = {
 
       activeEngine.on('telemetry', onTelemetry);
       telemetryUnsub = () => activeEngine.off('telemetry', onTelemetry);
+
+      // ── TACTICAL WAVE ALERT BANNER NOTIFIER ──
+      const waveAlertBox = container.querySelector('#hud-wave-alert-box');
+      const waveAlertTitle = container.querySelector('#hud-wave-alert-title');
+      const waveAlertSub = container.querySelector('#hud-wave-alert-sub');
+      const onBannerAlert = ({ text, subtext, color, duration }) => {
+        if (!waveAlertBox) return;
+        clearTimeout(waveAlertTimer);
+        if (waveAlertTitle) waveAlertTitle.textContent = text;
+        if (waveAlertSub) waveAlertSub.textContent = subtext || '';
+
+        const isFinal = text.includes('FINAL') || text.includes('🚨') || color === '#ff003c';
+        const isVictory = text.includes('SECURED') || text.includes('ACCOMPLISHED') || color === '#10b981';
+
+        waveAlertBox.className = `hud-wave-alert-box ${isFinal ? 'final-wave' : (isVictory ? 'victory-wave' : '')}`;
+        waveAlertBox.style.display = 'block';
+
+        if (soundManager) {
+          if (isVictory && typeof soundManager.playVictory === 'function') {
+            soundManager.playVictory();
+          } else if (typeof soundManager.playWarning === 'function') {
+            soundManager.playWarning();
+          }
+        }
+
+        waveAlertTimer = setTimeout(() => {
+          waveAlertTimer = null;
+          if (waveAlertBox) waveAlertBox.style.display = 'none';
+        }, (duration || 2.5) * 1000);
+      };
+
+      if (activeEngine.waveRunner) {
+        activeEngine.waveRunner.on('bannerAlert', onBannerAlert);
+        waveBannerUnsub = () => activeEngine.waveRunner.off('bannerAlert', onBannerAlert);
+      }
+
+      // ── MISSION OBJECTIVES COMPLETED CHOICE HANDLER ──
+      const choiceModal = container.querySelector('#hud-completion-choice-modal');
+      const btnChoiceNext = container.querySelector('#btn-choice-next');
+      const btnChoiceUnlimited = container.querySelector('#btn-choice-unlimited');
+      const resultsBtn = container.querySelector('#btn-test-results');
+
+      const onMissionCompletedChoice = (data) => {
+        if (choiceModal) choiceModal.style.display = 'block';
+
+        if (resultsBtn) {
+          const nextSec = data.nextSectorId || (sectorId + 1);
+          resultsBtn.className = 'console-btn btn-sm btn-primary pulse-green';
+          resultsBtn.innerHTML = `<span>NEXT SECTOR 0${nextSec} ▶</span>`;
+          resultsBtn.title = `Sector 0${sectorId} Secured! Proceed to Sector 0${nextSec} or View Debrief`;
+        }
+
+        if (soundManager && typeof soundManager.playVictory === 'function') {
+          soundManager.playVictory();
+        }
+      };
+
+      activeEngine.on('missionCompletedChoice', onMissionCompletedChoice);
+      missionChoiceUnsub = () => activeEngine.off('missionCompletedChoice', onMissionCompletedChoice);
+
+      if (btnChoiceNext) {
+        btnChoiceNext.addEventListener('click', () => {
+          soundManager.playStart();
+          if (choiceModal) choiceModal.style.display = 'none';
+          const summary = activeEngine ? activeEngine.getMissionSummary(true) : { sector: sectorId, victory: true };
+          if (activeEngine) activeEngine.stop();
+          if (router) router.show('results', summary);
+        });
+        btnChoiceNext.addEventListener('mouseenter', () => soundManager.playHover());
+      }
+
+      if (btnChoiceUnlimited) {
+        btnChoiceUnlimited.addEventListener('click', () => {
+          soundManager.playStart();
+          if (choiceModal) choiceModal.style.display = 'none';
+          if (activeEngine && activeEngine.waveRunner) {
+            activeEngine.waveRunner.startUnlimitedMode();
+          }
+        });
+        btnChoiceUnlimited.addEventListener('mouseenter', () => soundManager.playHover());
+      }
 
       // Dynamic HUD auto-hide & panels toggle listener
       const hudLayer = container.querySelector('.hud-layer');
@@ -492,33 +626,43 @@ export const GameScreen = {
       activeEngine.on('hudVisibilityChange', onHudVisibility);
       hudVisibilityUnsub = () => activeEngine.off('hudVisibilityChange', onHudVisibility);
 
+      // HVT Red Alert DOM effect listeners
+      onHvtStartHandler = () => {
+        if (hudLayer) hudLayer.classList.add('hvt-red-alert');
+      };
+      onHvtEndHandler = () => {
+        if (hudLayer) hudLayer.classList.remove('hvt-red-alert');
+      };
+      window.addEventListener('hvt:warning:start', onHvtStartHandler);
+      window.addEventListener('hvt:warning:end', onHvtEndHandler);
+      window.__triggerHvtWarning = (opts) => activeEngine?.triggerHvtWarning(opts);
+
       // Automatic Victory & Game Over debrief screen transitions
+      // Routed once only; the pending timer is cancelled on unmount so an
+      // abort/restart before the delay cannot route a stale mission's debrief.
+      debriefRouted = false;
+      const routeDebrief = (victory) => {
+        if (debriefRouted) return;
+        debriefRouted = true;
+        debriefTimer = null;
+        if (router && window.__screenManager?.getActiveScreenId() === 'game') {
+          const summary = activeEngine
+            ? activeEngine.getMissionSummary(victory)
+            : { sector: sectorId, victory };
+          router.show('results', summary);
+        }
+      };
       const onStateChange = (engineState) => {
         if (engineState === 'VICTORY') {
-          setTimeout(() => {
-            if (router && window.__screenManager?.currentScreenName === 'game') {
-              router.show('results', {
-                sector: sectorId,
-                victory: true,
-                score: activeEngine ? activeEngine.score : 0,
-                kills: activeEngine?.enemies ? activeEngine.enemies.totalKills : 0
-              });
-            }
-          }, 2400);
+          if (debriefTimer) clearTimeout(debriefTimer);
+          debriefTimer = setTimeout(() => routeDebrief(true), 2400);
         } else if (engineState === 'GAMEOVER') {
-          setTimeout(() => {
-            if (router && window.__screenManager?.currentScreenName === 'game') {
-              router.show('results', {
-                sector: sectorId,
-                victory: false,
-                score: activeEngine ? activeEngine.score : 0,
-                kills: activeEngine?.enemies ? activeEngine.enemies.totalKills : 0
-              });
-            }
-          }, 1800);
+          if (debriefTimer) clearTimeout(debriefTimer);
+          debriefTimer = setTimeout(() => routeDebrief(false), 1800);
         }
       };
       activeEngine.on('stateChange', onStateChange);
+      stateChangeUnsub = () => activeEngine.off('stateChange', onStateChange);
 
       // Initial state sync (hidden by default)
       if (hudLayer && activeEngine) {
@@ -627,16 +771,15 @@ export const GameScreen = {
     if (resultsBtn) {
       resultsBtn.addEventListener('click', () => {
         soundManager.playStart();
-        const sc = (activeEngine && activeEngine.score > 0) ? activeEngine.score : 145800;
-        const kl = (activeEngine?.enemies && activeEngine.enemies.totalKills > 0) ? activeEngine.enemies.totalKills : 42;
-        if (activeEngine) activeEngine.stop();
-        if (router) router.show('results', {
+        const summary = activeEngine ? activeEngine.getMissionSummary(activeEngine.isObjectiveMet) : {
           sector: sectorId,
           victory: true,
-          score: sc,
-          kills: kl,
-          accuracy: 92
-        });
+          score: 12500,
+          kills: 24,
+          accuracy: 88
+        };
+        if (activeEngine) activeEngine.stop();
+        if (router) router.show('results', summary);
       });
       resultsBtn.addEventListener('mouseenter', () => soundManager.playHover());
     }
@@ -688,6 +831,15 @@ export const GameScreen = {
   },
 
   unmount() {
+    if (waveAlertTimer) {
+      clearTimeout(waveAlertTimer);
+      waveAlertTimer = null;
+    }
+    if (debriefTimer) {
+      clearTimeout(debriefTimer);
+      debriefTimer = null;
+    }
+    debriefRouted = false;
     if (keyHandler) {
       window.removeEventListener('keydown', keyHandler);
       keyHandler = null;
@@ -700,9 +852,31 @@ export const GameScreen = {
       hudVisibilityUnsub();
       hudVisibilityUnsub = null;
     }
+    if (waveBannerUnsub) {
+      waveBannerUnsub();
+      waveBannerUnsub = null;
+    }
+    if (missionChoiceUnsub) {
+      missionChoiceUnsub();
+      missionChoiceUnsub = null;
+    }
+    if (stateChangeUnsub) {
+      stateChangeUnsub();
+      stateChangeUnsub = null;
+    }
+
+    if (onHvtStartHandler) {
+      window.removeEventListener('hvt:warning:start', onHvtStartHandler);
+      onHvtStartHandler = null;
+    }
+    if (onHvtEndHandler) {
+      window.removeEventListener('hvt:warning:end', onHvtEndHandler);
+      onHvtEndHandler = null;
+    }
+    delete window.__triggerHvtWarning;
 
     // Note: If navigating to 'pause', engine is paused, otherwise stop
-    const activeScreen = window.__screenManager?.currentScreenName;
+    const activeScreen = window.__screenManager?.getActiveScreenId();
     if (activeEngine && activeScreen !== 'pause') {
       activeEngine.stop();
     }
