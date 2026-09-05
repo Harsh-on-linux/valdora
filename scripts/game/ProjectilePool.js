@@ -406,7 +406,7 @@ export class ProjectilePool {
    * @param {number} height - Viewport height
    * @param {Array<Object>} [targets=null] - Available enemy targets for autonomous guided ordnance
    */
-  update(dt, width, height, targets = null) {
+  update(dt, width, height, targets = null, enemyPool = null) {
     const pad = 64; // Boundary padding before despawning
 
     // 1. Update Projectiles
@@ -435,12 +435,31 @@ export class ProjectilePool {
 
       // ── HELLFIRE GUIDED MISSILE AUTONOMOUS TRACKING & PROPULSION ──
       if (p.type === PROJECTILE_TYPES.HELLFIRE) {
-        // Target re-acquisition if current target is absent or destroyed
-        if (targets && targets.length > 0) {
-          if (!p.target || p.target.hull <= 0) {
-            let bestTarget = null;
-            let bestDistSq = Infinity;
+        // Target re-acquisition if current target is absent or destroyed.
+        // Pooled hostiles take priority; HUD contacts are the fallback.
+        if (!p.target || p.target.hull <= 0) {
+          let bestTarget = null;
+          let bestDistSq = Infinity;
 
+          if (enemyPool) {
+            const foes = enemyPool.enemies;
+            const foeCount = enemyPool.maxEnemies || foes.length;
+            for (let t = 0; t < foeCount; t++) {
+              const foe = foes[t];
+              if (!foe || !foe.active || foe.hull <= 0) continue;
+              const dx = foe.x - p.x;
+              const dy = foe.y - p.y;
+              if (dy < 120) {
+                const distSq = dx * dx + dy * dy;
+                if (distSq < bestDistSq) {
+                  bestDistSq = distSq;
+                  bestTarget = foe;
+                }
+              }
+            }
+          }
+
+          if (!bestTarget && targets && targets.length > 0) {
             for (let t = 0; t < targets.length; t++) {
               const tgt = targets[t];
               if (!tgt || tgt.hull <= 0) continue;
@@ -457,11 +476,11 @@ export class ProjectilePool {
                 bestTarget = tgt;
               }
             }
+          }
 
-            if (bestTarget) {
-              p.target = bestTarget;
-              p.targetId = bestTarget.id;
-            }
+          if (bestTarget) {
+            p.target = bestTarget;
+            p.targetId = bestTarget.id;
           }
         }
 
