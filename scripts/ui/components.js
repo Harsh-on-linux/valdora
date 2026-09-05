@@ -230,6 +230,41 @@ export function createToggle({ label, checked = false, onChange }) {
 }
 
 /**
+ * Shared v2 UI helpers — single source of truth for stat bars, section
+ * headers and star rows so Landing / Sectors / Loadout / Manual / Game HUD
+ * render the same data the same way.
+ */
+
+/**
+ * Stat bar row HTML (0-100%).
+ */
+export function statBar(label, pct, color = 'cyan') {
+  const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+  return `<div class="stat-bar-row"><span class="stat-lbl">${label}</span>`
+    + `<div class="stat-bar-track"><div class="stat-bar-fill fill-${color}" style="width:${v}%"></div></div>`
+    + `<span class="stat-num">${v}%</span></div>`;
+}
+
+/**
+ * Section header HTML with optional hint (e.g. key hints).
+ */
+export function sectionHeader(title, hint = '') {
+  return `<div class="section-label"><span>${title}</span>`
+    + (hint ? `<span class="section-hint">${hint}</span>` : '') + `</div>`;
+}
+
+/**
+ * Star rating row HTML (0-3).
+ */
+export function starsRow(stars, total = 3) {
+  let out = '';
+  for (let i = 1; i <= total; i++) {
+    out += `<span class="eval-star-slot${i <= stars ? ' active' : ''}">★</span>`;
+  }
+  return `<div class="eval-stars-array">${out}</div>`;
+}
+
+/**
  * Creates a modal overlay.
  * @param {Object} options
  * @param {string} options.title - Modal title.

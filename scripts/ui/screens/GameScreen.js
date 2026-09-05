@@ -21,6 +21,10 @@ let hudVisibilityUnsub = null;
 let keyHandler = null;
 let onHvtStartHandler = null;
 let onHvtEndHandler = null;
+let waveBannerUnsub = null;
+let missionChoiceUnsub = null;
+let stateChangeUnsub = null;
+let waveAlertTimer = null;
 
 export const GameScreen = {
   mount(container, data = {}, router) {
@@ -52,13 +56,8 @@ export const GameScreen = {
             </div>
           </div>
 
-          <div class="hud-info-card score-card hud-theater-card" style="text-align: center;">
-            <span class="hud-label">THEATER // SECTOR ${sectorId.toString().padStart(2, '0')}</span>
-            <span class="hud-value" style="color: var(--glow-cyan); font-size: 0.95rem;">${escapeHtml(sectorName)}</span>
-          </div>
-
           <div class="hud-info-card score-card">
-            <span class="hud-label">MISSION SCORE</span>
+            <span class="hud-label">SCORE</span>
             <div style="display: flex; align-items: baseline; gap: 8px; justify-content: space-between;">
               <span class="hud-value" id="hud-score-val" style="color: var(--amber)">000,000</span>
               <span class="hud-stars-indicator" id="hud-stars-indicator" title="Live Star Evaluation">
@@ -67,16 +66,13 @@ export const GameScreen = {
                 <span class="star-slot" id="hud-star-2">☆</span>
               </span>
             </div>
+            <span class="hud-score-target" id="hud-score-target">NEXT STAR ${levelInfo?.scoreThresholds?.star1?.toLocaleString() || '1,000'}</span>
           </div>
 
           <div class="hud-info-card wave-card" style="text-align: center; min-width: 90px;">
-            <span class="hud-label">TACTICAL WAVE</span>
-            <span class="hud-value" id="hud-wave-val" style="color: var(--cyan-bright); font-size: 0.95rem;">WAVE 1/3</span>
-          </div>
-
-          <div class="hud-info-card hud-fps-card" style="min-width: 70px; text-align: right;">
-            <span class="hud-label">SIM FPS</span>
-            <span class="hud-value" id="hud-fps-val" style="color: var(--glow-cyan); font-size: 0.95rem;">60</span>
+            <span class="hud-label">WAVE</span>
+            <span class="hud-value" id="hud-wave-val" style="color: var(--cyan-bright); font-size: 0.95rem;">0/${levelInfo?.waveCount || 3}</span>
+            <span class="hud-wave-detail" id="hud-wave-detail">STANDBY</span>
           </div>
 
           <div style="display: flex; gap: 6px; align-items: center;">
@@ -84,11 +80,8 @@ export const GameScreen = {
               <span id="hud-toggle-icon">◧</span>
               <span id="hud-toggle-label">PANELS</span>
             </button>
-            <button class="console-btn btn-sm btn-secondary" id="btn-toggle-hitboxes" title="Toggle Collision Hitbox Debug (Hotkey: H / F3)">
-              <span>🎯 HITBOXES</span>
-            </button>
             <button class="console-btn btn-sm" id="btn-pause" title="Pause Mission (Esc / P)">
-              <span>⏸ PAUSE</span>
+              <span>⏸</span>
             </button>
           </div>
         </div>
@@ -138,19 +131,6 @@ export const GameScreen = {
               <div class="hud-sys-row">
                 <span class="hud-sys-label">THREAT CONTACTS</span>
                 <span class="hud-sys-value" id="hud-sys-threats" style="color: var(--amber);">3 HOSTILE</span>
-              </div>
-            </div>
-
-            <!-- Real-time Tactical Coordinates -->
-            <div class="hud-data-panel hud-coords-panel">
-              <div class="hud-panel-title">
-                <span class="hud-panel-dot amber"></span> MGRS GRID: <span id="hud-coord-grid">44V-UTM</span>
-              </div>
-              <div class="hud-coords-stream">
-                <div>X: <span id="hud-coord-x" class="hud-telemetry-num">1284.7</span></div>
-                <div>Y: <span id="hud-coord-y" class="hud-telemetry-num">-892.3</span></div>
-                <div>ALT: <span id="hud-coord-alt" class="hud-telemetry-num">1450m</span></div>
-                <div>BRG: <span id="hud-coord-brg" class="hud-telemetry-num">000°</span> G: <span id="hud-coord-g" class="hud-telemetry-num">1.0G</span></div>
               </div>
             </div>
           </div>
@@ -299,23 +279,13 @@ export const GameScreen = {
 
         <!-- ═══════════ BOTTOM HUD BAR ═══════════ -->
         <div class="hud-bottom-bar">
-          <div class="hud-info-card">
-            <span class="hud-label">PAYLOAD // DRONE CHASSIS</span>
-            <span class="hud-value" style="color: var(--glow-amber); font-size: 0.9rem;">
-              ${escapeHtml(weaponName)} · ${escapeHtml(droneName)}
-            </span>
-          </div>
-
           <div class="hud-info-card hud-flight-telemetry" style="font-family: var(--font-hud-mono, monospace); font-size: 0.75rem; color: var(--text-secondary);">
-            <span>SPD: <span id="hud-speed-val" style="color: #ffffff;">0</span> KM/S</span>
-            <span style="margin-left: 8px;">THR: <span id="hud-thrust-val" style="color: var(--amber);">50</span>%</span>
-            <span style="margin-left: 8px;">TIME: <span id="hud-sim-time" style="color: var(--cyan)">0.0s</span></span>
-            <span style="margin-left: 8px;">MODE: <span id="hud-control-scheme" style="color: var(--green)">AUTO</span></span>
+            <span>${escapeHtml(droneName)} · <span id="hud-sim-time" style="color: var(--cyan)">0.0s</span></span>
           </div>
 
           <div class="hud-actions-right">
             <button class="console-btn btn-sm btn-secondary" id="btn-abort-to-map">
-              <span>◀ ABORT</span>
+              <span>◀ MAP</span>
             </button>
             <button class="console-btn btn-sm btn-primary" id="btn-test-results">
               <span>DEBRIEF ▶</span>
@@ -346,6 +316,8 @@ export const GameScreen = {
       // Hook up live HUD telemetry listener
       const fpsEl = container.querySelector('#hud-fps-val');
       const scoreEl = container.querySelector('#hud-score-val');
+      const scoreTargetEl = container.querySelector('#hud-score-target');
+      const waveDetailEl = container.querySelector('#hud-wave-detail');
       const hullEl = container.querySelector('#hud-hull-val');
       const shieldEl = container.querySelector('#hud-shield-val');
       const hullFill = container.querySelector('#hud-hull-fill');
@@ -391,6 +363,15 @@ export const GameScreen = {
       const onTelemetry = (telem) => {
         if (fpsEl) fpsEl.textContent = telem.fps;
         if (scoreEl) scoreEl.textContent = String(telem.score).padStart(6, '0');
+        if (scoreTargetEl && telem.scoreThresholds) {
+          const thresholds = telem.scoreThresholds;
+          const nextTarget = telem.stars < 1 ? thresholds.star1 : telem.stars < 2 ? thresholds.star2 : telem.stars < 3 ? thresholds.star3 : thresholds.star3;
+          scoreTargetEl.textContent = telem.stars >= 3 ? '★ ★ ★ MAX RATING' : `NEXT ★ ${nextTarget.toLocaleString()}`;
+        }
+        if (waveDetailEl) {
+          const status = telem.isObjectiveMet ? 'OBJECTIVES SECURED' : telem.waveActive ? `${telem.activeEnemies || 0} HOSTILES REMAIN` : 'NEXT WAVE INBOUND';
+          waveDetailEl.textContent = status;
+        }
 
         const hullPct = Math.round((telem.hull / (telem.maxHull || 100)) * 100);
         const shieldPct = Math.round((telem.shield / (telem.maxShield || 100)) * 100);
@@ -547,8 +528,6 @@ export const GameScreen = {
       const waveAlertBox = container.querySelector('#hud-wave-alert-box');
       const waveAlertTitle = container.querySelector('#hud-wave-alert-title');
       const waveAlertSub = container.querySelector('#hud-wave-alert-sub');
-      let waveAlertTimer = null;
-
       const onBannerAlert = ({ text, subtext, color, duration }) => {
         if (!waveAlertBox) return;
         clearTimeout(waveAlertTimer);
@@ -570,12 +549,14 @@ export const GameScreen = {
         }
 
         waveAlertTimer = setTimeout(() => {
+          waveAlertTimer = null;
           if (waveAlertBox) waveAlertBox.style.display = 'none';
         }, (duration || 2.5) * 1000);
       };
 
       if (activeEngine.waveRunner) {
         activeEngine.waveRunner.on('bannerAlert', onBannerAlert);
+        waveBannerUnsub = () => activeEngine.waveRunner.off('bannerAlert', onBannerAlert);
       }
 
       // ── MISSION OBJECTIVES COMPLETED CHOICE HANDLER ──
@@ -600,6 +581,7 @@ export const GameScreen = {
       };
 
       activeEngine.on('missionCompletedChoice', onMissionCompletedChoice);
+      missionChoiceUnsub = () => activeEngine.off('missionCompletedChoice', onMissionCompletedChoice);
 
       if (btnChoiceNext) {
         btnChoiceNext.addEventListener('click', () => {
@@ -657,14 +639,14 @@ export const GameScreen = {
       const onStateChange = (engineState) => {
         if (engineState === 'VICTORY') {
           setTimeout(() => {
-            if (router && window.__screenManager?.currentScreenName === 'game') {
+            if (router && window.__screenManager?.getActiveScreenId() === 'game') {
               const summary = activeEngine ? activeEngine.getMissionSummary(true) : { sector: sectorId, victory: true };
               router.show('results', summary);
             }
           }, 2400);
         } else if (engineState === 'GAMEOVER') {
           setTimeout(() => {
-            if (router && window.__screenManager?.currentScreenName === 'game') {
+            if (router && window.__screenManager?.getActiveScreenId() === 'game') {
               const summary = activeEngine ? activeEngine.getMissionSummary(false) : { sector: sectorId, victory: false };
               router.show('results', summary);
             }
@@ -672,6 +654,7 @@ export const GameScreen = {
         }
       };
       activeEngine.on('stateChange', onStateChange);
+      stateChangeUnsub = () => activeEngine.off('stateChange', onStateChange);
 
       // Initial state sync (hidden by default)
       if (hudLayer && activeEngine) {
@@ -780,7 +763,7 @@ export const GameScreen = {
     if (resultsBtn) {
       resultsBtn.addEventListener('click', () => {
         soundManager.playStart();
-        const summary = activeEngine ? activeEngine.getMissionSummary(true) : {
+        const summary = activeEngine ? activeEngine.getMissionSummary(activeEngine.isObjectiveMet) : {
           sector: sectorId,
           victory: true,
           score: 12500,
@@ -840,6 +823,10 @@ export const GameScreen = {
   },
 
   unmount() {
+    if (waveAlertTimer) {
+      clearTimeout(waveAlertTimer);
+      waveAlertTimer = null;
+    }
     if (keyHandler) {
       window.removeEventListener('keydown', keyHandler);
       keyHandler = null;
@@ -851,6 +838,18 @@ export const GameScreen = {
     if (hudVisibilityUnsub) {
       hudVisibilityUnsub();
       hudVisibilityUnsub = null;
+    }
+    if (waveBannerUnsub) {
+      waveBannerUnsub();
+      waveBannerUnsub = null;
+    }
+    if (missionChoiceUnsub) {
+      missionChoiceUnsub();
+      missionChoiceUnsub = null;
+    }
+    if (stateChangeUnsub) {
+      stateChangeUnsub();
+      stateChangeUnsub = null;
     }
 
     if (onHvtStartHandler) {
@@ -864,7 +863,7 @@ export const GameScreen = {
     delete window.__triggerHvtWarning;
 
     // Note: If navigating to 'pause', engine is paused, otherwise stop
-    const activeScreen = window.__screenManager?.currentScreenName;
+    const activeScreen = window.__screenManager?.getActiveScreenId();
     if (activeEngine && activeScreen !== 'pause') {
       activeEngine.stop();
     }

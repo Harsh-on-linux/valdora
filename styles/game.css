@@ -114,6 +114,27 @@
   font-size: 1.15rem;
 }
 
+.hud-score-target {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.hud-wave-detail {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-family: var(--font-hud-mono, monospace);
+  font-size: 0.5rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
 .hud-actions-right {
   display: flex;
   align-items: center;
@@ -812,6 +833,10 @@
     font-size: 0.65rem;
   }
 
+  .hud-score-target {
+    font-size: 0.48rem;
+  }
+
   .hud-touch-controls {
     bottom: 50px;
     right: 6px;
@@ -1021,4 +1046,20 @@
   }
 }
 
-
+/* V2 HUD slim-down: wrap top bar, overlay sidebars on small screens, 44px touch */
+.hud-top-bar { flex-wrap: wrap; }
+@media (max-width: 768px) {
+  .hud-top-bar { gap: 6px; }
+  .hud-info-card { padding: 4px 8px; }
+  .hud-mid-tactical-layout { position: relative; }
+  .hud-sidebar-left, .hud-sidebar-right { width: min(78vw, 260px); }
+  .hud-layer.hud-moving-hidden .hud-sidebar-left,
+  .hud-layer.hud-moving-hidden .hud-sidebar-right { opacity: 0; visibility: hidden; transform: translateY(6px); pointer-events: none; }
+  .hud-bottom-bar { flex-wrap: wrap; gap: 6px; }
+}
+@media (pointer: coarse) {
+  .touch-action-btn { min-width: 56px; min-height: 56px; }
+  .weapon-slot-chip { min-height: 44px; min-width: 44px; }
+  #btn-pause, #btn-toggle-panels { min-height: 44px; }
+}
+#game-canvas { touch-action: none; }
