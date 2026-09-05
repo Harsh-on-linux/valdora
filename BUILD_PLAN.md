@@ -177,7 +177,7 @@ behavior rather than treated as complete from configuration alone.
 - Verify radar jammer effects disappear immediately on destruction.
 - Verify kills, drops, score, accuracy, and mission statistics.
 
-### Step 21 - Pickup, wave, and results lifecycle regression 🔄 ← Current
+### Step 21 - Pickup, wave, and results lifecycle regression ✅
 
 - Verify magnetic pickup collection and effect expiration.
 - Verify wave completion waits for all spawned hostiles.
@@ -229,7 +229,7 @@ behavior rather than treated as complete from configuration alone.
 - Hazard names in the level data are metadata only until Phase H implements
   actual hazard entities.
 
-### Step 30 - Results and victory flow PARTIAL
+### Step 30 - Results and victory flow 🔄 ← Current
 
 - The results screen and score presentation exist.
 - Complete Step 17 and Step 21 fixes before considering this verified.

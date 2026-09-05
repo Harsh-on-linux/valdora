@@ -24,7 +24,6 @@ export class WaveRunner {
     this.waveTimer = 0;
     this.waveActive = false;
     this.isScriptCompleted = false;
-    this.isStageCleared = false;
     this.isObjectiveMet = false;
     this.isUnlimitedMode = false;
     this.spawnedThisWave = 0;
@@ -100,7 +99,6 @@ export class WaveRunner {
     this.waveTimer = 0;
     this.waveActive = false;
     this.isScriptCompleted = false;
-    this.isStageCleared = false;
     this.isObjectiveMet = false;
     this.isUnlimitedMode = false;
     this.eventIndex = 0;
@@ -155,7 +153,6 @@ export class WaveRunner {
    */
   startUnlimitedMode() {
     this.isUnlimitedMode = true;
-    this.isStageCleared = false;
     this.showBanner(
       '♾️ UNLIMITED MODE ENGAGED',
       'HOSTILE REINFORCEMENTS INCOMING // SURVIVE AT ALL COSTS',
@@ -310,7 +307,6 @@ export class WaveRunner {
         this.nextWaveDelay = 2.2;
       } else {
         // Primary mission objectives complete!
-        this.isStageCleared = true;
         this.isObjectiveMet = true;
         this.showBanner('SECTOR SECURED', 'MISSION OBJECTIVES ACHIEVED // PROCEED OR SURVIVE', '#10b981', 3.5);
 

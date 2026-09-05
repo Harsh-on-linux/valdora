@@ -36,14 +36,14 @@ export class SaveManager {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       const data = JSON.parse(raw);
-      // Valid save if progress exists (beyond fresh sector 1 with 0 score and no plays)
+      // Valid save if progress exists (beyond fresh sector 1 with 0 score and no plays).
+      // lastPlayed alone is not progress: startNewCampaign always stamps it.
       return Boolean(
         data &&
         (data.maxSectorUnlocked > 1 ||
          data.currentSector > 1 ||
          data.totalScore > 0 ||
-         data.highScore > 0 ||
-         data.lastPlayed)
+         data.highScore > 0)
       );
     } catch (err) {
       console.warn('[SaveManager] Error reading save state:', err);
