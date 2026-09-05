@@ -229,7 +229,7 @@ behavior rather than treated as complete from configuration alone.
 - Hazard names in the level data are metadata only until Phase H implements
   actual hazard entities.
 
-### Step 30 - Results and victory flow 🔄 ← Current
+### Step 30 - Results and victory flow ✅
 
 - The results screen and score presentation exist.
 - Complete Step 17 and Step 21 fixes before considering this verified.
@@ -248,7 +248,7 @@ behavior rather than treated as complete from configuration alone.
   bar, rendering, segment destruction, and phase state scaffolding.
 - This step does not claim that boss attacks are complete.
 
-### Step 33 - Phase 1 radial flak barrage
+### Step 33 - Phase 1 radial flak barrage 🔄 ← Current
 
 - Implement left-pod clockwise radial fire.
 - Implement right-pod counter-clockwise radial fire.

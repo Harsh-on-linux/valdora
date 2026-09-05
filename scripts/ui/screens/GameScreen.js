@@ -600,8 +600,17 @@ export const GameScreen = {
         btnChoiceUnlimited.addEventListener('click', () => {
           soundManager.playStart();
           if (choiceModal) choiceModal.style.display = 'none';
+          // Survival continues: consume the pending auto-debrief and wake the sim.
+          debriefRouted = true;
+          if (debriefTimer) {
+            clearTimeout(debriefTimer);
+            debriefTimer = null;
+          }
           if (activeEngine && activeEngine.waveRunner) {
             activeEngine.waveRunner.startUnlimitedMode();
+          }
+          if (activeEngine && activeEngine.state === ENGINE_STATE.VICTORY) {
+            activeEngine.resume();
           }
         });
         btnChoiceUnlimited.addEventListener('mouseenter', () => soundManager.playHover());
@@ -748,6 +757,10 @@ export const GameScreen = {
     const pauseBtn = container.querySelector('#btn-pause');
     const triggerPause = () => {
       soundManager.playClick();
+      // Never pause over an ending mission: it would restart victory/game-over on resume.
+      if (activeEngine && (activeEngine.state === ENGINE_STATE.VICTORY || activeEngine.state === ENGINE_STATE.GAMEOVER)) {
+        return;
+      }
       if (activeEngine) activeEngine.pause();
       if (router) router.show('pause', { sector: sectorId });
     };
