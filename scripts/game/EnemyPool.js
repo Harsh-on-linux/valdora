@@ -380,10 +380,13 @@ export class EnemyPool {
           if (!e.isDiving) {
             e.vy = mov.baseSpeedY || 60;
             e.diveLockTimer += dt;
+            // Countdown drives the pre-dive warning flash in the renderer
+            e.diveWarningTimer = Math.max(0, (mov.lockOnDelay || 0.5) - e.diveLockTimer);
 
             // Acquire lock on player position
             if (e.diveLockTimer >= (mov.lockOnDelay || 0.5) && player) {
               e.isDiving = true;
+              e.diveWarningTimer = 0;
               e.diveTargetX = player.x;
               e.diveTargetY = player.y;
 
@@ -400,6 +403,8 @@ export class EnemyPool {
                 soundManager.playWarning();
               }
             }
+          } else {
+            e.diveWarningTimer = 0;
           }
           break;
         }
@@ -627,6 +632,7 @@ export class EnemyPool {
         showIFF: true,
         turretAngle: e.turretAngle || 0,
         isDiving: e.isDiving || false,
+        diveWarning: !e.isDiving && (e.diveWarningTimer || 0) > 0,
         jamPulse: e.jamPulse || 0
       });
     }

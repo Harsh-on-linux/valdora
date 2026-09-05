@@ -169,7 +169,7 @@ behavior rather than treated as complete from configuration alone.
 - Verify Orbital hold-to-charge, release threshold, beam collision, and ammo.
 - Verify weapon compatibility, cycling, slot selection, and HUD synchronization.
 
-### Step 20 - Enemy combat and score regression 🔄 ← Current
+### Step 20 - Enemy combat and score regression ✅
 
 - Verify all five enemy movement patterns and attack patterns.
 - Verify enemy projectiles damage the player exactly once per impact.
@@ -177,7 +177,7 @@ behavior rather than treated as complete from configuration alone.
 - Verify radar jammer effects disappear immediately on destruction.
 - Verify kills, drops, score, accuracy, and mission statistics.
 
-### Step 21 - Pickup, wave, and results lifecycle regression
+### Step 21 - Pickup, wave, and results lifecycle regression 🔄 ← Current
 
 - Verify magnetic pickup collection and effect expiration.
 - Verify wave completion waits for all spawned hostiles.
