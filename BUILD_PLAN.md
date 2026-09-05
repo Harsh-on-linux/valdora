@@ -157,7 +157,7 @@ zero-allocation and debug correctness requirements.
 - Verify high-speed projectile CCD and penetration behavior.
 - Verify debug grid, hitboxes, contacts, and telemetry without exceptions.
 
-### Step 19 - Weapon regression pass 🔄 ← Current
+### Step 19 - Weapon regression pass ✅
 
 The five player weapons exist, but they must be verified against the intended
 behavior rather than treated as complete from configuration alone.
@@ -169,7 +169,7 @@ behavior rather than treated as complete from configuration alone.
 - Verify Orbital hold-to-charge, release threshold, beam collision, and ammo.
 - Verify weapon compatibility, cycling, slot selection, and HUD synchronization.
 
-### Step 20 - Enemy combat and score regression
+### Step 20 - Enemy combat and score regression 🔄 ← Current
 
 - Verify all five enemy movement patterns and attack patterns.
 - Verify enemy projectiles damage the player exactly once per impact.

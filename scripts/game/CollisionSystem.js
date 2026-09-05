@@ -24,6 +24,10 @@ export const COLLISION_LAYERS = {
   PICKUP: 1 << 5             // 32
 };
 
+// Shared read-only marker so splash damage routes pooled hostiles through
+// the EnemyPool armor/kill pipeline without allocating per event.
+const POOL_ENEMY_VICTIM = { poolEnemy: 1 };
+
 export class CollisionSystem {
   /**
    * @param {Object} [options]
@@ -717,6 +721,23 @@ export class CollisionSystem {
 
                 if (otherTgt.hull <= 0) {
                   this._handleTargetDestroyed(otherTgt, { x: ox, y: oy, active: true }, gameEngine, soundManager);
+                }
+              }
+            }
+          }
+
+          // Also splash pooled hostiles through the armor/kill pipeline
+          const foePool = gameEngine.enemies;
+          if (foePool) {
+            for (let f = 0; f < foePool.maxEnemies; f++) {
+              const foe = foePool.enemies[f];
+              if (!foe || !foe.active || foe === target || foe.hull <= 0) continue;
+              const fDist = Math.hypot(foe.x - epicX, foe.y - epicY);
+              if (fDist <= blastRadius) {
+                const fSplash = Math.max(1, Math.round(damage * (1.0 - fDist / blastRadius) * 0.75));
+                this._damageEnemyTarget(foePool, foe, POOL_ENEMY_VICTIM, fSplash);
+                if (foe.hull <= 0) {
+                  this._handleTargetDestroyed(foe, { x: foe.x, y: foe.y, active: true }, gameEngine, soundManager);
                 }
               }
             }

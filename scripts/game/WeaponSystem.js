@@ -489,11 +489,30 @@ export class WeaponSystem {
       const missileGlow = 'rgba(255, 0, 60, 0.85)';
       const missileCore = '#ffeedd';
       const targets = hudOverlay ? hudOverlay.targets : [];
+      const poolEnemies = (gameEngine && gameEngine.enemies && typeof gameEngine.enemies.getActiveEnemies === 'function')
+        ? gameEngine.enemies.getActiveEnemies()
+        : [];
 
-      // Find locked target or nearest active hostile
+      // Find locked target, nearest pooled hostile, or nearest HUD contact
       let primaryTarget = null;
       if (hudOverlay && hudOverlay.lockedTargetId) {
         primaryTarget = targets.find(t => t && t.id === hudOverlay.lockedTargetId && t.hull > 0) || null;
+      }
+      if (!primaryTarget && poolEnemies.length > 0) {
+        let bestDistSq = Infinity;
+        for (let i = 0; i < poolEnemies.length; i++) {
+          const foe = poolEnemies[i];
+          if (!foe || foe.hull <= 0) continue;
+          const dx = foe.x - player.x;
+          const dy = foe.y - player.y;
+          if (dy < 120) {
+            const distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+              bestDistSq = distSq;
+              primaryTarget = foe;
+            }
+          }
+        }
       }
       if (!primaryTarget && targets.length > 0) {
         const livingTargets = targets.filter(t => t && t.hull > 0);
@@ -513,11 +532,12 @@ export class WeaponSystem {
         const vx = Math.cos(baseAngle) * this.projectileSpeed + player.vx * 0.15;
         const vy = Math.sin(baseAngle) * this.projectileSpeed;
 
-        // Alternate targets if multiple targets exist
+        // Alternate targets if multiple hostiles exist (pooled enemies first)
         let assignedTarget = primaryTarget;
-        if (targets.length > 1 && m > 0) {
-          const altTarget = targets.find(t => t && t.hull > 0 && t !== primaryTarget);
-          if (altTarget) assignedTarget = altTarget;
+        if (m > 0) {
+          const altPool = poolEnemies.find(f => f && f.hull > 0 && f !== primaryTarget);
+          const altHud = targets.find(t => t && t.hull > 0 && t !== primaryTarget);
+          if (altPool || altHud) assignedTarget = altPool || altHud;
         }
 
         projectilePool.spawn({
