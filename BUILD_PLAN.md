@@ -145,7 +145,7 @@ Fix the issues found during the audit before adding more combat content.
 - Verify no browser console errors through landing -> deploy -> pause -> resume
   -> victory/game-over -> results.
 
-### Step 18 - Collision framework completion 🔄 ← Current
+### Step 18 - Collision framework completion ✅
 
 The current spatial hash and CCD code is present but does not yet satisfy the
 zero-allocation and debug correctness requirements.
@@ -157,7 +157,7 @@ zero-allocation and debug correctness requirements.
 - Verify high-speed projectile CCD and penetration behavior.
 - Verify debug grid, hitboxes, contacts, and telemetry without exceptions.
 
-### Step 19 - Weapon regression pass
+### Step 19 - Weapon regression pass 🔄 ← Current
 
 The five player weapons exist, but they must be verified against the intended
 behavior rather than treated as complete from configuration alone.

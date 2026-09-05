@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/collision-smoke.mjs"
   }
 }

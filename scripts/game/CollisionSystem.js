@@ -55,6 +55,17 @@ export class CollisionSystem {
     // Internal working lists to prevent allocations during query
     this._queryResult = [];
     this._testedPairSet = new Set();
+
+    // Pooled per-tick collider structs: update() fills reused objects instead
+    // of allocating literals every tick, so the hot path stays GC-free.
+    this._colliderPool = [];
+    this._colliderCount = 0;
+    this._uidCounter = 0;
+    // Pooled boss-segment entity wrappers (few per tick, reused the same way)
+    this._bossEntPool = [];
+    this._bossEntCount = 0;
+    // Scratch narrowphase hit result, consumed immediately at each call site
+    this._hit = { hit: false, dist: 0, overlap: 0, nx: 0, ny: 0, hitX: 0, hitY: 0, t: 0, distSq: 0 };
   }
 
   /**
@@ -83,12 +94,15 @@ export class CollisionSystem {
    * Clear spatial hash grid buckets for next simulation tick.
    */
   clear() {
-    for (const [key, bucket] of this.grid.entries()) {
+    this.grid.forEach((bucket) => {
       bucket.length = 0; // Clear contents without discarding array reference
       this.bucketPool.push(bucket);
-    }
+    });
     this.grid.clear();
     this._testedPairSet.clear();
+    this._colliderCount = 0;
+    this._bossEntCount = 0;
+    this._uidCounter = 0;
 
     this.stats.activeColliders = 0;
     this.stats.occupiedCells = 0;
@@ -105,6 +119,43 @@ export class CollisionSystem {
    */
   _getCellKey(cellX, cellY) {
     return ((cellX & 0xFFFF) << 16) | (cellY & 0xFFFF);
+  }
+
+  /**
+   * Take a reused collider struct for this tick. Callers must fill every
+   * field they use; the grid only lives until the next update() call.
+   * Numeric uid feeds the pair-dedup key, so no per-pair strings are built.
+   * @param {number} layer
+   * @param {number} mask
+   * @returns {Object} Pooled collider struct
+   */
+  _allocCollider(layer, mask) {
+    let col = this._colliderPool[this._colliderCount];
+    if (!col) {
+      col = { uid: 0, layer: 0, mask: 0, entity: null, poolEnemy: 0, x: 0, y: 0, radius: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, active: true };
+      this._colliderPool[this._colliderCount] = col;
+    }
+    this._colliderCount++;
+    col.uid = this._uidCounter++;
+    col.layer = layer;
+    col.mask = mask;
+    col.entity = null;
+    col.poolEnemy = 0;
+    col.active = true;
+    return col;
+  }
+
+  /**
+   * Take a reused boss-segment entity wrapper for this tick.
+   */
+  _allocBossEnt() {
+    let ent = this._bossEntPool[this._bossEntCount];
+    if (!ent) {
+      ent = { isBossSegment: true, boss: null, segmentId: '', segment: null, hull: 0, maxHull: 0, contactDamage: 35, x: 0, y: 0, relX: 0, relY: 0 };
+      this._bossEntPool[this._bossEntCount] = ent;
+    }
+    this._bossEntCount++;
+    return ent;
   }
 
   /**
@@ -148,9 +199,10 @@ export class CollisionSystem {
    * @param {number} x2
    * @param {number} y2
    * @param {number} r2
+   * @param {Object} [out] - Optional scratch result to fill (avoids allocation)
    * @returns {{hit: boolean, dist: number, overlap: number, nx: number, ny: number, hitX: number, hitY: number}}
    */
-  static testCircleCircle(x1, y1, r1, x2, y2, r2) {
+  static testCircleCircle(x1, y1, r1, x2, y2, r2, out = null) {
     const dx = x2 - x1;
     const dy = y2 - y1;
     const distSq = dx * dx + dy * dy;
@@ -158,6 +210,16 @@ export class CollisionSystem {
 
     if (distSq <= radiusSum * radiusSum) {
       const dist = Math.sqrt(distSq) || 0.0001;
+      if (out) {
+        out.hit = true;
+        out.dist = dist;
+        out.overlap = radiusSum - dist;
+        out.nx = dx / dist;
+        out.ny = dy / dist;
+        out.hitX = x1 + out.nx * (r1 - out.overlap * 0.5);
+        out.hitY = y1 + out.ny * (r1 - out.overlap * 0.5);
+        return out;
+      }
       const nx = dx / dist;
       const ny = dy / dist;
       const overlap = radiusSum - dist;
@@ -165,6 +227,16 @@ export class CollisionSystem {
       const hitY = y1 + ny * (r1 - overlap * 0.5);
 
       return { hit: true, dist, overlap, nx, ny, hitX, hitY };
+    }
+    if (out) {
+      out.hit = false;
+      out.dist = 0;
+      out.overlap = 0;
+      out.nx = 0;
+      out.ny = 0;
+      out.hitX = 0;
+      out.hitY = 0;
+      return out;
     }
     return { hit: false, dist: 0, overlap: 0, nx: 0, ny: 0, hitX: 0, hitY: 0 };
   }
@@ -229,9 +301,10 @@ export class CollisionSystem {
    * @param {number} cy - Target Circle Center Y
    * @param {number} radius - Target Circle Radius
    * @param {number} [projectileRadius=0] - Projectile head radius
+   * @param {Object} [out] - Optional scratch result to fill (avoids allocation)
    * @returns {{hit: boolean, hitX: number, hitY: number, t: number, distSq: number}}
    */
-  static testSegmentCircle(x1, y1, x2, y2, cx, cy, radius, projectileRadius = 0) {
+  static testSegmentCircle(x1, y1, x2, y2, cx, cy, radius, projectileRadius = 0, out = null) {
     const totalRadius = radius + projectileRadius;
     const dx = x2 - x1;
     const dy = y2 - y1;
@@ -240,6 +313,14 @@ export class CollisionSystem {
     if (lenSq === 0) {
       // Degenerate segment: point test
       const distSq = (cx - x1) * (cx - x1) + (cy - y1) * (cy - y1);
+      if (out) {
+        out.hit = distSq <= totalRadius * totalRadius;
+        out.hitX = x1;
+        out.hitY = y1;
+        out.t = 0;
+        out.distSq = distSq;
+        return out;
+      }
       return {
         hit: distSq <= totalRadius * totalRadius,
         hitX: x1,
@@ -261,6 +342,14 @@ export class CollisionSystem {
     const distSq = distX * distX + distY * distY;
 
     if (distSq <= totalRadius * totalRadius) {
+      if (out) {
+        out.hit = true;
+        out.hitX = projX;
+        out.hitY = projY;
+        out.t = t;
+        out.distSq = distSq;
+        return out;
+      }
       return {
         hit: true,
         hitX: projX,
@@ -270,6 +359,14 @@ export class CollisionSystem {
       };
     }
 
+    if (out) {
+      out.hit = false;
+      out.hitX = 0;
+      out.hitY = 0;
+      out.t = 0;
+      out.distSq = 0;
+      return out;
+    }
     return { hit: false, hitX: 0, hitY: 0, t: 0, distSq: 0 };
   }
 
@@ -297,50 +394,42 @@ export class CollisionSystem {
     let playerCollider = null;
     if (player && player.hull > 0) {
       const pHitbox = player.getHitbox();
-      playerCollider = {
-        id: 'player',
-        type: 'circle',
-        layer: COLLISION_LAYERS.PLAYER,
-        mask: COLLISION_LAYERS.ENEMY | COLLISION_LAYERS.ENEMY_PROJECTILE | COLLISION_LAYERS.HAZARD | COLLISION_LAYERS.PICKUP,
-        entity: player,
-        x: pHitbox.x,
-        y: pHitbox.y,
-        radius: pHitbox.radius,
-        minX: pHitbox.x - pHitbox.radius,
-        maxX: pHitbox.x + pHitbox.radius,
-        minY: pHitbox.y - pHitbox.radius,
-        maxY: pHitbox.y + pHitbox.radius,
-        active: true
-      };
+      playerCollider = this._allocCollider(
+        COLLISION_LAYERS.PLAYER,
+        COLLISION_LAYERS.ENEMY | COLLISION_LAYERS.ENEMY_PROJECTILE | COLLISION_LAYERS.HAZARD | COLLISION_LAYERS.PICKUP
+      );
+      playerCollider.entity = player;
+      playerCollider.x = pHitbox.x;
+      playerCollider.y = pHitbox.y;
+      playerCollider.radius = pHitbox.radius;
+      playerCollider.minX = pHitbox.x - pHitbox.radius;
+      playerCollider.maxX = pHitbox.x + pHitbox.radius;
+      playerCollider.minY = pHitbox.y - pHitbox.radius;
+      playerCollider.maxY = pHitbox.y + pHitbox.radius;
       this.insert(playerCollider);
     }
 
     // 2. Register Active Target / Enemy Colliders
     // (Supports both EnemyPool hostiles and TacticalHUDOverlay targets)
-    const targetColliders = [];
-
     // A. Discrete EnemyPool hostiles
     if (gameEngine.enemies) {
       for (let i = 0; i < gameEngine.enemies.maxEnemies; i++) {
         const e = gameEngine.enemies.enemies[i];
         if (!e.active || e.hull <= 0) continue;
 
-        const col = {
-          id: e.id || `enemy-${i}`,
-          type: 'circle',
-          layer: COLLISION_LAYERS.ENEMY,
-          mask: COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE,
-          entity: e,
-          x: e.x,
-          y: e.y,
-          radius: e.radius,
-          minX: e.x - e.radius,
-          maxX: e.x + e.radius,
-          minY: e.y - e.radius,
-          maxY: e.y + e.radius,
-          active: true
-        };
-        targetColliders.push(col);
+        const col = this._allocCollider(
+          COLLISION_LAYERS.ENEMY,
+          COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE
+        );
+        col.entity = e;
+        col.poolEnemy = 1;
+        col.x = e.x;
+        col.y = e.y;
+        col.radius = e.radius;
+        col.minX = e.x - e.radius;
+        col.maxX = e.x + e.radius;
+        col.minY = e.y - e.radius;
+        col.maxY = e.y + e.radius;
         this.insert(col);
       }
     }
@@ -355,22 +444,18 @@ export class CollisionSystem {
       const tgtY = tgt.relY * gameEngine.height;
       const tgtRadius = (tgt.size || 28) * 0.55;
 
-      const col = {
-        id: tgt.id || `target-${i}`,
-        type: 'circle',
-        layer: COLLISION_LAYERS.ENEMY,
-        mask: COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE,
-        entity: tgt,
-        x: tgtX,
-        y: tgtY,
-        radius: tgtRadius,
-        minX: tgtX - tgtRadius,
-        maxX: tgtX + tgtRadius,
-        minY: tgtY - tgtRadius,
-        maxY: tgtY + tgtRadius,
-        active: true
-      };
-      targetColliders.push(col);
+      const col = this._allocCollider(
+        COLLISION_LAYERS.ENEMY,
+        COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE
+      );
+      col.entity = tgt;
+      col.x = tgtX;
+      col.y = tgtY;
+      col.radius = tgtRadius;
+      col.minX = tgtX - tgtRadius;
+      col.maxX = tgtX + tgtRadius;
+      col.minY = tgtY - tgtRadius;
+      col.maxY = tgtY + tgtRadius;
       this.insert(col);
     }
 
@@ -382,40 +467,33 @@ export class CollisionSystem {
         if (!seg || seg.destroyed) continue;
 
         const pos = boss.getSegmentWorldPosition(segKey);
-        const col = {
-          id: `boss-${segKey}`,
-          type: 'circle',
-          layer: COLLISION_LAYERS.ENEMY,
-          mask: COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE,
-          entity: {
-            isBossSegment: true,
-            boss,
-            segmentId: segKey,
-            segment: seg,
-            hull: seg.hp,
-            maxHull: seg.maxHp,
-            contactDamage: 35,
-            x: pos.x,
-            y: pos.y,
-            relX: pos.x / gameEngine.width,
-            relY: pos.y / gameEngine.height
-          },
-          x: pos.x,
-          y: pos.y,
-          radius: pos.radius,
-          minX: pos.x - pos.radius,
-          maxX: pos.x + pos.radius,
-          minY: pos.y - pos.radius,
-          maxY: pos.y + pos.radius,
-          active: true
-        };
-        targetColliders.push(col);
+        const ent = this._allocBossEnt();
+        ent.boss = boss;
+        ent.segmentId = segKey;
+        ent.segment = seg;
+        ent.hull = seg.hp;
+        ent.maxHull = seg.maxHp;
+        ent.x = pos.x;
+        ent.y = pos.y;
+        ent.relX = pos.x / gameEngine.width;
+        ent.relY = pos.y / gameEngine.height;
+        const col = this._allocCollider(
+          COLLISION_LAYERS.ENEMY,
+          COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE
+        );
+        col.entity = ent;
+        col.x = pos.x;
+        col.y = pos.y;
+        col.radius = pos.radius;
+        col.minX = pos.x - pos.radius;
+        col.maxX = pos.x + pos.radius;
+        col.minY = pos.y - pos.radius;
+        col.maxY = pos.y + pos.radius;
         this.insert(col);
       }
     }
 
     // 3. Register Active Projectiles (Player & Enemy)
-    const projectileColliders = [];
     if (projectiles) {
       for (let i = 0; i < projectiles.maxProjectiles; i++) {
         const p = projectiles.projectiles[i];
@@ -428,25 +506,18 @@ export class CollisionSystem {
         const minY = isOrbital ? 0 : (Math.min(p.y, p.prevY) - p.radius);
         const maxY = isOrbital ? (gameEngine ? gameEngine.height : 1200) : (Math.max(p.y, p.prevY) + p.radius);
 
-        const pCol = {
-          id: `proj-${i}`,
-          type: isOrbital ? 'box' : 'segment',
-          layer: isPlayer ? COLLISION_LAYERS.PLAYER_PROJECTILE : COLLISION_LAYERS.ENEMY_PROJECTILE,
-          mask: isPlayer ? (COLLISION_LAYERS.ENEMY | COLLISION_LAYERS.HAZARD) : (COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.HAZARD),
-          entity: p,
-          x: p.x,
-          y: p.y,
-          prevX: p.prevX,
-          prevY: p.prevY,
-          radius: p.radius,
-          damage: p.damage,
-          minX,
-          maxX,
-          minY,
-          maxY,
-          active: true
-        };
-        projectileColliders.push(pCol);
+        const pCol = this._allocCollider(
+          isPlayer ? COLLISION_LAYERS.PLAYER_PROJECTILE : COLLISION_LAYERS.ENEMY_PROJECTILE,
+          isPlayer ? (COLLISION_LAYERS.ENEMY | COLLISION_LAYERS.HAZARD) : (COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.HAZARD)
+        );
+        pCol.entity = p;
+        pCol.x = p.x;
+        pCol.y = p.y;
+        pCol.radius = p.radius;
+        pCol.minX = minX;
+        pCol.maxX = maxX;
+        pCol.minY = minY;
+        pCol.maxY = maxY;
         this.insert(pCol);
       }
     }
@@ -457,31 +528,55 @@ export class CollisionSystem {
         const p = gameEngine.pickups.pickups[i];
         if (!p.active) continue;
 
-        const pickCol = {
-          id: p.id,
-          type: 'circle',
-          layer: COLLISION_LAYERS.PICKUP,
-          mask: COLLISION_LAYERS.PLAYER,
-          entity: p,
-          x: p.x,
-          y: p.y,
-          radius: p.radius,
-          minX: p.x - p.radius,
-          maxX: p.x + p.radius,
-          minY: p.y - p.radius,
-          maxY: p.y + p.radius,
-          active: true
-        };
+        const pickCol = this._allocCollider(COLLISION_LAYERS.PICKUP, COLLISION_LAYERS.PLAYER);
+        pickCol.entity = p;
+        pickCol.x = p.x;
+        pickCol.y = p.y;
+        pickCol.radius = p.radius;
+        pickCol.minX = p.x - p.radius;
+        pickCol.maxX = p.x + p.radius;
+        pickCol.minY = p.y - p.radius;
+        pickCol.maxY = p.y + p.radius;
         this.insert(pickCol);
+      }
+    }
+
+    // 3.6. Register Active Environmental Hazards (Phase H pool hook).
+    // No-op until a hazards pool exists. Entities are duck-typed: numeric
+    // x/y/radius/active for collision, optional numeric hull + contactDamage
+    // for damage, optional scoreValue for bounty on destruction.
+    const hazardPool = gameEngine.hazards;
+    if (hazardPool) {
+      const hazardList = hazardPool.hazards || hazardPool;
+      const hazardCount = hazardPool.maxHazards || hazardList.length;
+      for (let i = 0; i < hazardCount; i++) {
+        const h = hazardList[i];
+        if (!h || !h.active) continue;
+        const hzRadius = h.radius || 20;
+
+        const hzCol = this._allocCollider(
+          COLLISION_LAYERS.HAZARD,
+          COLLISION_LAYERS.PLAYER | COLLISION_LAYERS.PLAYER_PROJECTILE
+        );
+        hzCol.entity = h;
+        hzCol.x = h.x;
+        hzCol.y = h.y;
+        hzCol.radius = hzRadius;
+        hzCol.minX = h.x - hzRadius;
+        hzCol.maxX = h.x + hzRadius;
+        hzCol.minY = h.y - hzRadius;
+        hzCol.maxY = h.y + hzRadius;
+        this.insert(hzCol);
       }
     }
 
     this.stats.occupiedCells = this.grid.size;
 
-    // 4. Resolve Broadphase & Narrowphase Collisions via Spatial Hash Grid
-    for (const [key, bucket] of this.grid.entries()) {
+    // 4. Resolve Broadphase & Narrowphase Collisions via Spatial Hash Grid.
+    // Pair dedup uses numeric keys (no per-pair string allocation).
+    this.grid.forEach((bucket) => {
       const count = bucket.length;
-      if (count < 2) continue;
+      if (count < 2) return;
 
       for (let i = 0; i < count; i++) {
         const colA = bucket[i];
@@ -496,8 +591,10 @@ export class CollisionSystem {
             continue;
           }
 
-          // Generate unique pair key to prevent duplicate resolution across shared grid cells
-          const pairKey = colA.id < colB.id ? `${colA.id}:${colB.id}` : `${colB.id}:${colA.id}`;
+          // Numeric pair key prevents duplicate resolution across shared cells
+          const uidA = colA.uid;
+          const uidB = colB.uid;
+          const pairKey = uidA < uidB ? uidA * 4096 + uidB : uidB * 4096 + uidA;
           if (this._testedPairSet.has(pairKey)) {
             continue;
           }
@@ -508,10 +605,23 @@ export class CollisionSystem {
           this._resolvePair(colA, colB, gameEngine, dt, soundManager);
         }
       }
-    }
+    });
 
     // 5. Age debug contacts
     this._updateDebugContacts(dt);
+  }
+
+  /**
+   * Damage a non-boss target. Pooled hostiles go through the EnemyPool
+   * armor-mitigation and kill-count pipeline; HUD blips take raw damage.
+   */
+  _damageEnemyTarget(enemyPool, target, tCol, damage) {
+    if (tCol.poolEnemy && enemyPool && typeof enemyPool.applyDamage === 'function') {
+      enemyPool.applyDamage(target, damage);
+    } else {
+      target.hull = Math.max(0, target.hull - damage);
+      target.flashTimer = 0.14;
+    }
   }
 
   /**
@@ -549,7 +659,8 @@ export class CollisionSystem {
             proj.x, proj.y,
             tCol.x, tCol.y,
             tCol.radius,
-            proj.radius
+            proj.radius,
+            this._hit
           );
 
       if (hitResult.hit) {
@@ -568,8 +679,7 @@ export class CollisionSystem {
           target.boss.applyDamage(target.segmentId, damage, gameEngine, soundManager);
           target.hull = target.segment.hp;
         } else {
-          target.hull = Math.max(0, target.hull - damage);
-          target.flashTimer = 0.14;
+          this._damageEnemyTarget(gameEngine.enemies, target, tCol, damage);
         }
 
         // 2. Area-of-Effect (AoE) Blast Resolution for Hellfire Guided Missiles & Orbital Strike
@@ -701,7 +811,8 @@ export class CollisionSystem {
         proj.x, proj.y,
         playerCol.x, playerCol.y,
         playerCol.radius,
-        proj.radius
+        proj.radius,
+        this._hit
       );
 
       if (hitResult.hit) {
@@ -747,7 +858,8 @@ export class CollisionSystem {
 
       const hitResult = CollisionSystem.testCircleCircle(
         playerCol.x, playerCol.y, playerCol.radius,
-        tCol.x, tCol.y, tCol.radius
+        tCol.x, tCol.y, tCol.radius,
+        this._hit
       );
 
       if (hitResult.hit) {
@@ -765,8 +877,7 @@ export class CollisionSystem {
           target.boss.applyDamage(target.segmentId, 35, gameEngine, soundManager);
           target.hull = target.segment.hp;
         } else {
-          target.hull = Math.max(0, target.hull - 35);
-          target.flashTimer = 0.15;
+          this._damageEnemyTarget(gameEngine.enemies, target, tCol, 35);
         }
 
         // Push player back slightly along collision normal
@@ -806,7 +917,8 @@ export class CollisionSystem {
 
       const hitResult = CollisionSystem.testCircleCircle(
         playerCol.x, playerCol.y, playerCol.radius,
-        pickCol.x, pickCol.y, pickCol.radius
+        pickCol.x, pickCol.y, pickCol.radius,
+        this._hit
       );
 
       if (hitResult.hit) {
@@ -818,6 +930,106 @@ export class CollisionSystem {
         }
         pickCol.active = false;
         this._recordContact(hitResult.hitX, hitResult.hitY, pickup.config?.color || '#00f0ff');
+      }
+      return;
+    }
+
+    // ── CASE 5: Player Projectile vs Environmental Hazard ──
+    if (
+      (colA.layer === COLLISION_LAYERS.PLAYER_PROJECTILE && colB.layer === COLLISION_LAYERS.HAZARD) ||
+      (colB.layer === COLLISION_LAYERS.PLAYER_PROJECTILE && colA.layer === COLLISION_LAYERS.HAZARD)
+    ) {
+      const pCol = colA.layer === COLLISION_LAYERS.PLAYER_PROJECTILE ? colA : colB;
+      const hzCol = colA.layer === COLLISION_LAYERS.HAZARD ? colA : colB;
+      const proj = pCol.entity;
+      const hazard = hzCol.entity;
+
+      if (!proj.active || !hazard.active) return;
+
+      const hitResult = CollisionSystem.testSegmentCircle(
+        proj.prevX, proj.prevY,
+        proj.x, proj.y,
+        hzCol.x, hzCol.y,
+        hzCol.radius,
+        proj.radius,
+        this._hit
+      );
+
+      if (hitResult.hit) {
+        this.stats.hitsThisFrame++;
+        this.stats.totalHits++;
+
+        if (gameEngine && typeof gameEngine.recordShotHit === 'function') {
+          gameEngine.recordShotHit(1);
+        }
+
+        // Destructible hazards expose a numeric hull; solid ones just stop fire.
+        if (typeof hazard.hull === 'number' && hazard.hull > 0) {
+          const damage = proj.damage || 15;
+          if (typeof hazard.applyDamage === 'function') {
+            hazard.applyDamage(damage, gameEngine);
+          } else {
+            hazard.hull = Math.max(0, hazard.hull - damage);
+          }
+          if (hazard.hull <= 0) {
+            hazard.active = false;
+            if (hazard.scoreValue) {
+              if (gameEngine && typeof gameEngine.addScore === 'function') gameEngine.addScore(hazard.scoreValue);
+              else if (gameEngine) gameEngine.score += hazard.scoreValue;
+            }
+          }
+        }
+
+        if (gameEngine.projectiles) {
+          gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#ffb703', 8);
+        }
+        this._recordContact(hitResult.hitX, hitResult.hitY, '#ffb703');
+
+        // Hazards stop non-penetrating ordnance (Orbital pierces continuously)
+        if (proj.type !== 'ORBITAL') {
+          proj.hitsRemaining = (proj.hitsRemaining > 0 ? proj.hitsRemaining : 1) - 1;
+          if (proj.hitsRemaining <= 0) {
+            proj.active = false;
+            pCol.active = false;
+          }
+        }
+      }
+      return;
+    }
+
+    // ── CASE 6: Player Drone vs Environmental Hazard (contact) ──
+    if (
+      (colA.layer === COLLISION_LAYERS.PLAYER && colB.layer === COLLISION_LAYERS.HAZARD) ||
+      (colB.layer === COLLISION_LAYERS.PLAYER && colA.layer === COLLISION_LAYERS.HAZARD)
+    ) {
+      const playerCol = colA.layer === COLLISION_LAYERS.PLAYER ? colA : colB;
+      const hzCol = colA.layer === COLLISION_LAYERS.HAZARD ? colA : colB;
+      const player = playerCol.entity;
+      const hazard = hzCol.entity;
+
+      if (player.invulnerableTimer > 0 || !hazard.active) return;
+
+      const hitResult = CollisionSystem.testCircleCircle(
+        playerCol.x, playerCol.y, playerCol.radius,
+        hzCol.x, hzCol.y, hzCol.radius,
+        this._hit
+      );
+
+      if (hitResult.hit) {
+        this.stats.hitsThisFrame++;
+        this.stats.totalHits++;
+
+        const hzDamage = hazard.contactDamage || 15;
+        player.applyDamage(hzDamage);
+        if (gameEngine && typeof gameEngine.recordDamageTaken === 'function') {
+          gameEngine.recordDamageTaken(hzDamage);
+        }
+        gameEngine.addCameraShake(6);
+
+        if (gameEngine.projectiles) {
+          gameEngine.projectiles.spawnHitSparks(hitResult.hitX, hitResult.hitY, '#ffb703', 10);
+        }
+        this._recordContact(hitResult.hitX, hitResult.hitY, '#ffb703', hitResult.nx, hitResult.ny);
       }
       return;
     }
